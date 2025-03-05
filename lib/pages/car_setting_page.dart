@@ -1084,19 +1084,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Row(
               children: [
                 Expanded(
-                  child: TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'アッパーアーム スペーサー (mm)',
-                      border: OutlineInputBorder(),
-                    ),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    initialValue:
-                        settings['rearUpperArmSpacer']?.toString() ?? '0.0',
-                    onChanged: (value) {
-                      settings['rearUpperArmSpacer'] =
-                          double.tryParse(value) ?? 0.0;
-                    },
+                  child: Text(
+                    'アッパーアームスペーサー',
+                    style: TextStyle(fontSize: 12),
                   ),
                 ),
               ],
@@ -1107,7 +1097,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                 Expanded(
                   child: TextFormField(
                     decoration: const InputDecoration(
-                      labelText: 'アッパーアーム内側スペーサー (mm)',
+                      labelText: '内側 (mm)',
                       border: OutlineInputBorder(),
                     ),
                     keyboardType:
@@ -1125,7 +1115,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                 Expanded(
                   child: TextFormField(
                     decoration: const InputDecoration(
-                      labelText: 'アッパーアーム外側スペーサー (mm)',
+                      labelText: '外側 (mm)',
                       border: OutlineInputBorder(),
                     ),
                     keyboardType:
@@ -1220,7 +1210,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
             const SizedBox(height: 16),
             Row(
               children: [
-                const Text('ディファレンシャル位置: '),
+                const Text('デフ位置: '),
                 const SizedBox(width: 8),
                 ToggleButtons(
                   isSelected: [
@@ -1236,10 +1226,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
                   children: const [
                     Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text('High')),
+                        child: Text('高')),
                     Padding(
                         padding: EdgeInsets.symmetric(horizontal: 16),
-                        child: Text('Low')),
+                        child: Text('低')),
                   ],
                 ),
               ],
@@ -1248,12 +1238,19 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Row(
               children: [
                 Expanded(
-                  child: TextFormField(
+                  child: DropdownButtonFormField<String>(
                     decoration: const InputDecoration(
                       labelText: 'サスマウント前',
                       border: OutlineInputBorder(),
                     ),
-                    initialValue: settings['rearSusMountFront'],
+                    value: settings['rearSusMountFront'].isEmpty
+                        ? null
+                        : settings['rearSusMountFront'],
+                    items: const [
+                      DropdownMenuItem(value: 'XB', child: Text('XB')),
+                      DropdownMenuItem(value: 'A', child: Text('A')),
+                      DropdownMenuItem(value: 'E', child: Text('E')),
+                    ],
                     onChanged: (value) {
                       settings['rearSusMountFront'] = value;
                     },
@@ -1261,12 +1258,19 @@ class _CarSettingPageState extends State<CarSettingPage> {
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: TextFormField(
+                  child: DropdownButtonFormField<String>(
                     decoration: const InputDecoration(
                       labelText: 'サスマウント後',
                       border: OutlineInputBorder(),
                     ),
-                    initialValue: settings['rearSusMountRear'],
+                    value: settings['rearSusMountRear'].isEmpty
+                        ? null
+                        : settings['rearSusMountRear'],
+                    items: const [
+                      DropdownMenuItem(value: 'XB', child: Text('XB')),
+                      DropdownMenuItem(value: 'A', child: Text('A')),
+                      DropdownMenuItem(value: 'E', child: Text('E')),
+                    ],
                     onChanged: (value) {
                       settings['rearSusMountRear'] = value;
                     },
@@ -1298,12 +1302,20 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Row(
               children: [
                 Expanded(
-                  child: TextFormField(
+                  child: DropdownButtonFormField<String>(
                     decoration: const InputDecoration(
-                      labelText: 'ドライブ',
+                      labelText: 'デフ種類',
                       border: OutlineInputBorder(),
                     ),
-                    initialValue: settings['rearDrive'],
+                    value: settings['rearDrive'].isEmpty
+                        ? null
+                        : settings['rearDrive'],
+                    items: const [
+                      DropdownMenuItem(value: 'スプール', child: Text('スプール')),
+                      DropdownMenuItem(value: 'ギアデフ', child: Text('ギアデフ')),
+                      DropdownMenuItem(value: 'ボールデフ', child: Text('ボールデフ')),
+                      DropdownMenuItem(value: 'ワンウェイ', child: Text('ワンウェイ')),
+                    ],
                     onChanged: (value) {
                       settings['rearDrive'] = value;
                     },
@@ -1313,7 +1325,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                 Expanded(
                   child: TextFormField(
                     decoration: const InputDecoration(
-                      labelText: 'ディファレンシャルオイル',
+                      labelText: 'デフオイル',
                       border: OutlineInputBorder(),
                     ),
                     initialValue: settings['rearDifferentialOil'],
@@ -1327,18 +1339,38 @@ class _CarSettingPageState extends State<CarSettingPage> {
             const SizedBox(height: 16),
             Row(
               children: [
-                Expanded(
-                  child: TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'ダンパーポジション',
-                      border: OutlineInputBorder(),
+                const Text('ダンパーポジション：'),
+                const SizedBox(width: 8),
+                const Text('内'),
+                const SizedBox(width: 8),
+                ToggleButtons(
+                  isSelected: [
+                    settings['rearDumperPosition'] == 1,
+                    settings['rearDumperPosition'] == 2,
+                    settings['rearDumperPosition'] == 3,
+                  ],
+                  onPressed: (index) {
+                    setState(() {
+                      settings['rearDumperPosition'] = index + 1;
+                    });
+                  },
+                  children: const [
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text('1'),
                     ),
-                    initialValue: settings['rearDumperPosition'],
-                    onChanged: (value) {
-                      settings['rearDumperPosition'] = value;
-                    },
-                  ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text('2'),
+                    ),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16),
+                      child: Text('3'),
+                    ),
+                  ],
                 ),
+                const SizedBox(width: 12),
+                const Text('外'),
               ],
             ),
             const SizedBox(height: 16),
@@ -1348,23 +1380,42 @@ class _CarSettingPageState extends State<CarSettingPage> {
                 const SizedBox(height: 8),
                 Row(
                   children: [
+                    Text(
+                      'ダンパーオフセット (mm)',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
                     Expanded(
                       child: TextFormField(
                         decoration: const InputDecoration(
-                          labelText: 'ダンパーオフセット (mm)',
+                          labelText: 'ステー (mm)',
                           border: OutlineInputBorder(),
                         ),
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
                         initialValue:
-                            settings['rearDamperOffset']?.toString() ?? '0.0',
-                        onChanged: (value) {
-                          settings['rearDamperOffset'] =
-                              double.tryParse(value) ?? 0.0;
-                        },
+                            settings['rearDamperOffsetStay']?.toString() ??
+                                '0.0',
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    decoration: const InputDecoration(
+                      labelText: 'サスアーム (mm)',
+                      border: OutlineInputBorder(),
+                    ),
+                    initialValue:
+                        settings['rearDamperOffsetArm']?.toString() ?? '0.0',
+                    onChanged: (value) {
+                      settings['rearDamperOffsetArm'] =
+                          double.tryParse(value) ?? 0.0;
+                    },
+                  ),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -1385,7 +1436,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                     Expanded(
                       child: TextFormField(
                         decoration: const InputDecoration(
-                          labelText: 'ダンパーオイルシール',
+                          labelText: 'オイルシール',
                           border: OutlineInputBorder(),
                         ),
                         initialValue: settings['rearDumperOilSeal'],
@@ -1415,7 +1466,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                     Expanded(
                       child: TextFormField(
                         decoration: const InputDecoration(
-                          labelText: 'ピストンホール',
+                          labelText: 'ピストン穴数',
                           border: OutlineInputBorder(),
                         ),
                         initialValue: settings['rearDumperPistonHole'],
@@ -1462,7 +1513,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                     Expanded(
                       child: TextFormField(
                         decoration: const InputDecoration(
-                          labelText: 'ストローク',
+                          labelText: 'ストローク長',
                           border: OutlineInputBorder(),
                         ),
                         initialValue: settings['rearDumperStroke'],
@@ -1475,7 +1526,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                     Expanded(
                       child: TextFormField(
                         decoration: const InputDecoration(
-                          labelText: 'エアホール',
+                          labelText: 'エア抜き穴(mm)',
                           border: OutlineInputBorder(),
                         ),
                         initialValue: settings['rearDumperAirHole'],
