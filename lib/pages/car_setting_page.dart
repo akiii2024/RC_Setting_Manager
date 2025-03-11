@@ -2144,17 +2144,18 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   void _showSaveDialog(BuildContext context) {
-    if (_isEditing) {
-      _settingNameController.text = widget.settingName ?? '';
-    } else {
-      _settingNameController.text = '${widget.originalCar.name}のセッティング';
-    }
+    // 日付フォーマット（yyyy-mm-dd）の文字列を作成
+    final now = DateTime.now();
+    final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    
+    // デフォルト名を「マシン名-yyyy-mm-dd」の形式に設定
+    _settingNameController.text = '${widget.originalCar.name}-$dateStr';
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(_isEditing ? 'セッティングを更新' : 'セッティングを保存'),
+          title: const Text('セッティングを保存'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -2184,27 +2185,14 @@ class _CarSettingPageState extends State<CarSettingPage> {
                   return;
                 }
 
-                if (_isEditing && widget.savedSettingId != null) {
-                  // 既存の設定を更新
-                  final updatedSetting = SavedSetting(
-                    id: widget.savedSettingId!,
-                    name: settingName,
-                    createdAt: DateTime.now(),
-                    car: widget.originalCar,
-                    settings: settings,
-                  );
-                  Provider.of<SettingsProvider>(context, listen: false)
-                      .updateSetting(updatedSetting);
-                } else {
-                  // 新しい設定を保存
-                  Provider.of<SettingsProvider>(context, listen: false)
-                      .addSetting(settingName, widget.originalCar, settings);
-                }
+                // 常に新しい設定として保存する
+                Provider.of<SettingsProvider>(context, listen: false)
+                    .addSetting(settingName, widget.originalCar, settings);
 
                 Navigator.of(context).pop();
                 Navigator.of(context).pop();
               },
-              child: Text(_isEditing ? '更新' : '保存'),
+              child: const Text('保存'),
             ),
           ],
         );
