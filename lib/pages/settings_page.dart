@@ -115,13 +115,17 @@ class _SettingsPageState extends State<SettingsPage> {
   void _showAboutDialog() {
     showAboutDialog(
       context: context,
-      applicationName: 'ラジコンセッティング',
-      applicationVersion: '1.0.0',
-      applicationIcon: const FlutterLogo(size: 48),
+      applicationName: 'Rc Setting Manager',
+      applicationVersion: '0.0.1',
+      applicationIcon: Image.asset(
+        'assets/launcher_icon/ios_icon.png',
+        width: 48,
+        height: 48,
+      ),
       children: [
         const Text('ラジコンのセッティングを管理するためのアプリです。'),
         const SizedBox(height: 16),
-        const Text('© 2023 ラジコンセッティングアプリ'),
+        const Text('© 2025 Akihisa Iwata'),
       ],
     );
   }

@@ -468,12 +468,13 @@ class _CarSettingPageState extends State<CarSettingPage> {
           ],
         ),
         const SizedBox(height: 16),
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             const Text('ダンパーポジション: '),
-            const SizedBox(width: 8),
             const Text('内側'),
-            const SizedBox(width: 8),
             ToggleButtons(
               isSelected: List.generate(
                 3,
@@ -496,7 +497,6 @@ class _CarSettingPageState extends State<CarSettingPage> {
                     child: Text('3')),
               ],
             ),
-            const SizedBox(width: 12),
             const Text('外側'),
           ],
         ),
@@ -803,12 +803,13 @@ class _CarSettingPageState extends State<CarSettingPage> {
               ],
             ),
             const SizedBox(height: 16),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 const Text('ダンパーポジション: '),
-                const SizedBox(width: 8),
                 const Text('内'),
-                const SizedBox(width: 8),
                 ToggleButtons(
                   isSelected: [
                     settings['frontDumperPosition'] == 1,
@@ -832,7 +833,6 @@ class _CarSettingPageState extends State<CarSettingPage> {
                         child: Text('3')),
                   ],
                 ),
-                const SizedBox(width: 12),
                 const Text('外'),
               ],
             ),
@@ -1075,12 +1075,13 @@ class _CarSettingPageState extends State<CarSettingPage> {
           ],
         ),
         const SizedBox(height: 16),
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             const Text('ダンパーポジション: '),
-            const SizedBox(width: 8),
             const Text('内側'),
-            const SizedBox(width: 8),
             ToggleButtons(
               isSelected: List.generate(
                 3,
@@ -1103,7 +1104,6 @@ class _CarSettingPageState extends State<CarSettingPage> {
                     child: Text('3')),
               ],
             ),
-            const SizedBox(width: 12),
             const Text('外側'),
           ],
         ),
@@ -1409,12 +1409,13 @@ class _CarSettingPageState extends State<CarSettingPage> {
               ],
             ),
             const SizedBox(height: 16),
-            Row(
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 const Text('ダンパーポジション：'),
-                const SizedBox(width: 8),
                 const Text('内'),
-                const SizedBox(width: 8),
                 ToggleButtons(
                   isSelected: [
                     settings['rearDumperPosition'] == 1,
@@ -1441,7 +1442,6 @@ class _CarSettingPageState extends State<CarSettingPage> {
                     ),
                   ],
                 ),
-                const SizedBox(width: 12),
                 const Text('外'),
               ],
             ),
