@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
 import '../models/car.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import '../providers/settings_provider.dart';
+import 'package:provider/provider.dart';
+import '../models/saved_setting.dart';
 
 class CarSettingPage extends StatefulWidget {
   final Car originalCar;
+  final Map<String, dynamic>? savedSettings;
+  final String? settingName;
+  final String? savedSettingId;
 
-  const CarSettingPage({super.key, required this.originalCar});
+  const CarSettingPage({
+    super.key, 
+    required this.originalCar, 
+    this.savedSettings, 
+    this.settingName,
+    this.savedSettingId,
+  });
 
   @override
   State<CarSettingPage> createState() => _CarSettingPageState();
@@ -13,142 +27,181 @@ class CarSettingPage extends StatefulWidget {
 class _CarSettingPageState extends State<CarSettingPage> {
   late String carName;
   late Map<String, dynamic> settings;
+  bool _isLoading = true;
+  final TextEditingController _settingNameController = TextEditingController();
+  bool _isEditing = false;
 
   @override
   void initState() {
     super.initState();
     carName = widget.originalCar.name;
-    // 初期設定値を設定
-    settings = widget.originalCar.settings ??
-        {
-          // 基本情報
-          'date': DateTime.now(),
-          'track': '',
-          'surface': '',
-          'airTemp': 0,
-          'humidity': 0,
-          'trackTemp': 0,
-          'condition': '',
+    
+    // 保存済み設定がある場合はそれを使用
+    if (widget.savedSettings != null) {
+      settings = Map<String, dynamic>.from(widget.savedSettings!);
+      _isEditing = widget.savedSettingId != null;
+      if (widget.settingName != null) {
+        _settingNameController.text = widget.settingName!;
+      }
+    } else {
+      // 初期値を設定
+      settings = widget.originalCar.settings ?? {
+        // 基本情報
+        'date': DateTime.now().toIso8601String(),
+        'track': '',
+        'surface': '',
+        'airTemp': 0,
+        'humidity': 0,
+        'trackTemp': 0,
+        'condition': '',
 
-          // フロント設定
-          'frontCamber': 0.0,
-          'frontRideHeight': 0.0,
-          'frontDamperPosition': 1,
-          'frontSpring': '',
-          'frontToe': 0.0,
+        // フロント設定
+        'frontCamber': 0.0,
+        'frontRideHeight': 0.0,
+        'frontDamperPosition': 1,
+        'frontSpring': '',
+        'frontToe': 0.0,
 
-          // フロント詳細設定
-          'frontUpperArmSpacer': 0.0,
-          'frontUpperArmSpacerInside': 0.0,
-          'frontUpperArmSpacerOutside': 0.0,
-          'frontLowerArmSpacer': 0.0,
-          'frontWheelHub': 0.0,
-          'frontWheelHubSpacer': 0.0,
-          'frontDroop': 0.0,
-          'frontDiffarentialPosition': 'low',
-          'frontSusMountFront': '',
-          'frontSusMountRear': '',
-          'frontSusMountFrontShaftPosition': '2,2',
-          'frontSusMountRearShaftPosition': '2,2',
-          'frontCasterAngle': 0.0,
-          'frontStabilizer': '',
-          'frontDrive': '',
-          'frontDifferentialOil': '',
-          'frontDumperPosition': '',
+        // フロント詳細設定
+        'frontUpperArmSpacer': 0.0,
+        'frontUpperArmSpacerInside': 0.0,
+        'frontUpperArmSpacerOutside': 0.0,
+        'frontLowerArmSpacer': 0.0,
+        'frontWheelHub': 0.0,
+        'frontWheelHubSpacer': 0.0,
+        'frontDroop': 0.0,
+        'frontDiffarentialPosition': 'low',
+        'frontSusMountFront': '',
+        'frontSusMountRear': '',
+        'frontSusMountFrontShaftPosition': '2,2',
+        'frontSusMountRearShaftPosition': '2,2',
+        'frontCasterAngle': 0.0,
+        'frontStabilizer': '',
+        'frontDrive': '',
+        'frontDifferentialOil': '',
+        'frontDumperPosition': '',
 
-          //フロントダンパー設定
-          'frontDamperOffsetStay': 0.0,
-          'frontDamperOffsetArm': 0.0,
-          'frontDumperType': '',
-          'frontDumperOilSeal': '',
-          'frontDumperPistonSize': '',
-          'frontDumperPistonHole': '',
-          'frontDumperOilHardness': '',
-          'frontDumperOilName': '',
-          'frontDumperStroke': '',
-          'frontDumperAirHole': '',
+        //フロントダンパー設定
+        'frontDamperOffsetStay': 0.0,
+        'frontDamperOffsetArm': 0.0,
+        'frontDumperType': '',
+        'frontDumperOilSeal': '',
+        'frontDumperPistonSize': '',
+        'frontDumperPistonHole': '',
+        'frontDumperOilHardness': '',
+        'frontDumperOilName': '',
+        'frontDumperStroke': '',
+        'frontDumperAirHole': '',
 
-          // リア設定
-          'rearCamber': 0.0,
-          'rearRideHeight': 0.0,
-          'rearDamperPosition': 1,
-          'rearSpring': '',
-          'rearToe': 0.0,
+        // リア設定
+        'rearCamber': 0.0,
+        'rearRideHeight': 0.0,
+        'rearDamperPosition': 1,
+        'rearSpring': '',
+        'rearToe': 0.0,
 
-          // リア詳細設定
-          'rearUpperArmSpacer': 0.0,
-          'rearUpperArmSpacerInside': 0.0,
-          'rearUpperArmSpacerOutside': 0.0,
-          'rearLowerArmSpacer': 0.0,
-          'rearWheelHub': 0.0,
-          'rearWheelHubSpacer': 0.0,
-          'rearDroop': 0.0,
-          'rearDiffarentialPosition': 'low',
-          'rearSusMountFront': '',
-          'rearSusMountRear': '',
-          'rearSusMountFrontShaftPosition': '2,2',
-          'rearSusMountRearShaftPosition': '2,2',
-          'rearStabilizer': '',
-          'rearDrive': '',
-          'rearDifferentialOil': '',
-          'rearDumperPosition': 1,
+        // リア詳細設定
+        'rearUpperArmSpacer': 0.0,
+        'rearUpperArmSpacerInside': 0.0,
+        'rearUpperArmSpacerOutside': 0.0,
+        'rearLowerArmSpacer': 0.0,
+        'rearWheelHub': 0.0,
+        'rearWheelHubSpacer': 0.0,
+        'rearDroop': 0.0,
+        'rearDiffarentialPosition': 'low',
+        'rearSusMountFront': '',
+        'rearSusMountRear': '',
+        'rearSusMountFrontShaftPosition': '2,2',
+        'rearSusMountRearShaftPosition': '2,2',
+        'rearStabilizer': '',
+        'rearDrive': '',
+        'rearDifferentialOil': '',
+        'rearDumperPosition': 1,
 
-          // リアダンパー設定
-          'rearDamperOffsetStay': 0.0,
-          'rearDamperOffsetArm': 0.0,
-          'rearDumperType': '',
-          'rearDumperOilSeal': '',
-          'rearDumperPistonSize': '',
-          'rearDumperPistonHole': '',
-          'rearDumperOilHardness': '',
-          'rearDumperOilName': '',
-          'rearDumperStroke': '',
-          'rearDumperAirHole': '',
+        // リアダンパー設定
+        'rearDamperOffsetStay': 0.0,
+        'rearDamperOffsetArm': 0.0,
+        'rearDumperType': '',
+        'rearDumperOilSeal': '',
+        'rearDumperPistonSize': '',
+        'rearDumperPistonHole': '',
+        'rearDumperOilHardness': '',
+        'rearDumperOilName': '',
+        'rearDumperStroke': '',
+        'rearDumperAirHole': '',
 
-          // トップ設定
-          'upperDeckScrewPosition': '',
-          'upperDeckflexType': '',
-          'ballastFrontRight': 0.0,
-          'ballastFrontLeft': 0.0,
-          'ballastMiddle': 0.0,
-          'ballastBattery': 0.0,
+        // トップ設定
+        'upperDeckScrewPosition': '',
+        'upperDeckflexType': '',
+        'ballastFrontRight': 0.0,
+        'ballastFrontLeft': 0.0,
+        'ballastMiddle': 0.0,
+        'ballastBattery': 0.0,
 
-          //トップ詳細設定
-          'knucklearmType': '',
-          'kuncklearmUprightSpacer': 0.0,
-          'steeringPivot': '',
-          'steeringSpacer': 0.0,
-          'frontSuspensionArmSpacer': 0.0,
-          'rearSuspensionType': '',
-          'rearSuspensionArmSpacer': 0.0,
-          'lowerDeckThickness': 0.0,
-          'lowerDeckMaterial': '',
+        //トップ詳細設定
+        'knucklearmType': '',
+        'kuncklearmUprightSpacer': 0.0,
+        'steeringPivot': '',
+        'steeringSpacer': 0.0,
+        'frontSuspensionArmSpacer': 0.0,
+        'rearSuspensionType': '',
+        'rearSuspensionArmSpacer': 0.0,
+        'lowerDeckThickness': 0.0,
+        'lowerDeckMaterial': '',
 
-          //その他設定
-          'motor': '',
-          'spurGear': '',
-          'pinionGear': '',
-          'battery': '',
-          'body': '',
-          'bodyWeight': 0.0,
-          'frontBodyMountHolePosition': '',
-          'rearBodyMountHolePosition': '',
-          'wing': '',
-          'tire': '',
-          'wheel': '',
-          'tireInsert': '',
-        };
+        //その他設定
+        'motor': '',
+        'spurGear': '',
+        'pinionGear': '',
+        'battery': '',
+        'body': '',
+        'bodyWeight': 0.0,
+        'frontBodyMountHolePosition': '',
+        'rearBodyMountHolePosition': '',
+        'wing': '',
+        'tire': '',
+        'wheel': '',
+        'tireInsert': '',
+      };
+    }
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String? savedSettings = prefs.getString('car_settings_${widget.originalCar.name}');
+    
+    if (savedSettings != null) {
+      setState(() {
+        settings = json.decode(savedSettings);
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('$carName セッティング'),
+        title: Text('$carName のセッティング'),
         actions: [
           IconButton(
             icon: const Icon(Icons.save),
-            onPressed: _saveSettings,
+            onPressed: () {
+              _showSaveDialog(context);
+            },
           ),
         ],
       ),
@@ -181,142 +234,161 @@ class _CarSettingPageState extends State<CarSettingPage> {
         const Text('基本情報',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: '日付',
-                  border: OutlineInputBorder(),
+        if (settings.containsKey('date') || settings.containsKey('track'))
+          Row(
+            children: [
+              if (settings.containsKey('date'))
+                Expanded(
+                  child: TextFormField(
+                    decoration: const InputDecoration(
+                      labelText: '日付',
+                      border: OutlineInputBorder(),
+                    ),
+                    initialValue: settings['date'] != null
+                        ? DateTime.parse(settings['date']).toString().split(' ')[0].replaceAll('-', '/')
+                        : DateTime.now().toString().split(' ')[0].replaceAll('-', '/'),
+                    readOnly: true,
+                    onTap: () async {
+                      final DateTime? picked = await showDatePicker(
+                        context: context,
+                        initialDate: settings['date'] != null
+                            ? DateTime.parse(settings['date'])
+                            : DateTime.now(),
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          settings['date'] = picked.toIso8601String();
+                        });
+                      }
+                    },
+                  ),
                 ),
-                initialValue:
-                    '${settings['date'].year}/${settings['date'].month}/${settings['date'].day}',
-                readOnly: true,
-                onTap: () async {
-                  final DateTime? picked = await showDatePicker(
-                    context: context,
-                    initialDate: settings['date'],
-                    firstDate: DateTime(2000),
-                    lastDate: DateTime(2100),
-                  );
-                  if (picked != null) {
-                    setState(() {
-                      settings['date'] = picked;
-                    });
-                  }
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'トラック',
-                  border: OutlineInputBorder(),
+              if (settings.containsKey('date') && settings.containsKey('track'))
+                const SizedBox(width: 16),
+              if (settings.containsKey('track'))
+                Expanded(
+                  child: TextFormField(
+                    decoration: const InputDecoration(
+                      labelText: 'トラック',
+                      border: OutlineInputBorder(),
+                    ),
+                    initialValue: settings['track'],
+                    onChanged: (value) {
+                      settings['track'] = value;
+                    },
+                  ),
                 ),
-                initialValue: settings['track'],
-                onChanged: (value) {
-                  settings['track'] = value;
-                },
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  labelText: '路面',
-                  border: OutlineInputBorder(),
+            ],
+          ),
+        if (settings.containsKey('date') || settings.containsKey('track'))
+          const SizedBox(height: 16),
+        if (settings.containsKey('surface') || settings.containsKey('condition'))
+          Row(
+            children: [
+              if (settings.containsKey('surface'))
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: '路面',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: settings['surface'].isEmpty ? null : settings['surface'],
+                    items: const [
+                      DropdownMenuItem(value: 'アスファルト', child: Text('アスファルト')),
+                      DropdownMenuItem(value: 'カーペット', child: Text('カーペット')),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        settings['surface'] = value!;
+                      });
+                    },
+                  ),
                 ),
-                value: settings['surface'].isEmpty ? null : settings['surface'],
-                items: const [
-                  DropdownMenuItem(value: 'アスファルト', child: Text('アスファルト')),
-                  DropdownMenuItem(value: 'カーペット', child: Text('カーペット')),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    settings['surface'] = value!;
-                  });
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                decoration: const InputDecoration(
-                  labelText: 'コンディション',
-                  border: OutlineInputBorder(),
+              if (settings.containsKey('surface') && settings.containsKey('condition'))
+                const SizedBox(width: 16),
+              if (settings.containsKey('condition'))
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      labelText: 'コンディション',
+                      border: OutlineInputBorder(),
+                    ),
+                    value: settings['condition'].isEmpty
+                        ? null
+                        : settings['condition'],
+                    items: const [
+                      DropdownMenuItem(value: '非常に良い', child: Text('非常に良い')),
+                      DropdownMenuItem(value: '良い', child: Text('良い')),
+                      DropdownMenuItem(value: '少し良い', child: Text('少し良い')),
+                      DropdownMenuItem(value: '普通', child: Text('普通')),
+                      DropdownMenuItem(value: '少し悪い', child: Text('少し悪い')),
+                      DropdownMenuItem(value: '悪い', child: Text('悪い')),
+                      DropdownMenuItem(value: '非常に悪い', child: Text('非常に悪い')),
+                    ],
+                    onChanged: (value) {
+                      setState(() {
+                        settings['condition'] = value!;
+                      });
+                    },
+                  ),
                 ),
-                value: settings['condition'].isEmpty
-                    ? null
-                    : settings['condition'],
-                items: const [
-                  DropdownMenuItem(value: '非常に良い', child: Text('非常に良い')),
-                  DropdownMenuItem(value: '良い', child: Text('良い')),
-                  DropdownMenuItem(value: '少し良い', child: Text('少し良い')),
-                  DropdownMenuItem(value: '普通', child: Text('普通')),
-                  DropdownMenuItem(value: '少し悪い', child: Text('少し悪い')),
-                  DropdownMenuItem(value: '悪い', child: Text('悪い')),
-                  DropdownMenuItem(value: '非常に悪い', child: Text('非常に悪い')),
-                ],
-                onChanged: (value) {
-                  setState(() {
-                    settings['condition'] = value!;
-                  });
-                },
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: '気温 (°C)',
-                  border: OutlineInputBorder(),
+            ],
+          ),
+        if (settings.containsKey('surface') || settings.containsKey('condition'))
+          const SizedBox(height: 16),
+        if (settings.containsKey('airTemp') || settings.containsKey('humidity') || settings.containsKey('trackTemp'))
+          Row(
+            children: [
+              if (settings.containsKey('airTemp'))
+                Expanded(
+                  child: TextFormField(
+                    decoration: const InputDecoration(
+                      labelText: '気温 (°C)',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                    initialValue: settings['airTemp'].toString(),
+                    onChanged: (value) {
+                      settings['airTemp'] = int.tryParse(value) ?? 0;
+                    },
+                  ),
                 ),
-                keyboardType: TextInputType.number,
-                initialValue: settings['airTemp'].toString(),
-                onChanged: (value) {
-                  settings['airTemp'] = int.tryParse(value) ?? 0;
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: '湿度 (%)',
-                  border: OutlineInputBorder(),
+              if (settings.containsKey('airTemp') && (settings.containsKey('humidity') || settings.containsKey('trackTemp')))
+                const SizedBox(width: 16),
+              if (settings.containsKey('humidity'))
+                Expanded(
+                  child: TextFormField(
+                    decoration: const InputDecoration(
+                      labelText: '湿度 (%)',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                    initialValue: settings['humidity'].toString(),
+                    onChanged: (value) {
+                      settings['humidity'] = int.tryParse(value) ?? 0;
+                    },
+                  ),
                 ),
-                keyboardType: TextInputType.number,
-                initialValue: settings['humidity'].toString(),
-                onChanged: (value) {
-                  settings['humidity'] = int.tryParse(value) ?? 0;
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: '路面温度 (°C)',
-                  border: OutlineInputBorder(),
+              if (settings.containsKey('humidity') && settings.containsKey('trackTemp'))
+                const SizedBox(width: 16),
+              if (settings.containsKey('trackTemp'))
+                Expanded(
+                  child: TextFormField(
+                    decoration: const InputDecoration(
+                      labelText: '路面温度 (°C)',
+                      border: OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.number,
+                    initialValue: settings['trackTemp'].toString(),
+                    onChanged: (value) {
+                      settings['trackTemp'] = int.tryParse(value) ?? 0;
+                    },
+                  ),
                 ),
-                keyboardType: TextInputType.number,
-                initialValue: settings['trackTemp'].toString(),
-                onChanged: (value) {
-                  settings['trackTemp'] = int.tryParse(value) ?? 0;
-                },
-              ),
-            ),
-          ],
-        ),
+            ],
+          ),
       ],
     );
   }
@@ -1398,6 +1470,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
                         initialValue:
                             settings['rearDamperOffsetStay']?.toString() ??
                                 '0.0',
+                        onChanged: (value) {
+                          settings['rearDamperOffsetStay'] =
+                              double.tryParse(value) ?? 0.0;
+                        },
                       ),
                     ),
                   ],
@@ -1882,11 +1958,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                 },
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
+            const SizedBox(width: 16),
             Expanded(
               child: TextFormField(
                 decoration: const InputDecoration(
@@ -1899,7 +1971,11 @@ class _CarSettingPageState extends State<CarSettingPage> {
                 },
               ),
             ),
-            const SizedBox(width: 16),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
             Expanded(
               child: TextFormField(
                 decoration: const InputDecoration(
@@ -1914,11 +1990,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                 },
               ),
             ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
+            const SizedBox(width: 16),
             Expanded(
               child: TextFormField(
                 decoration: const InputDecoration(
@@ -1928,19 +2000,6 @@ class _CarSettingPageState extends State<CarSettingPage> {
                 initialValue: settings['frontBodyMountHolePosition'],
                 onChanged: (value) {
                   settings['frontBodyMountHolePosition'] = value;
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'リアボディマウントホール位置',
-                  border: OutlineInputBorder(),
-                ),
-                initialValue: settings['rearBodyMountHolePosition'],
-                onChanged: (value) {
-                  settings['rearBodyMountHolePosition'] = value;
                 },
               ),
             ),
@@ -2084,16 +2143,72 @@ class _CarSettingPageState extends State<CarSettingPage> {
     );
   }
 
-  void _saveSettings() {
-    // セッティングを保存
-    widget.originalCar.settings = settings;
+  void _showSaveDialog(BuildContext context) {
+    if (_isEditing) {
+      _settingNameController.text = widget.settingName ?? '';
+    } else {
+      _settingNameController.text = '${widget.originalCar.name}のセッティング';
+    }
 
-    // 保存完了メッセージ
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('セッティングを保存しました')),
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(_isEditing ? 'セッティングを更新' : 'セッティングを保存'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: _settingNameController,
+                decoration: const InputDecoration(
+                  labelText: 'セッティング名',
+                  hintText: 'セッティング名を入力してください',
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('キャンセル'),
+            ),
+            TextButton(
+              onPressed: () {
+                final settingName = _settingNameController.text.trim();
+                if (settingName.isEmpty) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('セッティング名を入力してください')),
+                  );
+                  return;
+                }
+
+                if (_isEditing && widget.savedSettingId != null) {
+                  // 既存の設定を更新
+                  final updatedSetting = SavedSetting(
+                    id: widget.savedSettingId!,
+                    name: settingName,
+                    createdAt: DateTime.now(),
+                    car: widget.originalCar,
+                    settings: settings,
+                  );
+                  Provider.of<SettingsProvider>(context, listen: false)
+                      .updateSetting(updatedSetting);
+                } else {
+                  // 新しい設定を保存
+                  Provider.of<SettingsProvider>(context, listen: false)
+                      .addSetting(settingName, widget.originalCar, settings);
+                }
+
+                Navigator.of(context).pop();
+                Navigator.of(context).pop();
+              },
+              child: Text(_isEditing ? '更新' : '保存'),
+            ),
+          ],
+        );
+      },
     );
-
-    // 前の画面に戻る
-    Navigator.pop(context);
   }
 }

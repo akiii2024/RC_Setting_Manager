@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/theme_provider.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -8,12 +10,13 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _darkMode = false;
   bool _autoSave = true;
   String _selectedLanguage = '日本語';
 
   @override
   Widget build(BuildContext context) {
+    final themeProvider = Provider.of<ThemeProvider>(context);
+    
     return Scaffold(
       appBar: AppBar(
         title: const Text('設定'),
@@ -23,11 +26,9 @@ class _SettingsPageState extends State<SettingsPage> {
           SwitchListTile(
             title: const Text('ダークモード'),
             subtitle: const Text('アプリの外観を暗くします'),
-            value: _darkMode,
+            value: themeProvider.isDarkMode,
             onChanged: (bool value) {
-              setState(() {
-                _darkMode = value;
-              });
+              themeProvider.toggleTheme();
             },
           ),
           SwitchListTile(
@@ -81,28 +82,31 @@ class _SettingsPageState extends State<SettingsPage> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return SimpleDialog(
+        return AlertDialog(
           title: const Text('言語を選択'),
-          children: [
-            SimpleDialogOption(
-              onPressed: () {
-                setState(() {
-                  _selectedLanguage = '日本語';
-                });
-                Navigator.pop(context);
-              },
-              child: const Text('日本語'),
-            ),
-            SimpleDialogOption(
-              onPressed: () {
-                setState(() {
-                  _selectedLanguage = 'English';
-                });
-                Navigator.pop(context);
-              },
-              child: const Text('English'),
-            ),
-          ],
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: const Text('日本語'),
+                onTap: () {
+                  setState(() {
+                    _selectedLanguage = '日本語';
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+              ListTile(
+                title: const Text('English'),
+                onTap: () {
+                  setState(() {
+                    _selectedLanguage = 'English';
+                  });
+                  Navigator.pop(context);
+                },
+              ),
+            ],
+          ),
         );
       },
     );
