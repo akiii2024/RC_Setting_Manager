@@ -1,0 +1,2 @@
+C:/Users/aki-i/Documents/flutter_tachibana/settingsheet_manager/android/app/.cxx/Debug/67393y2n/armeabi-v7a/CMakeFiles/edit_cache.dir
+C:/Users/aki-i/Documents/flutter_tachibana/settingsheet_manager/android/app/.cxx/Debug/67393y2n/armeabi-v7a/CMakeFiles/rebuild_cache.dir
