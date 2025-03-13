@@ -351,10 +351,13 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   Widget _buildBasicInfoTab() {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final isEnglish = settingsProvider.isEnglish;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('基本情報',
+        Text(isEnglish ? 'Basic Information' : '基本情報',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
         Row(
@@ -362,10 +365,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Expanded(
               child: _buildSettingField(
                 'date',
-                '日付',
+                isEnglish ? 'Date' : '日付',
                 TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: '日付',
+                  decoration: InputDecoration(
+                    labelText: isEnglish ? 'Date' : '日付',
                     border: OutlineInputBorder(),
                   ),
                   initialValue: settings['date'] != null
@@ -386,10 +389,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Expanded(
               child: _buildSettingField(
                 'track',
-                'トラック',
+                isEnglish ? 'Track' : 'トラック',
                 TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: 'トラック',
+                  decoration: InputDecoration(
+                    labelText: isEnglish ? 'Track' : 'トラック',
                     border: OutlineInputBorder(),
                   ),
                   initialValue: settings['track'],
@@ -406,10 +409,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Expanded(
               child: _buildSettingField(
                 'surface',
-                '路面',
+                isEnglish ? 'Surface' : '路面',
                 TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: '路面',
+                  decoration: InputDecoration(
+                    labelText: isEnglish ? 'Surface' : '路面',
                     border: OutlineInputBorder(),
                   ),
                   initialValue: settings['surface'],
@@ -423,10 +426,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Expanded(
               child: _buildSettingField(
                 'condition',
-                'コンディション',
+                isEnglish ? 'Condition' : 'コンディション',
                 TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: 'コンディション',
+                  decoration: InputDecoration(
+                    labelText: isEnglish ? 'Condition' : 'コンディション',
                     border: OutlineInputBorder(),
                   ),
                   initialValue: settings['condition'],
@@ -443,10 +446,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Expanded(
               child: _buildSettingField(
                 'airTemp',
-                '気温',
+                isEnglish ? 'Air Temperature' : '気温',
                 TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: '気温 (℃)',
+                  decoration: InputDecoration(
+                    labelText: isEnglish ? 'Air Temperature (℃)' : '気温 (℃)',
                     border: OutlineInputBorder(),
                   ),
                   initialValue: settings['airTemp'].toString(),
@@ -461,10 +464,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Expanded(
               child: _buildSettingField(
                 'humidity',
-                '湿度',
+                isEnglish ? 'Humidity' : '湿度',
                 TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: '湿度 (%)',
+                  decoration: InputDecoration(
+                    labelText: isEnglish ? 'Humidity (%)' : '湿度 (%)',
                     border: OutlineInputBorder(),
                   ),
                   initialValue: settings['humidity'].toString(),
@@ -479,10 +482,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
         ),
         _buildSettingField(
           'trackTemp',
-          '路面温度',
+          isEnglish ? 'Track Temperature' : '路面温度',
           TextFormField(
-            decoration: const InputDecoration(
-              labelText: '路面温度 (℃)',
+            decoration: InputDecoration(
+              labelText: isEnglish ? 'Track Temperature (℃)' : '路面温度 (℃)',
               border: OutlineInputBorder(),
             ),
             initialValue: settings['trackTemp'].toString(),
@@ -497,10 +500,13 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   Widget _buildFrontSettingsTab() {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final isEnglish = settingsProvider.isEnglish;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('フロント設定',
+        Text(isEnglish ? 'Front Settings' : 'フロント設定',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
         Row(
@@ -508,10 +514,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Expanded(
               child: _buildSettingField(
                 'frontCamber',
-                'キャンバー角',
+                isEnglish ? 'Camber Angle' : 'キャンバー角',
                 TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: 'キャンバー角',
+                  decoration: InputDecoration(
+                    labelText: isEnglish ? 'Camber Angle' : 'キャンバー角',
                     border: OutlineInputBorder(),
                     suffixText: '°',
                   ),
@@ -527,10 +533,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Expanded(
               child: _buildSettingField(
                 'frontRideHeight',
-                '車高',
+                isEnglish ? 'Ride Height' : '車高',
                 TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: '車高',
+                  decoration: InputDecoration(
+                    labelText: isEnglish ? 'Ride Height' : '車高',
                     border: OutlineInputBorder(),
                     suffixText: 'mm',
                   ),
@@ -549,10 +555,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Expanded(
               child: _buildSettingField(
                 'frontDamperPosition',
-                'ダンパーポジション',
+                isEnglish ? 'Damper Position' : 'ダンパーポジション',
                 DropdownButtonFormField<int>(
-                  decoration: const InputDecoration(
-                    labelText: 'ダンパーポジション',
+                  decoration: InputDecoration(
+                    labelText: isEnglish ? 'Damper Position' : 'ダンパーポジション',
                     border: OutlineInputBorder(),
                   ),
                   value: settings['frontDamperPosition'],
@@ -572,10 +578,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Expanded(
               child: _buildSettingField(
                 'frontSpring',
-                'スプリング',
+                isEnglish ? 'Spring' : 'スプリング',
                 TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: 'スプリング',
+                  decoration: InputDecoration(
+                    labelText: isEnglish ? 'Spring' : 'スプリング',
                     border: OutlineInputBorder(),
                   ),
                   initialValue: settings['frontSpring'],
@@ -592,10 +598,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Expanded(
               child: _buildSettingField(
                 'frontToe',
-                'トー角',
+                isEnglish ? 'Toe Angle' : 'トー角',
                 TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: 'トー角',
+                  decoration: InputDecoration(
+                    labelText: isEnglish ? 'Toe Angle' : 'トー角',
                     border: OutlineInputBorder(),
                     suffixText: '°',
                   ),
@@ -611,10 +617,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Expanded(
               child: _buildSettingField(
                 'frontStabilizer',
-                'スタビライザー',
+                isEnglish ? 'Stabilizer' : 'スタビライザー',
                 TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: 'スタビライザー',
+                  decoration: InputDecoration(
+                    labelText: isEnglish ? 'Stabilizer' : 'スタビライザー',
                     border: OutlineInputBorder(),
                   ),
                   initialValue: settings['frontStabilizer'],
@@ -628,10 +634,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
         ),
         _buildSettingField(
           'frontCasterAngle',
-          'キャスター角',
+          isEnglish ? 'Caster Angle' : 'キャスター角',
           TextFormField(
-            decoration: const InputDecoration(
-              labelText: 'キャスター角',
+            decoration: InputDecoration(
+              labelText: isEnglish ? 'Caster Angle' : 'キャスター角',
               border: OutlineInputBorder(),
               suffixText: '°',
             ),
@@ -646,13 +652,13 @@ class _CarSettingPageState extends State<CarSettingPage> {
         // 詳細設定の展開パネル
         _buildSettingField(
           'frontDetails',
-          '詳細設定',
+          isEnglish ? 'Detailed Settings' : '詳細設定',
           _buildExpandablePanel(
-            title: '詳細設定',
+            title: isEnglish ? 'Detailed Settings' : '詳細設定',
             children: [
               const SizedBox(height: 8),
               Text(
-                'アッパーアームスペーサー',
+                isEnglish ? 'Upper Arm Spacer' : 'アッパーアームスペーサー',
                 style: TextStyle(fontSize: 12),
               ),
               const SizedBox(height: 16),
@@ -661,10 +667,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
                   Expanded(
                     child: _buildSettingField(
                       'frontUpperArmSpacerInside',
-                      '内側',
+                      isEnglish ? 'Inside' : '内側',
                       TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: '内側 (mm)',
+                        decoration: InputDecoration(
+                          labelText: isEnglish ? 'Inside (mm)' : '内側 (mm)',
                           border: OutlineInputBorder(),
                         ),
                         initialValue:
@@ -682,10 +688,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
                   Expanded(
                     child: _buildSettingField(
                       'frontUpperArmSpacerOutside',
-                      '外側',
+                      isEnglish ? 'Outside' : '外側',
                       TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: '外側 (mm)',
+                        decoration: InputDecoration(
+                          labelText: isEnglish ? 'Outside (mm)' : '外側 (mm)',
                           border: OutlineInputBorder(),
                         ),
                         initialValue: settings['frontUpperArmSpacerOutside']
@@ -1178,10 +1184,13 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   Widget _buildRearSettingsTab() {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final isEnglish = settingsProvider.isEnglish;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('リア設定',
+        Text(isEnglish ? 'Rear Settings' : 'リア設定',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
         Row(
@@ -1189,10 +1198,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Expanded(
               child: _buildSettingField(
                 'rearCamber',
-                'キャンバー角',
+                isEnglish ? 'Camber Angle' : 'キャンバー角',
                 TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: 'キャンバー角',
+                  decoration: InputDecoration(
+                    labelText: isEnglish ? 'Camber Angle' : 'キャンバー角',
                     border: OutlineInputBorder(),
                     suffixText: '°',
                   ),
@@ -1208,10 +1217,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Expanded(
               child: _buildSettingField(
                 'rearToe',
-                'トー角',
+                isEnglish ? 'Toe Angle' : 'トー角',
                 TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: 'トー角',
+                  decoration: InputDecoration(
+                    labelText: isEnglish ? 'Toe Angle' : 'トー角',
                     border: OutlineInputBorder(),
                     suffixText: '°',
                   ),
@@ -1230,10 +1239,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Expanded(
               child: _buildSettingField(
                 'rearRideHeight',
-                '車高',
+                isEnglish ? 'Ride Height' : '車高',
                 TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: '車高',
+                  decoration: InputDecoration(
+                    labelText: isEnglish ? 'Ride Height' : '車高',
                     border: OutlineInputBorder(),
                     suffixText: 'mm',
                   ),
@@ -1249,10 +1258,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Expanded(
               child: _buildSettingField(
                 'rearDamperPosition',
-                'ダンパーポジション',
+                isEnglish ? 'Damper Position' : 'ダンパーポジション',
                 DropdownButtonFormField<int>(
-                  decoration: const InputDecoration(
-                    labelText: 'ダンパーポジション',
+                  decoration: InputDecoration(
+                    labelText: isEnglish ? 'Damper Position' : 'ダンパーポジション',
                     border: OutlineInputBorder(),
                   ),
                   value: settings['rearDamperPosition'],
@@ -1275,10 +1284,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Expanded(
               child: _buildSettingField(
                 'rearSpring',
-                'スプリング',
+                isEnglish ? 'Spring' : 'スプリング',
                 TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: 'スプリング',
+                  decoration: InputDecoration(
+                    labelText: isEnglish ? 'Spring' : 'スプリング',
                     border: OutlineInputBorder(),
                   ),
                   initialValue: settings['rearSpring'],
@@ -1292,10 +1301,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Expanded(
               child: _buildSettingField(
                 'rearStabilizer',
-                'スタビライザー',
+                isEnglish ? 'Stabilizer' : 'スタビライザー',
                 TextFormField(
-                  decoration: const InputDecoration(
-                    labelText: 'スタビライザー',
+                  decoration: InputDecoration(
+                    labelText: isEnglish ? 'Stabilizer' : 'スタビライザー',
                     border: OutlineInputBorder(),
                   ),
                   initialValue: settings['rearStabilizer'],
@@ -1311,9 +1320,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
         // 詳細設定の展開パネル
         _buildSettingField(
           'rearDetails',
-          '詳細設定',
+          isEnglish ? 'Details Settings' : '詳細設定',
           _buildExpandablePanel(
-            title: '詳細設定',
+            title: isEnglish ? 'Details Settings' : '詳細設定',
             children: [
               const SizedBox(height: 8),
               Text(
@@ -1588,18 +1597,23 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   Widget _buildTopDeckSettingsTab() {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final isEnglish = settingsProvider.isEnglish;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('トップ設定',
+        Text(isEnglish ? 'Top Deck Settings' : 'トップ設定',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
               child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'アッパーデッキスクリューポジション',
+                decoration: InputDecoration(
+                  labelText: isEnglish
+                      ? 'Upper Deck Screw Position'
+                      : 'アッパーデッキスクリューポジション',
                   border: OutlineInputBorder(),
                 ),
                 initialValue: settings['upperDeckScrewPosition'],
@@ -1611,8 +1625,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
             const SizedBox(width: 16),
             Expanded(
               child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'アッパーデッキフレックスタイプ',
+                decoration: InputDecoration(
+                  labelText:
+                      isEnglish ? 'Upper Deck Flex Type' : 'アッパーデッキフレックスタイプ',
                   border: OutlineInputBorder(),
                 ),
                 initialValue: settings['upperDeckflexType'],
@@ -1628,8 +1643,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
           children: [
             Expanded(
               child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'バラスト前右 (g)',
+                decoration: InputDecoration(
+                  labelText:
+                      isEnglish ? 'Ballast Front Right (g)' : 'バラスト前右 (g)',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType:
@@ -1644,8 +1660,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
             const SizedBox(width: 16),
             Expanded(
               child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'バラスト前左 (g)',
+                decoration: InputDecoration(
+                  labelText:
+                      isEnglish ? 'Ballast Front Left (g)' : 'バラスト前左 (g)',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType:
@@ -1663,8 +1680,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
           children: [
             Expanded(
               child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'バラスト中央 (g)',
+                decoration: InputDecoration(
+                  labelText: isEnglish ? 'Ballast Middle (g)' : 'バラスト中央 (g)',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType:
@@ -1678,8 +1695,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
             const SizedBox(width: 16),
             Expanded(
               child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'バラストバッテリー (g)',
+                decoration: InputDecoration(
+                  labelText:
+                      isEnglish ? 'Ballast Battery (g)' : 'バラストバッテリー (g)',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType:
@@ -1863,15 +1881,18 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   Widget _buildOtherSettingsTab() {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final isEnglish = settingsProvider.isEnglish;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('その他設定',
+        Text(isEnglish ? 'Other Settings' : 'その他設定',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
         TextFormField(
-          decoration: const InputDecoration(
-            labelText: 'モーター',
+          decoration: InputDecoration(
+            labelText: isEnglish ? 'Motor' : 'モーター',
             border: OutlineInputBorder(),
           ),
           initialValue: settings['motor'],
@@ -1884,8 +1905,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
           children: [
             Expanded(
               child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'スパーギア',
+                decoration: InputDecoration(
+                  labelText: isEnglish ? 'Spur Gear' : 'スパーギア',
                   border: OutlineInputBorder(),
                 ),
                 initialValue: settings['spurGear'],
@@ -1897,8 +1918,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
             const SizedBox(width: 16),
             Expanded(
               child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'ピニオンギア',
+                decoration: InputDecoration(
+                  labelText: isEnglish ? 'Pinion Gear' : 'ピニオンギア',
                   border: OutlineInputBorder(),
                 ),
                 initialValue: settings['pinionGear'],
@@ -1914,8 +1935,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
           children: [
             Expanded(
               child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'バッテリー',
+                decoration: InputDecoration(
+                  labelText: isEnglish ? 'Battery' : 'バッテリー',
                   border: OutlineInputBorder(),
                 ),
                 initialValue: settings['battery'],
@@ -1927,8 +1948,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
             const SizedBox(width: 16),
             Expanded(
               child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'ボディ',
+                decoration: InputDecoration(
+                  labelText: isEnglish ? 'Body' : 'ボディ',
                   border: OutlineInputBorder(),
                 ),
                 initialValue: settings['body'],
@@ -1944,8 +1965,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
           children: [
             Expanded(
               child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'ボディ重量 (g)',
+                decoration: InputDecoration(
+                  labelText: isEnglish ? 'Body Weight (g)' : 'ボディ重量 (g)',
                   border: OutlineInputBorder(),
                 ),
                 keyboardType:
@@ -1959,8 +1980,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             const SizedBox(width: 16),
             Expanded(
               child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'フロントボディマウントホール位置',
+                decoration: InputDecoration(
+                  labelText: isEnglish
+                      ? 'Front Body Mount Hole Position'
+                      : 'フロントボディマウントホール位置',
                   border: OutlineInputBorder(),
                 ),
                 initialValue: settings['rearBodyMountHolePosition'],
@@ -1973,8 +1996,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
         ),
         const SizedBox(height: 16),
         TextFormField(
-          decoration: const InputDecoration(
-            labelText: 'ウイング',
+          decoration: InputDecoration(
+            labelText: isEnglish ? 'Wing' : 'ウイング',
             border: OutlineInputBorder(),
           ),
           initialValue: settings['wing'],
@@ -1987,8 +2010,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
           children: [
             Expanded(
               child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'タイヤ',
+                decoration: InputDecoration(
+                  labelText: isEnglish ? 'Tire' : 'タイヤ',
                   border: OutlineInputBorder(),
                 ),
                 initialValue: settings['tire'],
@@ -2000,8 +2023,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
             const SizedBox(width: 16),
             Expanded(
               child: TextFormField(
-                decoration: const InputDecoration(
-                  labelText: 'ホイール',
+                decoration: InputDecoration(
+                  labelText: isEnglish ? 'Wheel' : 'ホイール',
                   border: OutlineInputBorder(),
                 ),
                 initialValue: settings['wheel'],
@@ -2014,8 +2037,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
         ),
         const SizedBox(height: 16),
         TextFormField(
-          decoration: const InputDecoration(
-            labelText: 'タイヤインサート',
+          decoration: InputDecoration(
+            labelText: isEnglish ? 'Tire Insert' : 'タイヤインサート',
             border: OutlineInputBorder(),
           ),
           initialValue: settings['tireInsert'],
@@ -2050,8 +2073,12 @@ class _CarSettingPageState extends State<CarSettingPage> {
     required String settingKey,
     double size = 200,
   }) {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
+
     // 現在の選択位置を解析（例: "2,3"）
-    List<int> position = [2, 2]; // デフォルト位置は中央
+    List<int> position = [2, 2]; // デフォルト位置は中央 / Default position is center
     if (settings[settingKey] != null && settings[settingKey].isNotEmpty) {
       try {
         List<String> parts = settings[settingKey].split(',');
@@ -2060,6 +2087,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
         }
       } catch (e) {
         // パース失敗時はデフォルト位置
+        // Use default position if parsing fails
       }
     }
 
@@ -2109,19 +2137,29 @@ class _CarSettingPageState extends State<CarSettingPage> {
     );
   }
 
-  // ウィジェットを作成するメソッドを修正し、表示・非表示の設定をチェックする
+  // メソッドのコメントを英語と日本語両方で提供
+  // Method to create a widget, checking if it should be displayed according to visibility settings
+  // ウィジェットを作成するメソッドで、表示・非表示の設定をチェックします
   Widget _buildSettingField(String key, String label, Widget child) {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
+
+    // Only check if visibility settings are loaded
     // 表示設定が読み込まれている場合のみチェックする
     if (_isVisibilityLoaded) {
+      // Check visibility for this setting
       // 該当設定の表示・非表示をチェック
       final isVisible = _visibilitySettings.settingsVisibility[key] ?? true;
 
+      // Return empty container if not visible
       // 非表示の場合は空のコンテナを返す
       if (!isVisible) {
         return Container();
       }
     }
 
+    // Display the item as normal if visible
     // 表示する場合は通常通り項目を表示
     return Container(
       margin: const EdgeInsets.only(bottom: 16.0),
