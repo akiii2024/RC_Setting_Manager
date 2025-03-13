@@ -4,6 +4,8 @@ import '../providers/settings_provider.dart';
 import '../models/saved_setting.dart';
 import 'car_selection_page.dart';
 import 'car_setting_page.dart';
+import 'history_page.dart';
+import 'tools_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -13,11 +15,25 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  int _selectedIndex = 0;
+
+  final List<Widget> _pages = [
+    const _HomeTab(),
+    const HistoryPage(),
+    const ToolsPage(),
+  ];
+
+  final List<String> _titles = [
+    'RCカーセッティング',
+    'セッティング履歴',
+    'ツール',
+  ];
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('RCカーセッティング'),
+        title: Text(_titles[_selectedIndex]),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -28,66 +44,121 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: Consumer<SettingsProvider>(
-        builder: (context, settingsProvider, child) {
-          final savedSettings = settingsProvider.savedSettings;
-          
-          if (savedSettings.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.sports_motorsports_outlined,
-                    size: 80,
+      body: _pages[_selectedIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'ホーム',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history),
+            label: '履歴',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.build),
+            label: 'ツール',
+          ),
+        ],
+      ),
+      floatingActionButton: _selectedIndex == 0
+          ? FloatingActionButton(
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const CarSelectionPage(),
+                  ),
+                );
+              },
+              child: const Icon(Icons.add),
+            )
+          : null,
+    );
+  }
+}
+
+class _HomeTab extends StatelessWidget {
+  const _HomeTab({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<SettingsProvider>(
+      builder: (context, settingsProvider, child) {
+        final savedSettings = settingsProvider.savedSettings;
+
+        if (savedSettings.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(
+                  Icons.sports_motorsports_outlined,
+                  size: 80,
+                  color: Colors.grey,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '保存されたセッティングがありません',
+                  style: TextStyle(
+                    fontSize: 16,
                     color: Colors.grey,
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '保存されたセッティングがありません',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.add),
-                    label: const Text('新しいセッティングを作成'),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CarSelectionPage(),
-                        ),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            );
-          }
-          
-          return ListView.builder(
-            itemCount: savedSettings.length,
-            itemBuilder: (context, index) {
-              final setting = savedSettings[index];
-              return _buildSettingCard(context, setting);
-            },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const CarSelectionPage(),
+                ),
+                const SizedBox(height: 24),
+                ElevatedButton.icon(
+                  icon: const Icon(Icons.add),
+                  label: const Text('新しいセッティングを作成'),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const CarSelectionPage(),
+                      ),
+                    );
+                  },
+                ),
+              ],
             ),
           );
-        },
-        child: const Icon(Icons.add),
-      ),
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(top: 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text(
+                  '最近のセッティング',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: savedSettings.length,
+                  itemBuilder: (context, index) {
+                    final setting = savedSettings[index];
+                    return _buildSettingCard(context, setting);
+                  },
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -162,7 +233,8 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _showDeleteConfirmationDialog(BuildContext context, SavedSetting setting) {
+  void _showDeleteConfirmationDialog(
+      BuildContext context, SavedSetting setting) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -193,4 +265,4 @@ class _HomePageState extends State<HomePage> {
   String _formatDate(DateTime dateTime) {
     return '${dateTime.year}/${dateTime.month}/${dateTime.day} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
-} 
+}

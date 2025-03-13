@@ -3,6 +3,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'pages/car_selection_page.dart';
 import 'pages/home_page.dart';
 import 'pages/settings_page.dart';
+import 'pages/history_page.dart';
+import 'pages/tools_page.dart';
 import 'providers/theme_provider.dart';
 import 'providers/settings_provider.dart';
 import 'package:provider/provider.dart';
@@ -38,7 +40,8 @@ class MyApp extends StatelessWidget {
             visualDensity: VisualDensity.adaptivePlatformDensity,
             brightness: Brightness.dark,
           ),
-          themeMode: themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+          themeMode:
+              themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
           localizationsDelegates: const [
             GlobalMaterialLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
@@ -53,6 +56,8 @@ class MyApp extends StatelessWidget {
             '/': (context) => const HomePage(),
             '/car_selection': (context) => const CarSelectionPage(),
             '/settings': (context) => const SettingsPage(),
+            '/history': (context) => const HistoryPage(),
+            '/tools': (context) => const ToolsPage(),
           },
         );
       },
