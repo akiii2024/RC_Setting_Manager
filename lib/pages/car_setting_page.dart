@@ -274,6 +274,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
                       hintText:
                           isEnglish ? 'e.g. Race Setup 1' : '例：レースセットアップ1',
                       border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 16.0),
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -285,7 +287,6 @@ class _CarSettingPageState extends State<CarSettingPage> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 16),
                   // Setting tabs
                   Expanded(
                     child: _buildSettingTabs(context),
@@ -324,22 +325,32 @@ class _CarSettingPageState extends State<CarSettingPage> {
               children: [
                 // Basic Info Tab
                 SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 8.0, horizontal: 4.0),
                   child: _buildBasicInfoTab(),
                 ),
                 // Front Tab
                 SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 8.0, horizontal: 4.0),
                   child: _buildFrontSettingsTab(),
                 ),
                 // Rear Tab
                 SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 8.0, horizontal: 4.0),
                   child: _buildRearSettingsTab(),
                 ),
                 // Top Deck Tab
                 SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 8.0, horizontal: 4.0),
                   child: _buildTopDeckSettingsTab(),
                 ),
                 // Other Tab
                 SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 8.0, horizontal: 4.0),
                   child: _buildOtherSettingsTab(),
                 ),
               ],
@@ -370,6 +381,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
                   decoration: InputDecoration(
                     labelText: isEnglish ? 'Date' : '日付',
                     border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
                   initialValue: settings['date'] != null
                       ? DateTime.parse(settings['date'])
@@ -394,6 +407,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
                   decoration: InputDecoration(
                     labelText: isEnglish ? 'Track' : 'トラック',
                     border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
                   initialValue: settings['track'],
                   onChanged: (value) {
@@ -404,6 +419,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
             ),
           ],
         ),
+        const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
@@ -414,6 +430,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
                   decoration: InputDecoration(
                     labelText: isEnglish ? 'Surface' : '路面',
                     border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
                   initialValue: settings['surface'],
                   onChanged: (value) {
@@ -431,6 +449,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
                   decoration: InputDecoration(
                     labelText: isEnglish ? 'Condition' : 'コンディション',
                     border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
                   initialValue: settings['condition'],
                   onChanged: (value) {
@@ -441,6 +461,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
             ),
           ],
         ),
+        const SizedBox(height: 16),
         Row(
           children: [
             Expanded(
@@ -451,6 +472,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
                   decoration: InputDecoration(
                     labelText: isEnglish ? 'Air Temperature (℃)' : '気温 (℃)',
                     border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
                   initialValue: settings['airTemp'].toString(),
                   keyboardType: TextInputType.number,
@@ -469,6 +492,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
                   decoration: InputDecoration(
                     labelText: isEnglish ? 'Humidity (%)' : '湿度 (%)',
                     border: OutlineInputBorder(),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                   ),
                   initialValue: settings['humidity'].toString(),
                   keyboardType: TextInputType.number,
@@ -480,6 +505,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
             ),
           ],
         ),
+        const SizedBox(height: 16),
         _buildSettingField(
           'trackTemp',
           isEnglish ? 'Track Temperature' : '路面温度',
@@ -487,6 +513,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
             decoration: InputDecoration(
               labelText: isEnglish ? 'Track Temperature (℃)' : '路面温度 (℃)',
               border: OutlineInputBorder(),
+              contentPadding:
+                  EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             ),
             initialValue: settings['trackTemp'].toString(),
             keyboardType: TextInputType.number,
@@ -495,6 +523,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
             },
           ),
         ),
+        const SizedBox(height: 16),
       ],
     );
   }
@@ -1375,6 +1404,258 @@ class _CarSettingPageState extends State<CarSettingPage> {
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSettingField(
+                      'rearLowerArmSpacer',
+                      'ロアアームスペーサー',
+                      TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'ロアアームスペーサー (mm)',
+                          border: OutlineInputBorder(),
+                        ),
+                        initialValue:
+                            settings['rearLowerArmSpacer']?.toString() ?? '0.0',
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) {
+                          settings['rearLowerArmSpacer'] =
+                              double.tryParse(value) ?? 0.0;
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSettingField(
+                      'rearWheelHub',
+                      'ホイールハブ',
+                      TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'ホイールハブ (mm)',
+                          border: OutlineInputBorder(),
+                        ),
+                        initialValue:
+                            settings['rearWheelHub']?.toString() ?? '0.0',
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) {
+                          settings['rearWheelHub'] =
+                              double.tryParse(value) ?? 0.0;
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildSettingField(
+                      'rearWheelHubSpacer',
+                      'ホイールハブスペーサー',
+                      TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'ホイールハブスペーサー (mm)',
+                          border: OutlineInputBorder(),
+                        ),
+                        initialValue:
+                            settings['rearWheelHubSpacer']?.toString() ?? '0.0',
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) {
+                          settings['rearWheelHubSpacer'] =
+                              double.tryParse(value) ?? 0.0;
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSettingField(
+                      'rearDroop',
+                      'ドループ',
+                      TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'ドループ (mm)',
+                          border: OutlineInputBorder(),
+                        ),
+                        initialValue:
+                            settings['rearDroop']?.toString() ?? '0.0',
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) {
+                          settings['rearDroop'] = double.tryParse(value) ?? 0.0;
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildSettingField(
+                'rearDiffarentialPosition',
+                'デフ位置',
+                Row(
+                  children: [
+                    const Text('デフ位置: '),
+                    const SizedBox(width: 8),
+                    ToggleButtons(
+                      isSelected: [
+                        settings['rearDiffarentialPosition'] == 'high',
+                        settings['rearDiffarentialPosition'] == 'low',
+                      ],
+                      onPressed: (index) {
+                        setState(() {
+                          settings['rearDiffarentialPosition'] =
+                              ['high', 'low'][index];
+                        });
+                      },
+                      children: const [
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          child: Text('高'),
+                        ),
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          child: Text('低'),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSettingField(
+                      'rearSusMountFront',
+                      'サスマウント前',
+                      DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          labelText: 'サスマウント前',
+                          border: OutlineInputBorder(),
+                        ),
+                        value: settings['rearSusMountFront'].isEmpty
+                            ? null
+                            : settings['rearSusMountFront'],
+                        items: const [
+                          DropdownMenuItem(value: 'XB', child: Text('XB')),
+                          DropdownMenuItem(value: 'A', child: Text('A')),
+                          DropdownMenuItem(value: 'E', child: Text('E')),
+                        ],
+                        onChanged: (value) {
+                          settings['rearSusMountFront'] = value;
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildSettingField(
+                      'rearSusMountRear',
+                      'サスマウント後',
+                      DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          labelText: 'サスマウント後',
+                          border: OutlineInputBorder(),
+                        ),
+                        value: settings['rearSusMountRear'].isEmpty
+                            ? null
+                            : settings['rearSusMountRear'],
+                        items: const [
+                          DropdownMenuItem(value: 'XB', child: Text('XB')),
+                          DropdownMenuItem(value: 'A', child: Text('A')),
+                          DropdownMenuItem(value: 'E', child: Text('E')),
+                        ],
+                        onChanged: (value) {
+                          settings['rearSusMountRear'] = value;
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSettingField(
+                      'rearSusMountFrontShaftPosition',
+                      'サスマウント前シャフト位置',
+                      _buildGridSelector(
+                        label: 'サスマウント前シャフト位置',
+                        settingKey: 'rearSusMountFrontShaftPosition',
+                        size: 150,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildSettingField(
+                      'rearSusMountRearShaftPosition',
+                      'サスマウント後シャフト位置',
+                      _buildGridSelector(
+                        label: 'サスマウント後シャフト位置',
+                        settingKey: 'rearSusMountRearShaftPosition',
+                        size: 150,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSettingField(
+                      'rearDrive',
+                      'デフ種類',
+                      DropdownButtonFormField<String>(
+                        decoration: const InputDecoration(
+                          labelText: 'デフ種類',
+                          border: OutlineInputBorder(),
+                        ),
+                        value: settings['rearDrive'].isEmpty
+                            ? null
+                            : settings['rearDrive'],
+                        items: const [
+                          DropdownMenuItem(value: 'スプール', child: Text('スプール')),
+                          DropdownMenuItem(value: 'ギアデフ', child: Text('ギアデフ')),
+                          DropdownMenuItem(
+                              value: 'ボールデフ', child: Text('ボールデフ')),
+                          DropdownMenuItem(
+                              value: 'ワンウェイ', child: Text('ワンウェイ')),
+                        ],
+                        onChanged: (value) {
+                          settings['rearDrive'] = value;
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildSettingField(
+                      'rearDifferentialOil',
+                      'デフオイル',
+                      TextFormField(
+                        decoration: const InputDecoration(
+                          labelText: 'デフオイル',
+                          border: OutlineInputBorder(),
+                        ),
+                        initialValue: settings['rearDifferentialOil'],
+                        onChanged: (value) {
+                          settings['rearDifferentialOil'] = value;
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
 
               // リアダンパー設定の展開パネル
               _buildSettingField(
@@ -2137,44 +2418,250 @@ class _CarSettingPageState extends State<CarSettingPage> {
     );
   }
 
-  // メソッドのコメントを英語と日本語両方で提供
-  // Method to create a widget, checking if it should be displayed according to visibility settings
-  // ウィジェットを作成するメソッドで、表示・非表示の設定をチェックします
+  // 設定フィールドを作成するメソッド - タイプに基づいて異なる入力ウィジェットを使用
   Widget _buildSettingField(String key, String label, Widget child) {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
 
-    // Only check if visibility settings are loaded
-    // 表示設定が読み込まれている場合のみチェックする
+    // 可視性設定が読み込まれているかチェック
     if (_isVisibilityLoaded) {
-      // Check visibility for this setting
-      // 該当設定の表示・非表示をチェック
+      // 該当設定が表示対象かチェック
       final isVisible = _visibilitySettings.settingsVisibility[key] ?? true;
 
-      // Return empty container if not visible
-      // 非表示の場合は空のコンテナを返す
       if (!isVisible) {
-        return Container();
+        return Container(); // 非表示の場合は空のコンテナを返す
       }
     }
 
-    // Display the item as normal if visible
-    // 表示する場合は通常通り項目を表示
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16.0),
+    // 車種固有の設定項目タイプを取得
+    Car? car = settingsProvider.getCarById(widget.originalCar.id);
+    // carがnullの場合は元の車種情報を使用
+    car = car ?? widget.originalCar;
+
+    if (car.settingTypes.containsKey(key)) {
+      final settingType = car.settingTypes[key]!;
+
+      // 設定項目のタイプに基づいて異なる入力ウィジェットを返す
+      switch (settingType) {
+        case 'number':
+          return _buildNumberInputField(key, label);
+        case 'text':
+          return _buildTextInputField(key, label);
+        case 'slider':
+          return _buildSliderField(key, label);
+        case 'select':
+        default:
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: child, // ラベルを削除し、子ウィジェットのみを返す
+          );
+      }
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: child, // ラベルを削除し、子ウィジェットのみを返す
+    );
+  }
+
+  // 数値入力フィールドを作成
+  Widget _buildNumberInputField(String key, String label) {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10.0),
+      child: TextField(
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(
+          border: const OutlineInputBorder(),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+          hintText: label, // labelTextの代わりにhintTextを使用
+          suffixText: _getSuffixForSetting(key),
+        ),
+        onChanged: (value) {
+          setState(() {
+            if (value.isNotEmpty) {
+              try {
+                // 数値の場合は数値として保存
+                settings[key] = double.parse(value);
+              } catch (e) {
+                // 解析エラーの場合はテキストとして保存
+                settings[key] = value;
+              }
+            } else {
+              // 空の場合はデフォルト値を設定
+              settings[key] = 0.0;
+            }
+          });
+        },
+        // 初期値の設定
+        controller: TextEditingController(
+            text: settings.containsKey(key) ? settings[key].toString() : '0'),
+      ),
+    );
+  }
+
+  // テキスト入力フィールドを作成
+  Widget _buildTextInputField(String key, String label) {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             label,
-            style: Theme.of(context).textTheme.titleMedium,
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 8.0),
-          child,
+          const SizedBox(height: 8),
+          TextField(
+            decoration: InputDecoration(
+              border: const OutlineInputBorder(),
+              hintText: isEnglish ? 'Enter text' : 'テキストを入力',
+            ),
+            onChanged: (value) {
+              setState(() {
+                settings[key] = value;
+              });
+            },
+            controller: TextEditingController(
+              text: settings[key] != null ? settings[key].toString() : '',
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  // スライダーフィールドを作成
+  Widget _buildSliderField(String key, String label) {
+    // 設定値の範囲を定義（設定項目により異なる可能性があるため、ヘルパーメソッドで取得）
+    final minValue = _getMinValueForSetting(key);
+    final maxValue = _getMaxValueForSetting(key);
+    final divisions = _getDivisionsForSetting(key);
+
+    // 現在の値（初期値がなければ中央値を使用）
+    double currentValue = 0.0;
+    if (settings[key] != null) {
+      if (settings[key] is double) {
+        currentValue = settings[key];
+      } else if (settings[key] is int) {
+        currentValue = settings[key].toDouble();
+      } else if (settings[key] is String) {
+        try {
+          currentValue = double.parse(settings[key]);
+        } catch (e) {
+          currentValue = (minValue + maxValue) / 2;
+        }
+      }
+    } else {
+      currentValue = (minValue + maxValue) / 2;
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Row(
+            children: [
+              Text(minValue.toString()),
+              Expanded(
+                child: Slider(
+                  min: minValue,
+                  max: maxValue,
+                  divisions: divisions,
+                  value: currentValue.clamp(minValue, maxValue),
+                  label: currentValue.toStringAsFixed(1),
+                  onChanged: (value) {
+                    setState(() {
+                      settings[key] = value;
+                    });
+                  },
+                ),
+              ),
+              Text(maxValue.toString()),
+            ],
+          ),
+          Center(
+            child: Text(
+              '${currentValue.toStringAsFixed(1)}${_getSuffixForSetting(key)}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 設定項目に応じた単位を取得するヘルパーメソッド
+  String _getSuffixForSetting(String key) {
+    if (key.contains('Thickness') ||
+        key.contains('Height') ||
+        key.contains('Mount') ||
+        key.contains('Arm')) {
+      return 'mm';
+    } else if (key.contains('Angle')) {
+      return '°';
+    } else if (key.contains('Weight')) {
+      return 'g';
+    } else {
+      return '';
+    }
+  }
+
+  // 設定項目に応じた最小値を取得するヘルパーメソッド
+  double _getMinValueForSetting(String key) {
+    if (key.contains('Angle')) {
+      return -10.0;
+    } else if (key.contains('Height')) {
+      return 3.0;
+    } else if (key.contains('Weight')) {
+      return 0.0;
+    } else if (key.contains('Thickness') || key.contains('Arm')) {
+      return 0.5;
+    } else {
+      return 0.0;
+    }
+  }
+
+  // 設定項目に応じた最大値を取得するヘルパーメソッド
+  double _getMaxValueForSetting(String key) {
+    if (key.contains('Angle')) {
+      return 10.0;
+    } else if (key.contains('Height')) {
+      return 15.0;
+    } else if (key.contains('Weight')) {
+      return 300.0;
+    } else if (key.contains('Thickness') || key.contains('Arm')) {
+      return 5.0;
+    } else {
+      return 100.0;
+    }
+  }
+
+  // 設定項目に応じた分割数を取得するヘルパーメソッド
+  int _getDivisionsForSetting(String key) {
+    if (key.contains('Angle')) {
+      return 20;
+    } else if (key.contains('Height') || key.contains('Weight')) {
+      return 30;
+    } else if (key.contains('Thickness') || key.contains('Arm')) {
+      return 9; // 0.5単位で調整できるよう
+    } else {
+      return 10;
+    }
   }
 
   void _saveSetting() async {

@@ -9,19 +9,89 @@ class SettingsProvider extends ChangeNotifier {
   List<SavedSetting> _savedSettings = [];
   Map<String, VisibilitySettings> _visibilitySettings = {};
   bool _isEnglish = false;
+  List<Car> _cars = []; // 車種リストを保持
 
   final String _savedSettingsKey = 'saved_settings';
   final String _visibilitySettingsKey = 'visibility_settings';
   final String _languageKey = 'language_settings';
+  final String _carsKey = 'cars_settings';
 
   List<SavedSetting> get savedSettings => _savedSettings;
   Map<String, VisibilitySettings> get visibilitySettings => _visibilitySettings;
   bool get isEnglish => _isEnglish;
+  List<Car> get cars => _cars;
 
   SettingsProvider() {
     _loadSettings();
     _loadVisibilitySettings();
     _loadLanguageSettings();
+    _loadCars();
+  }
+
+  // 車種リストを読み込み
+  Future<void> _loadCars() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final carsJson = prefs.getString(_carsKey);
+
+      if (carsJson != null) {
+        final List<dynamic> decoded = jsonDecode(carsJson);
+        _cars = decoded.map((item) => Car.fromJson(item)).toList();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error loading cars: $e');
+    }
+  }
+
+  // 車種リストを保存
+  Future<void> _saveCars() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final carsJson = jsonEncode(_cars.map((car) => car.toJson()).toList());
+      await prefs.setString(_carsKey, carsJson);
+    } catch (e) {
+      debugPrint('Error saving cars: $e');
+    }
+  }
+
+  // 車種を追加
+  Future<void> addCar(Car car) async {
+    _cars.add(car);
+    await _saveCars();
+    notifyListeners();
+  }
+
+  // 車種を更新
+  Future<void> updateCar(Car updatedCar) async {
+    final index = _cars.indexWhere((car) => car.id == updatedCar.id);
+    if (index != -1) {
+      _cars[index] = updatedCar;
+      await _saveCars();
+      notifyListeners();
+    }
+  }
+
+  // 車種を削除
+  Future<void> deleteCar(String carId) async {
+    _cars.removeWhere((car) => car.id == carId);
+    await _saveCars();
+    notifyListeners();
+  }
+
+  // 特定の車種を取得
+  Car? getCarById(String carId) {
+    try {
+      return _cars.firstWhere((car) => car.id == carId);
+    } catch (e) {
+      return null; // 見つからない場合はnullを返す
+    }
+  }
+
+  // 車種固有の設定項目を取得
+  List<String> getCarAvailableSettings(String carId) {
+    final car = getCarById(carId);
+    return car?.availableSettings ?? [];
   }
 
   Future<void> _loadSettings() async {
@@ -141,7 +211,13 @@ class SettingsProvider extends ChangeNotifier {
   // Get visibility settings (create default if not exists)
   VisibilitySettings getVisibilitySettings(String carId) {
     if (!_visibilitySettings.containsKey(carId)) {
-      _visibilitySettings[carId] = VisibilitySettings.createDefault(carId);
+      // 車種固有の設定項目リストを取得
+      final availableSettings = getCarAvailableSettings(carId);
+
+      // 車種固有の設定項目を使用して表示設定を作成
+      _visibilitySettings[carId] = VisibilitySettings.createDefault(carId,
+          availableSettings:
+              availableSettings.isNotEmpty ? availableSettings : null);
       _saveVisibilitySettings();
     }
     return _visibilitySettings[carId]!;
