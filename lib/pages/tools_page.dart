@@ -9,52 +9,65 @@ class ToolsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final isEnglish = settingsProvider.isEnglish;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('ツール'),
+        title: Text(isEnglish ? 'Tools' : 'ツール'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            const _SectionHeader(title: 'データ管理'),
+            _SectionHeader(title: isEnglish ? 'Data Management' : 'データ管理'),
             _ToolCard(
-              title: 'セッティングデータのバックアップ',
-              description: 'すべてのセッティングデータをエクスポートします',
+              title: isEnglish ? 'Backup Settings' : 'セッティングデータのバックアップ',
+              description: isEnglish
+                  ? 'Export all your setting data'
+                  : 'すべてのセッティングデータをエクスポートします',
               icon: Icons.backup,
               onTap: () => _exportSettings(context),
             ),
             _ToolCard(
-              title: 'セッティングデータのインポート',
-              description: '以前にエクスポートしたデータを復元します',
+              title: isEnglish ? 'Import Settings' : 'セッティングデータのインポート',
+              description: isEnglish
+                  ? 'Restore previously exported data'
+                  : '以前にエクスポートしたデータを復元します',
               icon: Icons.restore,
               onTap: () => _showComingSoonDialog(context),
             ),
             const SizedBox(height: 16),
-            const _SectionHeader(title: '計算ツール'),
+            _SectionHeader(title: isEnglish ? 'Calculation Tools' : '計算ツール'),
             _ToolCard(
-              title: 'ギヤレシオ計算',
-              description: 'スパーギヤとピニオンギヤからギヤレシオを計算',
+              title: isEnglish ? 'Gear Ratio Calculator' : 'ギヤレシオ計算',
+              description: isEnglish
+                  ? 'Calculate gear ratio from spur and pinion gears'
+                  : 'スパーギヤとピニオンギヤからギヤレシオを計算',
               icon: Icons.calculate,
               onTap: () => _showGearRatioCalculator(context),
             ),
             _ToolCard(
-              title: 'ロール角度計算',
-              description: 'サスペンションの角度を計算',
+              title: isEnglish ? 'Roll Angle Calculator' : 'ロール角度計算',
+              description:
+                  isEnglish ? 'Calculate suspension angles' : 'サスペンションの角度を計算',
               icon: Icons.straighten,
               onTap: () => _showComingSoonDialog(context),
             ),
             const SizedBox(height: 16),
-            const _SectionHeader(title: 'その他'),
+            _SectionHeader(title: isEnglish ? 'Other' : 'その他'),
             _ToolCard(
-              title: 'セッティングデータを共有',
-              description: '他のユーザーとセッティング情報を共有',
+              title: isEnglish ? 'Share Settings' : 'セッティングデータを共有',
+              description: isEnglish
+                  ? 'Share setting information with other users'
+                  : '他のユーザーとセッティング情報を共有',
               icon: Icons.share,
               onTap: () => _shareSettings(context),
             ),
             _ToolCard(
-              title: '統計情報',
-              description: 'あなたのセッティング傾向を確認',
+              title: isEnglish ? 'Statistics' : '統計情報',
+              description:
+                  isEnglish ? 'View your setting trends' : 'あなたのセッティング傾向を確認',
               icon: Icons.bar_chart,
               onTap: () => _showComingSoonDialog(context),
             ),
@@ -65,7 +78,7 @@ class ToolsPage extends StatelessWidget {
   }
 
   void _exportSettings(BuildContext context) {
-    // バックアップ機能は未実装
+    // Backup feature is not implemented yet
     _showComingSoonDialog(context);
   }
 
@@ -73,10 +86,14 @@ class ToolsPage extends StatelessWidget {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
     final savedSettings = settingsProvider.savedSettings;
+    final isEnglish = settingsProvider.isEnglish;
 
     if (savedSettings.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('共有可能なセッティングがありません')),
+        SnackBar(
+            content: Text(isEnglish
+                ? 'No settings available to share'
+                : '共有可能なセッティングがありません')),
       );
       return;
     }
@@ -85,7 +102,8 @@ class ToolsPage extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('共有するセッティングを選択'),
+          title:
+              Text(isEnglish ? 'Select a setting to share' : '共有するセッティングを選択'),
           content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
@@ -98,7 +116,7 @@ class ToolsPage extends StatelessWidget {
                   subtitle: Text(setting.car.name),
                   onTap: () {
                     Navigator.pop(context);
-                    _shareSetting(context, setting);
+                    _shareSettingData(context, setting);
                   },
                 );
               },
@@ -106,8 +124,10 @@ class ToolsPage extends StatelessWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('キャンセル'),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
             ),
           ],
         );
@@ -115,118 +135,121 @@ class ToolsPage extends StatelessWidget {
     );
   }
 
-  void _shareSetting(BuildContext context, SavedSetting setting) {
-    final text = '''
-RCカーセッティング共有
+  void _shareSettingData(BuildContext context, SavedSetting setting) {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
 
-名前: ${setting.name}
-車種: ${setting.car.name}
-作成日: ${_formatDate(setting.createdAt)}
-
---- セッティング詳細 ---
-${_formatSettingsForShare(setting.settings)}
-''';
-
-    Share.share(text);
-  }
-
-  String _formatSettingsForShare(Map<String, dynamic> settings) {
+    // Create a formatted string of the setting details
     final buffer = StringBuffer();
-    settings.forEach((key, value) {
+    buffer.writeln(isEnglish
+        ? 'RC Car Setting: ${setting.name}'
+        : 'RCカーセッティング: ${setting.name}');
+    buffer.writeln(
+        isEnglish ? 'Car: ${setting.car.name}' : '車種: ${setting.car.name}');
+    buffer.writeln(isEnglish
+        ? 'Created: ${_formatDate(setting.createdAt, isEnglish)}'
+        : '作成日: ${_formatDate(setting.createdAt, isEnglish)}');
+    buffer.writeln('-------------------');
+
+    // Add setting details
+    setting.settings.forEach((key, value) {
       buffer.writeln('$key: $value');
     });
-    return buffer.toString();
+
+    Share.share(buffer.toString());
   }
 
-  String _formatDate(DateTime dateTime) {
-    return '${dateTime.year}/${dateTime.month}/${dateTime.day} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
+  String _formatDate(DateTime dateTime, bool isEnglish) {
+    if (isEnglish) {
+      final List<String> months = [
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec'
+      ];
+      final String month = months[dateTime.month - 1];
+      final String day = dateTime.day.toString();
+      final String year = dateTime.year.toString();
+      return '$month $day, $year';
+    } else {
+      return '${dateTime.year}/${dateTime.month}/${dateTime.day}';
+    }
   }
 
   void _showGearRatioCalculator(BuildContext context) {
-    int spur = 72; // デフォルト値
-    int pinion = 24; // デフォルト値
+    final spurController = TextEditingController();
+    final pinionController = TextEditingController();
+    double gearRatio = 0.0;
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
 
     showDialog(
       context: context,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            final double ratio = spur / pinion;
-
             return AlertDialog(
-              title: const Text('ギヤレシオ計算'),
+              title: Text(isEnglish ? 'Gear Ratio Calculator' : 'ギヤレシオ計算機'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    children: [
-                      const Text('スパーギヤ: '),
-                      Expanded(
-                        child: Slider(
-                          min: 60,
-                          max: 120,
-                          divisions: 60,
-                          value: spur.toDouble(),
-                          label: spur.toString(),
-                          onChanged: (value) {
-                            setState(() {
-                              spur = value.round();
-                            });
-                          },
-                        ),
-                      ),
-                      Text('$spur T'),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      const Text('ピニオンギヤ: '),
-                      Expanded(
-                        child: Slider(
-                          min: 10,
-                          max: 40,
-                          divisions: 30,
-                          value: pinion.toDouble(),
-                          label: pinion.toString(),
-                          onChanged: (value) {
-                            setState(() {
-                              pinion = value.round();
-                            });
-                          },
-                        ),
-                      ),
-                      Text('$pinion T'),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color:
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(8),
+                  TextField(
+                    controller: spurController,
+                    decoration: InputDecoration(
+                      labelText: isEnglish ? 'Spur Gear (teeth)' : 'スパーギヤ (歯数)',
                     ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Text('ギヤレシオ: ',
-                            style: TextStyle(fontWeight: FontWeight.bold)),
-                        Text(
-                          ratio.toStringAsFixed(2),
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
+                    keyboardType: TextInputType.number,
                   ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: pinionController,
+                    decoration: InputDecoration(
+                      labelText:
+                          isEnglish ? 'Pinion Gear (teeth)' : 'ピニオンギヤ (歯数)',
+                    ),
+                    keyboardType: TextInputType.number,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      final spur = int.tryParse(spurController.text);
+                      final pinion = int.tryParse(pinionController.text);
+
+                      if (spur != null && pinion != null && pinion > 0) {
+                        setState(() {
+                          gearRatio = spur / pinion;
+                        });
+                      }
+                    },
+                    child: Text(isEnglish ? 'Calculate' : '計算'),
+                  ),
+                  const SizedBox(height: 16),
+                  if (gearRatio > 0)
+                    Text(
+                      '${isEnglish ? 'Gear Ratio' : 'ギヤレシオ'}: ${gearRatio.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                 ],
               ),
               actions: [
                 TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('閉じる'),
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: Text(isEnglish ? 'Close' : '閉じる'),
                 ),
               ],
             );
@@ -237,16 +260,24 @@ ${_formatSettingsForShare(setting.settings)}
   }
 
   void _showComingSoonDialog(BuildContext context) {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
+
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('開発中'),
-          content: const Text('この機能は現在開発中です。今後のアップデートをお楽しみに！'),
+          title: Text(isEnglish ? 'Coming Soon' : '準備中'),
+          content: Text(isEnglish
+              ? 'This feature is under development and will be available in a future update.'
+              : 'この機能は開発中で、今後のアップデートで利用可能になります。'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('OK'),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text(isEnglish ? 'OK' : 'OK'),
             ),
           ],
         );
@@ -263,13 +294,12 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.only(bottom: 8.0),
       child: Text(
         title,
-        style: TextStyle(
+        style: const TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
-          color: Theme.of(context).colorScheme.primary,
         ),
       ),
     );
@@ -292,53 +322,13 @@ class _ToolCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: InkWell(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        title: Text(title),
+        subtitle: Text(description),
+        leading: Icon(icon, size: 32),
+        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              CircleAvatar(
-                backgroundColor:
-                    Theme.of(context).colorScheme.secondaryContainer,
-                foregroundColor:
-                    Theme.of(context).colorScheme.onSecondaryContainer,
-                radius: 24,
-                child: Icon(icon, size: 24),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      description,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Icon(
-                Icons.arrow_forward_ios,
-                size: 16,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

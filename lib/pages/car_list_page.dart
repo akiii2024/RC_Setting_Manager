@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/settings_provider.dart';
 import 'car_setting_page.dart';
 import '../models/manufacturer.dart';
 import '../models/car.dart';
@@ -15,9 +17,14 @@ class CarListPage extends StatefulWidget {
 class _CarListPageState extends State<CarListPage> {
   @override
   Widget build(BuildContext context) {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final isEnglish = settingsProvider.isEnglish;
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('${widget.manufacturer.name}の車種'),
+        title: Text(isEnglish
+            ? '${widget.manufacturer.name} Models'
+            : '${widget.manufacturer.name}の車種'),
       ),
       body: ListView.builder(
         itemCount: widget.manufacturer.cars.length,
@@ -40,7 +47,7 @@ class _CarListPageState extends State<CarListPage> {
         onPressed: () {
           _showAddCarDialog();
         },
-        tooltip: '車種を追加',
+        tooltip: isEnglish ? 'Add Model' : '車種を追加',
         child: const Icon(Icons.add),
       ),
     );
@@ -48,16 +55,19 @@ class _CarListPageState extends State<CarListPage> {
 
   void _showAddCarDialog() {
     final TextEditingController nameController = TextEditingController();
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('新しい車種を追加'),
+          title: Text(isEnglish ? 'Add New Model' : '新しい車種を追加'),
           content: TextField(
             controller: nameController,
-            decoration: const InputDecoration(
-              labelText: '車種名',
+            decoration: InputDecoration(
+              labelText: isEnglish ? 'Model Name' : '車種名',
             ),
           ),
           actions: [
@@ -65,7 +75,7 @@ class _CarListPageState extends State<CarListPage> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: const Text('キャンセル'),
+              child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
             ),
             TextButton(
               onPressed: () {
@@ -82,7 +92,7 @@ class _CarListPageState extends State<CarListPage> {
                   Navigator.of(context).pop();
                 }
               },
-              child: const Text('追加'),
+              child: Text(isEnglish ? 'Add' : '追加'),
             ),
           ],
         );
@@ -96,27 +106,63 @@ class CarListItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const CarListItem({
-    super.key,
+    Key? key,
     required this.car,
     required this.onTap,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final isEnglish = settingsProvider.isEnglish;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ListTile(
-        leading: Image.asset(
-          car.imageUrl,
-          width: 60,
-          height: 60,
-          errorBuilder: (context, error, stackTrace) {
-            return const Icon(Icons.directions_car, size: 60);
-          },
-        ),
-        title: Text(car.name),
-        subtitle: const Text('タップしてセッティングを表示'),
+      child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.directions_car, size: 40),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      car.name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isEnglish
+                          ? 'Tap to configure settings'
+                          : 'タップしてセッティングを行う',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios, size: 16),
+            ],
+          ),
+        ),
       ),
     );
   }

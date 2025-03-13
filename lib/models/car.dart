@@ -11,7 +11,7 @@ class Car {
     this.settings,
   });
 
-  // JSONからのデシリアライズ
+  // Deserialize from JSON
   factory Car.fromJson(Map<String, dynamic> json) {
     return Car(
       id: json['id'] as String,
@@ -23,7 +23,7 @@ class Car {
     );
   }
 
-  // JSONへのシリアライズ
+  // Serialize to JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,

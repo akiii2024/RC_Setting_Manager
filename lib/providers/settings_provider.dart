@@ -8,16 +8,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SettingsProvider extends ChangeNotifier {
   List<SavedSetting> _savedSettings = [];
   Map<String, VisibilitySettings> _visibilitySettings = {};
+  bool _isEnglish = false;
 
   final String _savedSettingsKey = 'saved_settings';
   final String _visibilitySettingsKey = 'visibility_settings';
+  final String _languageKey = 'language_settings';
 
   List<SavedSetting> get savedSettings => _savedSettings;
   Map<String, VisibilitySettings> get visibilitySettings => _visibilitySettings;
+  bool get isEnglish => _isEnglish;
 
   SettingsProvider() {
     _loadSettings();
     _loadVisibilitySettings();
+    _loadLanguageSettings();
   }
 
   Future<void> _loadSettings() async {
@@ -30,13 +34,13 @@ class SettingsProvider extends ChangeNotifier {
         _savedSettings =
             decoded.map((item) => SavedSetting.fromJson(item)).toList();
 
-        // 作成日時の降順でソート
+        // Sort by creation date in descending order
         _savedSettings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('設定の読み込みエラー: $e');
+      debugPrint('Error loading settings: $e');
     }
   }
 
@@ -53,7 +57,17 @@ class SettingsProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('表示設定の読み込みエラー: $e');
+      debugPrint('Error loading visibility settings: $e');
+    }
+  }
+
+  Future<void> _loadLanguageSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _isEnglish = prefs.getBool(_languageKey) ?? false;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error loading language settings: $e');
     }
   }
 
@@ -64,7 +78,7 @@ class SettingsProvider extends ChangeNotifier {
           _savedSettings.map((setting) => setting.toJson()).toList());
       await prefs.setString(_savedSettingsKey, settingsJson);
     } catch (e) {
-      debugPrint('設定の保存エラー: $e');
+      debugPrint('Error saving settings: $e');
     }
   }
 
@@ -74,8 +88,23 @@ class SettingsProvider extends ChangeNotifier {
       final visibilityJson = jsonEncode(_visibilitySettings);
       await prefs.setString(_visibilitySettingsKey, visibilityJson);
     } catch (e) {
-      debugPrint('表示設定の保存エラー: $e');
+      debugPrint('Error saving visibility settings: $e');
     }
+  }
+
+  Future<void> _saveLanguageSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_languageKey, _isEnglish);
+    } catch (e) {
+      debugPrint('Error saving language settings: $e');
+    }
+  }
+
+  Future<void> toggleLanguage() async {
+    _isEnglish = !_isEnglish;
+    await _saveLanguageSettings();
+    notifyListeners();
   }
 
   Future<void> addSetting(
@@ -109,7 +138,7 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
-  // 表示設定の取得（存在しない場合はデフォルト設定を作成）
+  // Get visibility settings (create default if not exists)
   VisibilitySettings getVisibilitySettings(String carId) {
     if (!_visibilitySettings.containsKey(carId)) {
       _visibilitySettings[carId] = VisibilitySettings.createDefault(carId);
@@ -118,14 +147,14 @@ class SettingsProvider extends ChangeNotifier {
     return _visibilitySettings[carId]!;
   }
 
-  // 表示設定の更新
+  // Update visibility settings
   Future<void> updateVisibilitySettings(VisibilitySettings settings) async {
     _visibilitySettings[settings.carId] = settings;
     await _saveVisibilitySettings();
     notifyListeners();
   }
 
-  // 特定の設定項目の表示/非表示を切り替え
+  // Toggle visibility for a specific setting
   Future<void> toggleSettingVisibility(
       String carId, String settingKey, bool isVisible) async {
     final settings = getVisibilitySettings(carId);

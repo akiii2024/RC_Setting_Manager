@@ -40,7 +40,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
     super.initState();
     carName = widget.originalCar.name;
 
-    // 保存済み設定がある場合はそれを使用
+    // Use saved settings if available
     if (widget.savedSettings != null) {
       settings = Map<String, dynamic>.from(widget.savedSettings!);
       _isEditing = widget.savedSettingId != null;
@@ -48,10 +48,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
         _settingNameController.text = widget.settingName!;
       }
     } else {
-      // 初期値を設定
+      // Set default values
       settings = widget.originalCar.settings ??
           {
-            // 基本情報
+            // Basic information
             'date': DateTime.now().toIso8601String(),
             'track': '',
             'surface': '',
@@ -60,14 +60,14 @@ class _CarSettingPageState extends State<CarSettingPage> {
             'trackTemp': 0,
             'condition': '',
 
-            // フロント設定
+            // Front settings
             'frontCamber': 0.0,
             'frontRideHeight': 0.0,
             'frontDamperPosition': 1,
             'frontSpring': '',
             'frontToe': 0.0,
 
-            // フロント詳細設定
+            // Front detailed settings
             'frontUpperArmSpacer': 0.0,
             'frontUpperArmSpacerInside': 0.0,
             'frontUpperArmSpacerOutside': 0.0,
@@ -86,7 +86,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
             'frontDifferentialOil': '',
             'frontDumperPosition': '',
 
-            //フロントダンパー設定
+            // Front damper settings
             'frontDamperOffsetStay': 0.0,
             'frontDamperOffsetArm': 0.0,
             'frontDumperType': '',
@@ -170,99 +170,187 @@ class _CarSettingPageState extends State<CarSettingPage> {
           };
     }
 
-    // 表示設定を読み込む
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadVisibilitySettings();
-    });
+    _initializeSettings();
   }
 
-  Future<void> _loadSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? savedSettings =
-        prefs.getString('car_settings_${widget.originalCar.name}');
-
-    if (savedSettings != null) {
+  Future<void> _initializeSettings() async {
+    // Load visibility settings
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (mounted) {
+      final settingsProvider =
+          Provider.of<SettingsProvider>(context, listen: false);
+      _visibilitySettings =
+          settingsProvider.getVisibilitySettings(widget.originalCar.id);
       setState(() {
-        settings = json.decode(savedSettings);
-        _isLoading = false;
-      });
-    } else {
-      setState(() {
+        _isVisibilityLoaded = true;
         _isLoading = false;
       });
     }
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    // 重複しているので、_loadVisibilitySettingsが既に呼ばれていれば不要
-    if (!_isVisibilityLoaded) {
-      _loadVisibilitySettings();
-    }
-  }
-
-  // 表示設定を読み込むメソッドを追加
-  void _loadVisibilitySettings() {
-    if (!mounted) return;
-
-    final settingsProvider =
-        Provider.of<SettingsProvider>(context, listen: false);
-    _visibilitySettings =
-        settingsProvider.getVisibilitySettings(widget.originalCar.id);
-
-    setState(() {
-      _isVisibilityLoaded = true;
-      _isLoading = false;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
-    }
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final isEnglish = settingsProvider.isEnglish;
+
+    final saveButtonText = _isEditing
+        ? (isEnglish ? 'Update' : '更新')
+        : (isEnglish ? 'Save' : '保存');
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('$carName のセッティング'),
+        title: Text(_isEditing
+            ? (isEnglish ? 'Edit Setting' : 'セッティング編集')
+            : (isEnglish ? 'New Setting' : '新規セッティング')),
         actions: [
           IconButton(
             icon: const Icon(Icons.save),
+            onPressed: _saveSetting,
+            tooltip: saveButtonText,
+          ),
+          IconButton(
+            icon: const Icon(Icons.visibility),
             onPressed: () {
-              _showSaveDialog(context);
+              _showVisibilityDialog(context);
+            },
+            tooltip: isEnglish ? 'Display Options' : '表示オプション',
+          ),
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              switch (value) {
+                case 'share':
+                  _shareSetting();
+                  break;
+                case 'delete':
+                  if (_isEditing) {
+                    _showDeleteConfirmationDialog();
+                  }
+                  break;
+              }
+            },
+            itemBuilder: (context) {
+              return [
+                PopupMenuItem<String>(
+                  value: 'share',
+                  child: Row(
+                    children: [
+                      const Icon(Icons.share, size: 20),
+                      const SizedBox(width: 8),
+                      Text(isEnglish ? 'Share' : '共有'),
+                    ],
+                  ),
+                ),
+                if (_isEditing)
+                  PopupMenuItem<String>(
+                    value: 'delete',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.delete, size: 20, color: Colors.red),
+                        const SizedBox(width: 8),
+                        Text(
+                          isEnglish ? 'Delete' : '削除',
+                          style: const TextStyle(color: Colors.red),
+                        ),
+                      ],
+                    ),
+                  ),
+              ];
             },
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildBasicInfoSection(),
-              const Divider(height: 32),
-              _buildFrontSection(),
-              const Divider(height: 32),
-              _buildRearSection(),
-              const Divider(height: 32),
-              _buildTopSection(),
-              const Divider(height: 32),
-              _buildOtherSection(),
-            ],
-          ),
-        ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Setting name input
+                  TextField(
+                    controller: _settingNameController,
+                    decoration: InputDecoration(
+                      labelText: isEnglish ? 'Setting Name' : 'セッティング名',
+                      hintText:
+                          isEnglish ? 'e.g. Race Setup 1' : '例：レースセットアップ1',
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Car information
+                  Text(
+                    '${isEnglish ? 'Car' : '車両'}: $carName',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Setting tabs
+                  Expanded(
+                    child: _buildSettingTabs(context),
+                  ),
+                ],
+              ),
+            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _saveSetting,
+        tooltip: saveButtonText,
+        child: const Icon(Icons.save),
       ),
     );
   }
 
-  Widget _buildBasicInfoSection() {
+  Widget _buildSettingTabs(BuildContext context) {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final isEnglish = settingsProvider.isEnglish;
+
+    return DefaultTabController(
+      length: 5,
+      child: Column(
+        children: [
+          TabBar(
+            isScrollable: true,
+            tabs: [
+              Tab(text: isEnglish ? 'Basic' : '基本'),
+              Tab(text: isEnglish ? 'Front' : 'フロント'),
+              Tab(text: isEnglish ? 'Rear' : 'リア'),
+              Tab(text: isEnglish ? 'Top Deck' : 'トップデッキ'),
+              Tab(text: isEnglish ? 'Other' : 'その他'),
+            ],
+          ),
+          Expanded(
+            child: TabBarView(
+              children: [
+                // Basic Info Tab
+                SingleChildScrollView(
+                  child: _buildBasicInfoTab(),
+                ),
+                // Front Tab
+                SingleChildScrollView(
+                  child: _buildFrontSettingsTab(),
+                ),
+                // Rear Tab
+                SingleChildScrollView(
+                  child: _buildRearSettingsTab(),
+                ),
+                // Top Deck Tab
+                SingleChildScrollView(
+                  child: _buildTopDeckSettingsTab(),
+                ),
+                // Other Tab
+                SingleChildScrollView(
+                  child: _buildOtherSettingsTab(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBasicInfoTab() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -408,7 +496,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
     );
   }
 
-  Widget _buildFrontSection() {
+  Widget _buildFrontSettingsTab() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1089,7 +1177,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
     );
   }
 
-  Widget _buildRearSection() {
+  Widget _buildRearSettingsTab() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1499,7 +1587,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
     );
   }
 
-  Widget _buildTopSection() {
+  Widget _buildTopDeckSettingsTab() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1774,7 +1862,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
     );
   }
 
-  Widget _buildOtherSection() {
+  Widget _buildOtherSettingsTab() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2051,61 +2139,128 @@ class _CarSettingPageState extends State<CarSettingPage> {
     );
   }
 
-  void _showSaveDialog(BuildContext context) {
-    // 日付フォーマット（yyyy-mm-dd）の文字列を作成
-    final now = DateTime.now();
-    final dateStr =
-        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  void _saveSetting() async {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
 
-    // デフォルト名を「マシン名-yyyy-mm-dd」の形式に設定
-    _settingNameController.text = '${widget.originalCar.name}-$dateStr';
+    if (_settingNameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              isEnglish ? 'Please enter a setting name' : 'セッティング名を入力してください'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_isEditing && widget.savedSettingId != null) {
+      // Update existing setting
+      final updatedSetting = SavedSetting(
+        id: widget.savedSettingId!,
+        name: _settingNameController.text,
+        createdAt: DateTime.now(),
+        car: widget.originalCar,
+        settings: settings,
+      );
+
+      await settingsProvider.updateSetting(updatedSetting);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isEnglish ? 'Setting updated' : '設定を更新しました')),
+        );
+        Navigator.pop(context);
+      }
+    } else {
+      // Add new setting
+      await settingsProvider.addSetting(
+        _settingNameController.text,
+        widget.originalCar,
+        settings,
+      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isEnglish ? 'Setting saved' : '設定を保存しました')),
+        );
+        Navigator.pop(context);
+      }
+    }
+  }
+
+  void _showDeleteConfirmationDialog() {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
 
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AlertDialog(
-          title: const Text('セッティングを保存'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: _settingNameController,
-                decoration: const InputDecoration(
-                  labelText: 'セッティング名',
-                  hintText: 'セッティング名を入力してください',
-                ),
-              ),
-            ],
-          ),
+          title: Text(isEnglish ? 'Delete Setting' : '設定の削除'),
+          content: Text(isEnglish
+              ? 'Are you sure you want to delete this setting? This action cannot be undone.'
+              : 'この設定を削除してもよろしいですか？この操作は元に戻せません。'),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.pop(context);
               },
-              child: const Text('キャンセル'),
+              child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
             ),
             TextButton(
-              onPressed: () {
-                final settingName = _settingNameController.text.trim();
-                if (settingName.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('セッティング名を入力してください')),
-                  );
-                  return;
+              onPressed: () async {
+                Navigator.pop(context);
+                if (widget.savedSettingId != null) {
+                  await settingsProvider.deleteSetting(widget.savedSettingId!);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                          content: Text(
+                              isEnglish ? 'Setting deleted' : '設定を削除しました')),
+                    );
+                    Navigator.pop(context);
+                  }
                 }
-
-                // 常に新しい設定として保存する
-                Provider.of<SettingsProvider>(context, listen: false)
-                    .addSetting(settingName, widget.originalCar, settings);
-
-                Navigator.of(context).pop();
-                Navigator.of(context).pop();
               },
-              child: const Text('保存'),
+              child: Text(
+                isEnglish ? 'Delete' : '削除',
+                style: const TextStyle(color: Colors.red),
+              ),
             ),
           ],
         );
       },
     );
+  }
+
+  void _showVisibilityDialog(BuildContext context) {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(isEnglish ? 'Display Options' : '表示オプション'),
+          content: Text(isEnglish
+              ? 'To configure display options for each setting item, please go to Settings > Display Settings.'
+              : '各設定項目の表示設定を構成するには、設定 > 表示設定に移動してください。'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text(isEnglish ? 'Close' : '閉じる'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _shareSetting() {
+    // Implementation for sharing setting
   }
 }

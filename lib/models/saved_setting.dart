@@ -15,7 +15,7 @@ class SavedSetting {
     required this.settings,
   });
 
-  // JSONからのデシリアライズ
+  // Deserialize from JSON
   factory SavedSetting.fromJson(Map<String, dynamic> json) {
     return SavedSetting(
       id: json['id'] as String,
@@ -26,7 +26,7 @@ class SavedSetting {
     );
   }
 
-  // JSONへのシリアライズ
+  // Serialize to JSON
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -36,4 +36,4 @@ class SavedSetting {
       'settings': settings,
     };
   }
-} 
+}

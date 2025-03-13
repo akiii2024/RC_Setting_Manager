@@ -7,7 +7,7 @@ class VisibilitySettings {
     required this.settingsVisibility,
   });
 
-  // JSONからのデシリアライズ
+  // Deserialize from JSON
   factory VisibilitySettings.fromJson(Map<String, dynamic> json) {
     return VisibilitySettings(
       carId: json['carId'] as String,
@@ -16,7 +16,7 @@ class VisibilitySettings {
     );
   }
 
-  // JSONへのシリアライズ
+  // Serialize to JSON
   Map<String, dynamic> toJson() {
     return {
       'carId': carId,
@@ -24,12 +24,12 @@ class VisibilitySettings {
     };
   }
 
-  // デフォルトの可視性設定を作成
+  // Create default visibility settings
   factory VisibilitySettings.createDefault(String carId) {
     return VisibilitySettings(
       carId: carId,
       settingsVisibility: {
-        // 基本情報
+        // Basic Information
         'date': true,
         'track': true,
         'surface': true,
@@ -38,14 +38,14 @@ class VisibilitySettings {
         'trackTemp': true,
         'condition': true,
 
-        // フロント設定
+        // Front Settings
         'frontCamber': true,
         'frontRideHeight': true,
         'frontDamperPosition': true,
         'frontSpring': true,
         'frontToe': true,
 
-        // フロント詳細設定
+        // Front Detailed Settings
         'frontUpperArmSpacer': true,
         'frontUpperArmSpacerInside': true,
         'frontUpperArmSpacerOutside': true,
@@ -64,7 +64,7 @@ class VisibilitySettings {
         'frontDifferentialOil': true,
         'frontDumperPosition': true,
 
-        //フロントダンパー設定
+        // Front Damper Settings
         'frontDamperOffsetStay': true,
         'frontDamperOffsetArm': true,
         'frontDumperType': true,
@@ -76,14 +76,14 @@ class VisibilitySettings {
         'frontDumperStroke': true,
         'frontDumperAirHole': true,
 
-        // リア設定
+        // Rear Settings
         'rearCamber': true,
         'rearRideHeight': true,
         'rearDamperPosition': true,
         'rearSpring': true,
         'rearToe': true,
 
-        // リア詳細設定
+        // Rear Detailed Settings
         'rearUpperArmSpacer': true,
         'rearUpperArmSpacerInside': true,
         'rearUpperArmSpacerOutside': true,
@@ -101,7 +101,7 @@ class VisibilitySettings {
         'rearDifferentialOil': true,
         'rearDumperPosition': true,
 
-        // リアダンパー設定
+        // Rear Damper Settings
         'rearDamperOffsetStay': true,
         'rearDamperOffsetArm': true,
         'rearDumperType': true,
@@ -113,7 +113,7 @@ class VisibilitySettings {
         'rearDumperStroke': true,
         'rearDumperAirHole': true,
 
-        // トップ設定
+        // Top Settings
         'upperDeckScrewPosition': true,
         'upperDeckflexType': true,
         'ballastFrontRight': true,
@@ -121,7 +121,7 @@ class VisibilitySettings {
         'ballastMiddle': true,
         'ballastBattery': true,
 
-        //トップ詳細設定
+        // Top Detailed Settings
         'knucklearmType': true,
         'kuncklearmUprightSpacer': true,
         'steeringPivot': true,
@@ -132,7 +132,7 @@ class VisibilitySettings {
         'lowerDeckThickness': true,
         'lowerDeckMaterial': true,
 
-        //その他設定
+        // Other Settings
         'motor': true,
         'spurGear': true,
         'pinionGear': true,

@@ -14,20 +14,19 @@ class SettingsPage extends StatefulWidget {
 
 class _SettingsPageState extends State<SettingsPage> {
   bool _autoSave = true;
-  String _selectedLanguage = '日本語';
   List<Car> _cars = [];
   Car? _selectedCar;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // 車両リストを取得
+    // Load car list
     final settingsProvider = Provider.of<SettingsProvider>(context);
     _loadCars(settingsProvider);
   }
 
   void _loadCars(SettingsProvider settingsProvider) {
-    // 保存済み設定から車両リストを取得
+    // Get car list from saved settings
     final savedSettings = settingsProvider.savedSettings;
     final Map<String, Car> uniqueCars = {};
 
@@ -37,7 +36,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
     setState(() {
       _cars = uniqueCars.values.toList();
-      // 車両が存在する場合は最初の車両を選択
+      // Select first car if exists
       if (_cars.isNotEmpty && _selectedCar == null) {
         _selectedCar = _cars.first;
       }
@@ -47,16 +46,19 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final isEnglish = settingsProvider.isEnglish;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('設定'),
+        title: Text(isEnglish ? 'Settings' : '設定'),
       ),
       body: ListView(
         children: [
           SwitchListTile(
-            title: const Text('ダークモード'),
-            subtitle: const Text('アプリの外観を暗くします'),
+            title: Text(isEnglish ? 'Dark Mode' : 'ダークモード'),
+            subtitle:
+                Text(isEnglish ? 'Switch to dark appearance' : 'アプリの外観を暗くします'),
             value: themeProvider.isDarkMode,
             onChanged: (bool value) {
               themeProvider.toggleTheme();
@@ -64,16 +66,20 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const Divider(),
           ListTile(
-            title: const Text('表示設定'),
-            subtitle: const Text('各マシンごとの表示項目を設定します'),
+            title: Text(isEnglish ? 'Display Settings' : '表示設定'),
+            subtitle: Text(isEnglish
+                ? 'Set display items for each machine'
+                : '各マシンごとの表示項目を設定します'),
             trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () {
               _showVisibilitySettingsDialog(context);
             },
           ),
           SwitchListTile(
-            title: const Text('自動保存'),
-            subtitle: const Text('セッティングの変更を自動的に保存します'),
+            title: Text(isEnglish ? 'Auto Save' : '自動保存'),
+            subtitle: Text(isEnglish
+                ? 'Automatically save setting changes'
+                : 'セッティングの変更を自動的に保存します'),
             value: _autoSave,
             onChanged: (bool value) {
               setState(() {
@@ -82,36 +88,42 @@ class _SettingsPageState extends State<SettingsPage> {
             },
           ),
           ListTile(
-            title: const Text('言語'),
-            subtitle: Text(_selectedLanguage),
+            title: Text(isEnglish ? 'Language' : '言語'),
+            subtitle: Text(isEnglish ? 'English' : '日本語'),
             trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: _showLanguageDialog,
+            onTap: () => _showLanguageDialog(context),
           ),
           ListTile(
-            title: const Text('データのバックアップ'),
+            title: Text(isEnglish ? 'Backup Data' : 'データのバックアップ'),
             trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () {
-              // バックアップ機能の実装
+              // Backup function implementation
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('バックアップ機能は準備中です')),
+                SnackBar(
+                    content: Text(isEnglish
+                        ? 'Backup feature is coming soon'
+                        : 'バックアップ機能は準備中です')),
               );
             },
           ),
           ListTile(
-            title: const Text('データの復元'),
+            title: Text(isEnglish ? 'Restore Data' : 'データの復元'),
             trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () {
-              // 復元機能の実装
+              // Restore function implementation
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('復元機能は準備中です')),
+                SnackBar(
+                    content: Text(isEnglish
+                        ? 'Restore feature is coming soon'
+                        : '復元機能は準備中です')),
               );
             },
           ),
           const Divider(),
           ListTile(
-            title: const Text('アプリについて'),
+            title: Text(isEnglish ? 'About This App' : 'アプリについて'),
             trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: _showAboutDialog,
+            onTap: () => _showAboutDialog(context),
           ),
         ],
       ),
@@ -119,9 +131,16 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showVisibilitySettingsDialog(BuildContext context) {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
+
     if (_cars.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('表示設定を行うには、まず車両を登録してください')),
+        SnackBar(
+            content: Text(isEnglish
+                ? 'Please register a car first to configure display settings'
+                : '表示設定を行うには、まず車両を登録してください')),
       );
       return;
     }
@@ -132,17 +151,17 @@ class _SettingsPageState extends State<SettingsPage> {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
-              title: const Text('表示設定'),
+              title: Text(isEnglish ? 'Display Settings' : '表示設定'),
               content: SizedBox(
                 width: double.maxFinite,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // 車両選択ドロップダウン
+                    // Car selection dropdown
                     DropdownButtonFormField<Car>(
-                      decoration: const InputDecoration(
-                        labelText: '車両を選択',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: isEnglish ? 'Select Car' : '車両を選択',
+                        border: const OutlineInputBorder(),
                       ),
                       value: _selectedCar,
                       items: _cars.map((car) {
@@ -158,7 +177,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    // 選択された車両の表示設定
+                    // Selected car visibility settings
                     if (_selectedCar != null)
                       Expanded(
                         child: _buildVisibilitySettings(
@@ -172,7 +191,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
-                  child: const Text('閉じる'),
+                  child: Text(isEnglish ? 'Close' : '閉じる'),
                 ),
               ],
             );
@@ -187,56 +206,107 @@ class _SettingsPageState extends State<SettingsPage> {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
     final visibilitySettings = settingsProvider.getVisibilitySettings(car.id);
+    final isEnglish = settingsProvider.isEnglish;
 
-    // 設定項目をカテゴリごとにグループ化
-    final Map<String, List<MapEntry<String, String>>> settingGroups = {
-      '基本情報': [
-        MapEntry('date', '日付'),
-        MapEntry('track', 'トラック'),
-        MapEntry('surface', '路面'),
-        MapEntry('airTemp', '気温'),
-        MapEntry('humidity', '湿度'),
-        MapEntry('trackTemp', '路面温度'),
-        MapEntry('condition', 'コンディション'),
-      ],
-      'フロント設定': [
-        MapEntry('frontCamber', 'キャンバー角'),
-        MapEntry('frontRideHeight', '車高'),
-        MapEntry('frontDamperPosition', 'ダンパーポジション'),
-        MapEntry('frontSpring', 'スプリング'),
-        MapEntry('frontToe', 'トー角'),
-        MapEntry('frontCasterAngle', 'キャスター角'),
-        MapEntry('frontStabilizer', 'スタビライザー'),
-      ],
-      'リア設定': [
-        MapEntry('rearCamber', 'キャンバー角'),
-        MapEntry('rearRideHeight', '車高'),
-        MapEntry('rearDamperPosition', 'ダンパーポジション'),
-        MapEntry('rearSpring', 'スプリング'),
-        MapEntry('rearToe', 'トー角'),
-        MapEntry('rearStabilizer', 'スタビライザー'),
-      ],
-      'トップ設定': [
-        MapEntry('upperDeckScrewPosition', 'アッパーデッキスクリューポジション'),
-        MapEntry('upperDeckflexType', 'アッパーデッキフレックスタイプ'),
-        MapEntry('ballastFrontRight', 'バラスト前右'),
-        MapEntry('ballastFrontLeft', 'バラスト前左'),
-        MapEntry('ballastMiddle', 'バラスト中央'),
-        MapEntry('ballastBattery', 'バラストバッテリー'),
-      ],
-      'その他設定': [
-        MapEntry('motor', 'モーター'),
-        MapEntry('spurGear', 'スパーギア'),
-        MapEntry('pinionGear', 'ピニオンギア'),
-        MapEntry('battery', 'バッテリー'),
-        MapEntry('body', 'ボディ'),
-        MapEntry('bodyWeight', 'ボディ重量'),
-        MapEntry('wing', 'ウイング'),
-        MapEntry('tire', 'タイヤ'),
-        MapEntry('wheel', 'ホイール'),
-        MapEntry('tireInsert', 'タイヤインサート'),
-      ],
-    };
+    // Group settings by category
+    final Map<String, List<MapEntry<String, String>>> settingGroups = isEnglish
+        ? {
+            'Basic Information': [
+              const MapEntry('date', 'Date'),
+              const MapEntry('track', 'Track'),
+              const MapEntry('surface', 'Surface'),
+              const MapEntry('airTemp', 'Air Temperature'),
+              const MapEntry('humidity', 'Humidity'),
+              const MapEntry('trackTemp', 'Track Temperature'),
+              const MapEntry('condition', 'Condition'),
+            ],
+            'Front Settings': [
+              const MapEntry('frontCamber', 'Camber Angle'),
+              const MapEntry('frontRideHeight', 'Ride Height'),
+              const MapEntry('frontDamperPosition', 'Damper Position'),
+              const MapEntry('frontSpring', 'Spring'),
+              const MapEntry('frontToe', 'Toe Angle'),
+              const MapEntry('frontCasterAngle', 'Caster Angle'),
+              const MapEntry('frontStabilizer', 'Stabilizer'),
+            ],
+            'Rear Settings': [
+              const MapEntry('rearCamber', 'Camber Angle'),
+              const MapEntry('rearRideHeight', 'Ride Height'),
+              const MapEntry('rearDamperPosition', 'Damper Position'),
+              const MapEntry('rearSpring', 'Spring'),
+              const MapEntry('rearToe', 'Toe Angle'),
+              const MapEntry('rearStabilizer', 'Stabilizer'),
+            ],
+            'Top Settings': [
+              const MapEntry(
+                  'upperDeckScrewPosition', 'Upper Deck Screw Position'),
+              const MapEntry('upperDeckflexType', 'Upper Deck Flex Type'),
+              const MapEntry('ballastFrontRight', 'Ballast Front Right'),
+              const MapEntry('ballastFrontLeft', 'Ballast Front Left'),
+              const MapEntry('ballastMiddle', 'Ballast Middle'),
+              const MapEntry('ballastBattery', 'Ballast Battery'),
+            ],
+            'Other Settings': [
+              const MapEntry('motor', 'Motor'),
+              const MapEntry('spurGear', 'Spur Gear'),
+              const MapEntry('pinionGear', 'Pinion Gear'),
+              const MapEntry('battery', 'Battery'),
+              const MapEntry('body', 'Body'),
+              const MapEntry('bodyWeight', 'Body Weight'),
+              const MapEntry('wing', 'Wing'),
+              const MapEntry('tire', 'Tire'),
+              const MapEntry('wheel', 'Wheel'),
+              const MapEntry('tireInsert', 'Tire Insert'),
+            ],
+          }
+        : {
+            '基本情報': [
+              const MapEntry('date', '日付'),
+              const MapEntry('track', 'トラック'),
+              const MapEntry('surface', '路面'),
+              const MapEntry('airTemp', '気温'),
+              const MapEntry('humidity', '湿度'),
+              const MapEntry('trackTemp', '路面温度'),
+              const MapEntry('condition', 'コンディション'),
+            ],
+            'フロント設定': [
+              const MapEntry('frontCamber', 'キャンバー角'),
+              const MapEntry('frontRideHeight', '車高'),
+              const MapEntry('frontDamperPosition', 'ダンパーポジション'),
+              const MapEntry('frontSpring', 'スプリング'),
+              const MapEntry('frontToe', 'トー角'),
+              const MapEntry('frontCasterAngle', 'キャスター角'),
+              const MapEntry('frontStabilizer', 'スタビライザー'),
+            ],
+            'リア設定': [
+              const MapEntry('rearCamber', 'キャンバー角'),
+              const MapEntry('rearRideHeight', '車高'),
+              const MapEntry('rearDamperPosition', 'ダンパーポジション'),
+              const MapEntry('rearSpring', 'スプリング'),
+              const MapEntry('rearToe', 'トー角'),
+              const MapEntry('rearStabilizer', 'スタビライザー'),
+            ],
+            'トップ設定': [
+              const MapEntry('upperDeckScrewPosition', 'アッパーデッキスクリューポジション'),
+              const MapEntry('upperDeckflexType', 'アッパーデッキフレックスタイプ'),
+              const MapEntry('ballastFrontRight', 'バラスト前右'),
+              const MapEntry('ballastFrontLeft', 'バラスト前左'),
+              const MapEntry('ballastMiddle', 'バラスト中央'),
+              const MapEntry('ballastBattery', 'バラストバッテリー'),
+            ],
+            'その他設定': [
+              const MapEntry('motor', 'モーター'),
+              const MapEntry('spurGear', 'スパーギア'),
+              const MapEntry('pinionGear', 'ピニオンギア'),
+              const MapEntry('battery', 'バッテリー'),
+              const MapEntry('body', 'ボディ'),
+              const MapEntry('bodyWeight', 'ボディ重量'),
+              const MapEntry('wing', 'ウイング'),
+              const MapEntry('tire', 'タイヤ'),
+              const MapEntry('wheel', 'ホイール'),
+              const MapEntry('tireInsert', 'タイヤインサート'),
+            ],
+          };
 
     return ListView.builder(
       shrinkWrap: true,
@@ -257,8 +327,9 @@ class _SettingsPageState extends State<SettingsPage> {
               title: Text(label),
               value: isVisible,
               onChanged: (bool value) {
-                settingsProvider.toggleSettingVisibility(car.id, key, value);
-                setState(() {});
+                setState(() {
+                  settingsProvider.toggleSettingVisibility(car.id, key, value);
+                });
               },
             );
           }).toList(),
@@ -267,31 +338,55 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showLanguageDialog() {
+  void _showLanguageDialog(BuildContext context) {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('言語を選択'),
+          title: Text(isEnglish ? 'Select Language' : '言語を選択'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               ListTile(
                 title: const Text('日本語'),
+                leading: Radio<bool>(
+                  value: false,
+                  groupValue: isEnglish,
+                  onChanged: (bool? value) {
+                    if (value != null && value == false) {
+                      settingsProvider.toggleLanguage();
+                      Navigator.of(context).pop();
+                    }
+                  },
+                ),
                 onTap: () {
-                  setState(() {
-                    _selectedLanguage = '日本語';
-                  });
-                  Navigator.pop(context);
+                  if (isEnglish) {
+                    settingsProvider.toggleLanguage();
+                    Navigator.of(context).pop();
+                  }
                 },
               ),
               ListTile(
                 title: const Text('English'),
+                leading: Radio<bool>(
+                  value: true,
+                  groupValue: isEnglish,
+                  onChanged: (bool? value) {
+                    if (value != null && value == true) {
+                      settingsProvider.toggleLanguage();
+                      Navigator.of(context).pop();
+                    }
+                  },
+                ),
                 onTap: () {
-                  setState(() {
-                    _selectedLanguage = 'English';
-                  });
-                  Navigator.pop(context);
+                  if (!isEnglish) {
+                    settingsProvider.toggleLanguage();
+                    Navigator.of(context).pop();
+                  }
                 },
               ),
             ],
@@ -301,21 +396,39 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _showAboutDialog() {
-    showAboutDialog(
+  void _showAboutDialog(BuildContext context) {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
+
+    showDialog(
       context: context,
-      applicationName: 'Rc Setting Manager',
-      applicationVersion: '0.0.1',
-      applicationIcon: Image.asset(
-        'assets/launcher_icon/ios_icon.png',
-        width: 48,
-        height: 48,
-      ),
-      children: [
-        const Text('ラジコンのセッティングを管理するためのアプリです。'),
-        const SizedBox(height: 16),
-        const Text('© 2025 Akihisa Iwata'),
-      ],
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(isEnglish ? 'About This App' : 'アプリについて'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(isEnglish ? 'RC Car Setting Manager' : 'RCカーセッティング管理アプリ'),
+              const SizedBox(height: 8),
+              Text(isEnglish ? 'Version: 1.0.0' : 'バージョン: 1.0.0'),
+              const SizedBox(height: 8),
+              Text(isEnglish
+                  ? 'This app helps you manage settings for your RC cars.'
+                  : 'このアプリはRCカーのセッティングを管理するためのアプリです。'),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(isEnglish ? 'Close' : '閉じる'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

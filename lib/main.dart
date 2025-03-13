@@ -26,10 +26,12 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ThemeProvider>(
-      builder: (context, themeProvider, child) {
+    return Consumer2<ThemeProvider, SettingsProvider>(
+      builder: (context, themeProvider, settingsProvider, child) {
         return MaterialApp(
-          title: 'RCカーセッティングアプリ',
+          title: settingsProvider.isEnglish
+              ? 'RC Car Setting App'
+              : 'RCカーセッティングアプリ',
           theme: ThemeData(
             primarySwatch: Colors.blue,
             visualDensity: VisualDensity.adaptivePlatformDensity,
@@ -49,7 +51,11 @@ class MyApp extends StatelessWidget {
           ],
           supportedLocales: const [
             Locale("ja", "JP"),
+            Locale("en", "US"),
           ],
+          locale: settingsProvider.isEnglish
+              ? const Locale("en", "US")
+              : const Locale("ja", "JP"),
           debugShowCheckedModeBanner: false,
           initialRoute: '/',
           routes: {

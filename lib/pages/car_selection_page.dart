@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/settings_provider.dart';
 import 'car_setting_page.dart';
 import 'settings_page.dart';
 import '../models/car.dart';
+import '../models/manufacturer.dart';
+import 'car_list_page.dart';
 
 class CarSelectionPage extends StatefulWidget {
   const CarSelectionPage({super.key});
@@ -33,9 +37,12 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
 
   @override
   Widget build(BuildContext context) {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final isEnglish = settingsProvider.isEnglish;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('メーカー選択'),
+        title: Text(isEnglish ? 'Manufacturer Selection' : 'メーカー選択'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -71,7 +78,7 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
         onPressed: () {
           _showAddManufacturerDialog();
         },
-        tooltip: 'メーカーを追加',
+        tooltip: isEnglish ? 'Add Manufacturer' : 'メーカーを追加',
         child: const Icon(Icons.add),
       ),
     );
@@ -79,50 +86,52 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
 
   void _showAddManufacturerDialog() {
     final TextEditingController nameController = TextEditingController();
-    //String selectedImageUrl = 'assets/images/default_manufacturer.png';
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('新しいメーカーを追加'),
+          title: Text(isEnglish ? 'Add New Manufacturer' : '新しいメーカーを追加'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextField(
                 controller: nameController,
-                decoration: const InputDecoration(
-                  labelText: 'メーカー名',
+                decoration: InputDecoration(
+                  labelText: isEnglish ? 'Manufacturer Name' : 'メーカー名',
                 ),
               ),
               const SizedBox(height: 16),
-              const Text('注: 現在はデフォルト画像が使用されます'),
+              Text(isEnglish
+                  ? 'Note: Default image will be used for now.'
+                  : '注: 現在はデフォルト画像が使用されます'),
             ],
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.pop(context);
               },
-              child: const Text('キャンセル'),
+              child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
             ),
             TextButton(
               onPressed: () {
-                if (nameController.text.isNotEmpty) {
+                final name = nameController.text.trim();
+                if (name.isNotEmpty) {
                   setState(() {
-                    manufacturers.add(
-                      Manufacturer(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        name: nameController.text,
-                        //imageUrl: selectedImageUrl,
-                        cars: [],
-                      ),
-                    );
+                    manufacturers.add(Manufacturer(
+                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                      name: name,
+                      cars: [],
+                    ));
                   });
-                  Navigator.of(context).pop();
+                  Navigator.pop(context);
                 }
               },
-              child: const Text('追加'),
+              child: Text(isEnglish ? 'Add' : '追加'),
             ),
           ],
         );
@@ -136,28 +145,63 @@ class ManufacturerListItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const ManufacturerListItem({
-    super.key,
+    Key? key,
     required this.manufacturer,
     required this.onTap,
-  });
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final isEnglish = settingsProvider.isEnglish;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ListTile(
-        //leading: Image.asset(
-        //  manufacturer.imageUrl,
-        //  width: 60,
-        //  height: 60,
-        //  errorBuilder: (context, error, stackTrace) {
-        //    return const Icon(Icons.factory, size: 60);
-        //  },
-        //),
-        title: Text(manufacturer.name),
-        subtitle: Text('${manufacturer.cars.length}台の車種'),
-        trailing: const Icon(Icons.arrow_forward_ios),
+      child: InkWell(
         onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.business, size: 40),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      manufacturer.name,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isEnglish
+                          ? '${manufacturer.cars.length} models'
+                          : '${manufacturer.cars.length} 車種',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.arrow_forward_ios, size: 16),
+            ],
+          ),
+        ),
       ),
     );
   }
