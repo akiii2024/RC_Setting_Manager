@@ -3,12 +3,16 @@ class Car {
   final String name;
   final String imageUrl;
   Map<String, dynamic>? settings;
+  final List<String> availableSettings; // 車種固有の設定項目リスト
+  final Map<String, String> settingTypes; // 設定項目のタイプを管理するマップ
 
   Car({
     required this.id,
     required this.name,
     required this.imageUrl,
     this.settings,
+    this.availableSettings = const [], // デフォルトは空のリスト
+    this.settingTypes = const {}, // デフォルトは空のマップ
   });
 
   // Deserialize from JSON
@@ -20,6 +24,12 @@ class Car {
       settings: json['settings'] != null
           ? Map<String, dynamic>.from(json['settings'])
           : null,
+      availableSettings: json['availableSettings'] != null
+          ? List<String>.from(json['availableSettings'])
+          : [],
+      settingTypes: json['settingTypes'] != null
+          ? Map<String, String>.from(json['settingTypes'])
+          : {},
     );
   }
 
@@ -30,6 +40,8 @@ class Car {
       'name': name,
       'imageUrl': imageUrl,
       'settings': settings,
+      'availableSettings': availableSettings,
+      'settingTypes': settingTypes,
     };
   }
 }

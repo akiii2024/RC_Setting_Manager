@@ -24,8 +24,22 @@ class VisibilitySettings {
     };
   }
 
-  // Create default visibility settings
-  factory VisibilitySettings.createDefault(String carId) {
+  // 車種固有の設定項目に対応した標準的な表示設定を全てtrueで作成
+  factory VisibilitySettings.createDefault(String carId,
+      {List<String>? availableSettings}) {
+    // 車種固有の設定項目がある場合はそれを使用
+    if (availableSettings != null && availableSettings.isNotEmpty) {
+      Map<String, bool> visibility = {};
+      for (var setting in availableSettings) {
+        visibility[setting] = true;
+      }
+      return VisibilitySettings(
+        carId: carId,
+        settingsVisibility: visibility,
+      );
+    }
+
+    // そうでない場合は従来通りの設定項目リストを使用
     return VisibilitySettings(
       carId: carId,
       settingsVisibility: {
@@ -145,6 +159,16 @@ class VisibilitySettings {
         'tire': true,
         'wheel': true,
         'tireInsert': true,
+
+        // TRF421固有の設定項目
+        'frontSusMountPosition': true,
+        'rearSusMountPosition': true,
+        'frontSuspensionArmThickness': true,
+        'rearSuspensionArmThickness': true,
+
+        // TRF420固有の設定項目
+        'frontAxisHeight': true,
+        'motorCoolingType': true,
       },
     );
   }
