@@ -1823,156 +1823,173 @@ class _CarSettingPageState extends State<CarSettingPage> {
         Text(isEnglish ? 'Top Deck Settings' : 'トップ設定',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText: isEnglish
-                      ? 'Upper Deck Screw Position'
-                      : 'アッパーデッキスクリューポジション',
-                  border: OutlineInputBorder(),
-                ),
-                initialValue: settings['upperDeckScrewPosition'],
-                onChanged: (value) {
-                  settings['upperDeckScrewPosition'] = value;
-                },
+        _buildSettingsRow(
+          'upperDeckScrewPosition',
+          'upperDeckflexType',
+          _buildSettingField(
+            'upperDeckScrewPosition',
+            isEnglish ? 'Upper Deck Screw Position' : 'アッパーデッキスクリューポジション',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish
+                    ? 'Upper Deck Screw Position'
+                    : 'アッパーデッキスクリューポジション',
+                border: OutlineInputBorder(),
               ),
+              initialValue: settings['upperDeckScrewPosition'],
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                settings['upperDeckScrewPosition'] = value;
+              },
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText:
-                      isEnglish ? 'Upper Deck Flex Type' : 'アッパーデッキフレックスタイプ',
-                  border: OutlineInputBorder(),
-                ),
-                initialValue: settings['upperDeckflexType'],
-                onChanged: (value) {
-                  settings['upperDeckflexType'] = value;
-                },
+          ),
+          _buildSettingField(
+            'upperDeckflexType',
+            isEnglish ? 'Upper Deck Flex Type' : 'アッパーデッキフレックスタイプ',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText:
+                    isEnglish ? 'Upper Deck Flex Type' : 'アッパーデッキフレックスタイプ',
+                border: OutlineInputBorder(),
               ),
+              initialValue: settings['upperDeckflexType'],
+              onChanged: (value) {
+                settings['upperDeckflexType'] = value;
+              },
             ),
-          ],
+          ),
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText:
-                      isEnglish ? 'Ballast Front Right (g)' : 'バラスト前右 (g)',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                initialValue:
-                    settings['ballastFrontRight']?.toString() ?? '0.0',
-                onChanged: (value) {
-                  settings['ballastFrontRight'] = double.tryParse(value) ?? 0.0;
-                },
+        _buildSettingsRow(
+          'ballastFrontRight',
+          'ballastFrontLeft',
+          _buildSettingField(
+            'ballastFrontRight',
+            isEnglish ? 'Ballast Front Right' : 'バラスト前右',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Ballast Front Right (g)' : 'バラスト前右 (g)',
+                border: OutlineInputBorder(),
               ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              initialValue: settings['ballastFrontRight']?.toString() ?? '0.0',
+              onChanged: (value) {
+                settings['ballastFrontRight'] = double.tryParse(value) ?? 0.0;
+              },
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText:
-                      isEnglish ? 'Ballast Front Left (g)' : 'バラスト前左 (g)',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                initialValue: settings['ballastFrontLeft']?.toString() ?? '0.0',
-                onChanged: (value) {
-                  settings['ballastFrontLeft'] = double.tryParse(value) ?? 0.0;
-                },
+          ),
+          _buildSettingField(
+            'ballastFrontLeft',
+            isEnglish ? 'Ballast Front Left' : 'バラスト左前',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Ballast Front Left (g)' : 'バラスト前左 (g)',
+                border: OutlineInputBorder(),
               ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              initialValue: settings['ballastFrontLeft']?.toString() ?? '0.0',
+              onChanged: (value) {
+                settings['ballastFrontLeft'] = double.tryParse(value) ?? 0.0;
+              },
             ),
-          ],
+          ),
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText: isEnglish ? 'Ballast Middle (g)' : 'バラスト中央 (g)',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                initialValue: settings['ballastMiddle']?.toString() ?? '0.0',
-                onChanged: (value) {
-                  settings['ballastMiddle'] = double.tryParse(value) ?? 0.0;
-                },
+        _buildSettingsRow(
+          'ballastMiddle',
+          'ballastBattery',
+          _buildSettingField(
+            'ballastMiddle',
+            isEnglish ? 'Ballast Middle' : 'バラスト中央',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Ballast Middle (g)' : 'バラスト中央 (g)',
+                border: OutlineInputBorder(),
               ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              initialValue: settings['ballastMiddle']?.toString() ?? '0.0',
+              onChanged: (value) {
+                settings['ballastMiddle'] = double.tryParse(value) ?? 0.0;
+              },
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText:
-                      isEnglish ? 'Ballast Battery (g)' : 'バラストバッテリー (g)',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                initialValue: settings['ballastBattery']?.toString() ?? '0.0',
-                onChanged: (value) {
-                  settings['ballastBattery'] = double.tryParse(value) ?? 0.0;
-                },
+          ),
+          _buildSettingField(
+            'ballastBattery',
+            isEnglish ? 'Ballast Battery' : 'バラストバッテリー',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Ballast Battery (g)' : 'バラストバッテリー (g)',
+                border: OutlineInputBorder(),
               ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              initialValue: settings['ballastBattery']?.toString() ?? '0.0',
+              onChanged: (value) {
+                settings['ballastBattery'] = double.tryParse(value) ?? 0.0;
+              },
             ),
-          ],
+          ),
         ),
         const SizedBox(height: 16),
-        _buildExpandablePanel(
-          title: 'トップ詳細設定',
-          children: [
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'ナックルアームタイプ',
-                      border: OutlineInputBorder(),
+        _buildSettingField(
+          'topDetails',
+          isEnglish ? 'Top Details' : 'トップ詳細設定',
+          _buildExpandablePanel(
+            title: isEnglish ? 'Top Details' : 'トップ詳細設定',
+            children: [
+              _buildSettingsRow(
+                  'knucklearmType',
+                  'kuncklearmUprightSpacer',
+                  _buildSettingField(
+                    'knucklearmType',
+                    isEnglish ? 'Knucklearm Type' : 'ナックルアームタイプ',
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: isEnglish ? 'Knucklearm Type' : 'ナックルアームタイプ',
+                        border: OutlineInputBorder(),
+                      ),
+                      initialValue: settings['knucklearmType'],
+                      onChanged: (value) {
+                        settings['knucklearmType'] = value;
+                      },
                     ),
-                    initialValue: settings['knucklearmType'],
-                    onChanged: (value) {
-                      settings['knucklearmType'] = value;
-                    },
                   ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'ナックルアームアップライトスペーサー (mm)',
-                      border: OutlineInputBorder(),
+                  _buildSettingField(
+                    'kuncklearmUprightSpacer',
+                    isEnglish
+                        ? 'Knucklearm Upright Spacer'
+                        : 'ナックルアームアップライトスペーサー (mm)',
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: isEnglish
+                            ? 'Knucklearm Upright Spacer'
+                            : 'ナックルアームアップライトスペーサー (mm)',
+                        border: OutlineInputBorder(),
+                      ),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      initialValue:
+                          settings['kuncklearmUprightSpacer']?.toString() ??
+                              '0.0',
+                      onChanged: (value) {
+                        settings['kuncklearmUprightSpacer'] =
+                            double.tryParse(value) ?? 0.0;
+                      },
                     ),
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
-                    initialValue:
-                        settings['kuncklearmUprightSpacer']?.toString() ??
-                            '0.0',
-                    onChanged: (value) {
-                      settings['kuncklearmUprightSpacer'] =
-                          double.tryParse(value) ?? 0.0;
-                    },
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'ステアリングピボット',
+                  )),
+              const SizedBox(height: 16),
+              _buildSettingsRow(
+                'steeringPivot',
+                'steeringSpacer',
+                _buildSettingField(
+                  'steeringPivot',
+                  isEnglish ? 'Steering Pivot' : 'ステアリングピボット',
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: isEnglish ? 'Steering Pivot' : 'ステアリングピボット',
                       border: OutlineInputBorder(),
                     ),
                     initialValue: settings['steeringPivot'],
@@ -1981,11 +1998,13 @@ class _CarSettingPageState extends State<CarSettingPage> {
                     },
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'ステアリングスペーサー (mm)',
+                _buildSettingField(
+                  'steeringSpacer',
+                  isEnglish ? 'Steering Spacer' : 'ステアリングスペーサー (mm)',
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText:
+                          isEnglish ? 'Steering Spacer' : 'ステアリングスペーサー (mm)',
                       border: OutlineInputBorder(),
                     ),
                     keyboardType:
@@ -1998,15 +2017,20 @@ class _CarSettingPageState extends State<CarSettingPage> {
                     },
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'フロントサスペンションアームスペーサー (mm)',
+              ),
+              const SizedBox(height: 16),
+              _buildSingleSetting(
+                'frontSuspensionArmSpacer',
+                _buildSettingField(
+                  'frontSuspensionArmSpacer',
+                  isEnglish
+                      ? 'Front Suspension Arm Spacer'
+                      : 'フロントサスペンションアームスペーサー (mm)',
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: isEnglish
+                          ? 'Front Suspension Arm Spacer'
+                          : 'フロントサスペンションアームスペーサー (mm)',
                       border: OutlineInputBorder(),
                     ),
                     keyboardType:
@@ -2020,15 +2044,18 @@ class _CarSettingPageState extends State<CarSettingPage> {
                     },
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'リアサスペンションタイプ',
+              ),
+              const SizedBox(height: 16),
+              _buildSettingsRow(
+                'rearSuspensionType',
+                'rearSuspensionArmSpacer',
+                _buildSettingField(
+                  'rearSuspensionType',
+                  isEnglish ? 'Rear Suspension Type' : 'リアサスペンションタイプ',
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText:
+                          isEnglish ? 'Rear Suspension Type' : 'リアサスペンションタイプ',
                       border: OutlineInputBorder(),
                     ),
                     initialValue: settings['rearSuspensionType'],
@@ -2037,11 +2064,16 @@ class _CarSettingPageState extends State<CarSettingPage> {
                     },
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'リアサスペンションアームスペーサー (mm)',
+                _buildSettingField(
+                  'rearSuspensionArmSpacer',
+                  isEnglish
+                      ? 'Rear Suspension Arm Spacer'
+                      : 'リアサスペンションアームスペーサー (mm)',
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: isEnglish
+                          ? 'Rear Suspension Arm Spacer'
+                          : 'リアサスペンションアームスペーサー (mm)',
                       border: OutlineInputBorder(),
                     ),
                     keyboardType:
@@ -2055,15 +2087,18 @@ class _CarSettingPageState extends State<CarSettingPage> {
                     },
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'ロアデッキ厚さ (mm)',
+              ),
+              const SizedBox(height: 16),
+              _buildSettingsRow(
+                'lowerDeckThickness',
+                'lowerDeckMaterial',
+                _buildSettingField(
+                  'lowerDeckThickness',
+                  isEnglish ? 'Lower Deck Thickness' : 'ロアデッキ厚さ (mm)',
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText:
+                          isEnglish ? 'Lower Deck Thickness' : 'ロアデッキ厚さ (mm)',
                       border: OutlineInputBorder(),
                     ),
                     keyboardType:
@@ -2076,11 +2111,12 @@ class _CarSettingPageState extends State<CarSettingPage> {
                     },
                   ),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextFormField(
-                    decoration: const InputDecoration(
-                      labelText: 'ロアデッキ素材',
+                _buildSettingField(
+                  'lowerDeckMaterial',
+                  isEnglish ? 'Lower Deck Material' : 'ロアデッキ素材',
+                  TextFormField(
+                    decoration: InputDecoration(
+                      labelText: isEnglish ? 'Lower Deck Material' : 'ロアデッキ素材',
                       border: OutlineInputBorder(),
                     ),
                     initialValue: settings['lowerDeckMaterial'],
@@ -2089,9 +2125,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
                     },
                   ),
                 ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -2107,161 +2143,139 @@ class _CarSettingPageState extends State<CarSettingPage> {
         Text(isEnglish ? 'Other Settings' : 'その他設定',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
-        TextFormField(
-          decoration: InputDecoration(
-            labelText: isEnglish ? 'Motor' : 'モーター',
-            border: OutlineInputBorder(),
+        _buildSingleSetting(
+          'motor',
+          _buildSettingField(
+            'motor',
+            isEnglish ? 'Motor' : 'モーター',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Motor' : 'モーター',
+                border: OutlineInputBorder(),
+              ),
+              initialValue: settings['motor'],
+              onChanged: (value) {
+                settings['motor'] = value;
+              },
+            ),
           ),
-          initialValue: settings['motor'],
-          onChanged: (value) {
-            settings['motor'] = value;
-          },
         ),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText: isEnglish ? 'Spur Gear' : 'スパーギア',
-                  border: OutlineInputBorder(),
-                ),
-                initialValue: settings['spurGear'],
-                onChanged: (value) {
-                  settings['spurGear'] = value;
-                },
+        _buildSettingsRow(
+          'spurGear',
+          'pinionGear',
+          _buildSettingField(
+            'spurGear',
+            isEnglish ? 'Spur Gear' : 'スパーギア',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Spur Gear' : 'スパーギア',
+                border: OutlineInputBorder(),
               ),
+              initialValue: settings['spurGear'],
+              onChanged: (value) {
+                settings['spurGear'] = value;
+              },
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText: isEnglish ? 'Pinion Gear' : 'ピニオンギア',
-                  border: OutlineInputBorder(),
-                ),
-                initialValue: settings['pinionGear'],
-                onChanged: (value) {
-                  settings['pinionGear'] = value;
-                },
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText: isEnglish ? 'Battery' : 'バッテリー',
-                  border: OutlineInputBorder(),
-                ),
-                initialValue: settings['battery'],
-                onChanged: (value) {
-                  settings['battery'] = value;
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText: isEnglish ? 'Body' : 'ボディ',
-                  border: OutlineInputBorder(),
-                ),
-                initialValue: settings['body'],
-                onChanged: (value) {
-                  settings['body'] = value;
-                },
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText: isEnglish ? 'Body Weight (g)' : 'ボディ重量 (g)',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType:
-                    const TextInputType.numberWithOptions(decimal: true),
-                initialValue: settings['bodyWeight']?.toString() ?? '0.0',
-                onChanged: (value) {
-                  settings['bodyWeight'] = double.tryParse(value) ?? 0.0;
-                },
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText: isEnglish
-                      ? 'Front Body Mount Hole Position'
-                      : 'フロントボディマウントホール位置',
-                  border: OutlineInputBorder(),
-                ),
-                initialValue: settings['rearBodyMountHolePosition'],
-                onChanged: (value) {
-                  settings['rearBodyMountHolePosition'] = value;
-                },
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        TextFormField(
-          decoration: InputDecoration(
-            labelText: isEnglish ? 'Wing' : 'ウイング',
-            border: OutlineInputBorder(),
           ),
-          initialValue: settings['wing'],
-          onChanged: (value) {
-            settings['wing'] = value;
-          },
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText: isEnglish ? 'Tire' : 'タイヤ',
-                  border: OutlineInputBorder(),
-                ),
-                initialValue: settings['tire'],
-                onChanged: (value) {
-                  settings['tire'] = value;
-                },
+          _buildSettingField(
+            'pinionGear',
+            isEnglish ? 'Pinion Gear' : 'ピニオンギア',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Pinion Gear' : 'ピニオンギア',
+                border: OutlineInputBorder(),
               ),
+              initialValue: settings['pinionGear'],
+              onChanged: (value) {
+                settings['pinionGear'] = value;
+              },
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: TextFormField(
-                decoration: InputDecoration(
-                  labelText: isEnglish ? 'Wheel' : 'ホイール',
-                  border: OutlineInputBorder(),
-                ),
-                initialValue: settings['wheel'],
-                onChanged: (value) {
-                  settings['wheel'] = value;
-                },
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        TextFormField(
-          decoration: InputDecoration(
-            labelText: isEnglish ? 'Tire Insert' : 'タイヤインサート',
-            border: OutlineInputBorder(),
           ),
-          initialValue: settings['tireInsert'],
-          onChanged: (value) {
-            settings['tireInsert'] = value;
-          },
+        ),
+        const SizedBox(height: 16),
+        _buildSettingsRow(
+          'battery',
+          'body',
+          _buildSettingField(
+            'battery',
+            isEnglish ? 'Battery' : 'バッテリー',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Battery' : 'バッテリー',
+                border: OutlineInputBorder(),
+              ),
+              initialValue: settings['battery'],
+              onChanged: (value) {
+                settings['battery'] = value;
+              },
+            ),
+          ),
+          _buildSettingField(
+            'body',
+            isEnglish ? 'Body' : 'ボディ',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Body' : 'ボディ',
+                border: OutlineInputBorder(),
+              ),
+              initialValue: settings['body'],
+              onChanged: (value) {
+                settings['body'] = value;
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildSettingsRow(
+          'tire',
+          'wheel',
+          _buildSettingField(
+            'tire',
+            isEnglish ? 'Tire' : 'タイヤ',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Tire' : 'タイヤ',
+                border: OutlineInputBorder(),
+              ),
+              initialValue: settings['tire'],
+              onChanged: (value) {
+                settings['tire'] = value;
+              },
+            ),
+          ),
+          _buildSettingField(
+            'wheel',
+            isEnglish ? 'Wheel' : 'ホイール',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Wheel' : 'ホイール',
+                border: OutlineInputBorder(),
+              ),
+              initialValue: settings['wheel'],
+              onChanged: (value) {
+                settings['wheel'] = value;
+              },
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildSingleSetting(
+          'tireInner',
+          _buildSettingField(
+            'tireInner',
+            isEnglish ? 'Tire Inner' : 'タイヤインナー',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Tire Inner' : 'タイヤインナー',
+                border: OutlineInputBorder(),
+              ),
+              initialValue: settings['tireInner'],
+              onChanged: (value) {
+                settings['tireInner'] = value;
+              },
+            ),
+          ),
         ),
       ],
     );

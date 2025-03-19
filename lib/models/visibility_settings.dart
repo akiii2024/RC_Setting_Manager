@@ -153,12 +153,12 @@ class VisibilitySettings {
         'battery': true,
         'body': true,
         'bodyWeight': true,
+        'wing': true,
         'frontBodyMountHolePosition': true,
         'rearBodyMountHolePosition': true,
-        'wing': true,
         'tire': true,
         'wheel': true,
-        'tireInsert': true,
+        'tireInner': true,
 
         // TRF421固有の設定項目
         'frontSusMountPosition': true,
