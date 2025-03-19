@@ -371,158 +371,157 @@ class _CarSettingPageState extends State<CarSettingPage> {
         Text(isEnglish ? 'Basic Information' : '基本情報',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildSettingField(
-                'date',
-                isEnglish ? 'Date' : '日付',
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: isEnglish ? 'Date' : '日付',
-                    border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  ),
-                  initialValue: settings['date'] != null
-                      ? DateTime.parse(settings['date'])
-                          .toString()
-                          .split(' ')[0]
-                          .replaceAll('-', '/')
-                      : DateTime.now().toString().split(' ')[0],
-                  onChanged: (value) {
-                    settings['date'] =
-                        DateTime.parse(value.replaceAll('/', '-'))
-                            .toIso8601String();
-                  },
-                ),
+
+        // 日付とトラックの行
+        _buildSettingsRow(
+          'date',
+          'track',
+          _buildSettingField(
+            'date',
+            isEnglish ? 'Date' : '日付',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Date' : '日付',
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
+              initialValue: settings['date'] != null
+                  ? DateTime.parse(settings['date'])
+                      .toString()
+                      .split(' ')[0]
+                      .replaceAll('-', '/')
+                  : DateTime.now().toString().split(' ')[0],
+              onChanged: (value) {
+                settings['date'] = DateTime.parse(value.replaceAll('/', '-'))
+                    .toIso8601String();
+              },
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildSettingField(
-                'track',
-                isEnglish ? 'Track' : 'トラック',
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: isEnglish ? 'Track' : 'トラック',
-                    border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  ),
-                  initialValue: settings['track'],
-                  onChanged: (value) {
-                    settings['track'] = value;
-                  },
-                ),
+          ),
+          _buildSettingField(
+            'track',
+            isEnglish ? 'Track' : 'トラック',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Track' : 'トラック',
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 16),
               ),
+              initialValue: settings['track'],
+              onChanged: (value) {
+                settings['track'] = value;
+              },
             ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildSettingField(
-                'surface',
-                isEnglish ? 'Surface' : '路面',
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: isEnglish ? 'Surface' : '路面',
-                    border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  ),
-                  initialValue: settings['surface'],
-                  onChanged: (value) {
-                    settings['surface'] = value;
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildSettingField(
-                'condition',
-                isEnglish ? 'Condition' : 'コンディション',
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: isEnglish ? 'Condition' : 'コンディション',
-                    border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  ),
-                  initialValue: settings['condition'],
-                  onChanged: (value) {
-                    settings['condition'] = value;
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildSettingField(
-                'airTemp',
-                isEnglish ? 'Air Temperature' : '気温',
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: isEnglish ? 'Air Temperature (℃)' : '気温 (℃)',
-                    border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  ),
-                  initialValue: settings['airTemp'].toString(),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    settings['airTemp'] = int.tryParse(value) ?? 0;
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildSettingField(
-                'humidity',
-                isEnglish ? 'Humidity' : '湿度',
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: isEnglish ? 'Humidity (%)' : '湿度 (%)',
-                    border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-                  ),
-                  initialValue: settings['humidity'].toString(),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    settings['humidity'] = int.tryParse(value) ?? 0;
-                  },
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _buildSettingField(
-          'trackTemp',
-          isEnglish ? 'Track Temperature' : '路面温度',
-          TextFormField(
-            decoration: InputDecoration(
-              labelText: isEnglish ? 'Track Temperature (℃)' : '路面温度 (℃)',
-              border: OutlineInputBorder(),
-              contentPadding:
-                  EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-            ),
-            initialValue: settings['trackTemp'].toString(),
-            keyboardType: TextInputType.number,
-            onChanged: (value) {
-              settings['trackTemp'] = int.tryParse(value) ?? 0;
-            },
           ),
         ),
+
+        const SizedBox(height: 16),
+
+        // 路面とコンディションの行
+        _buildSettingsRow(
+          'surface',
+          'condition',
+          _buildSettingField(
+            'surface',
+            isEnglish ? 'Surface' : '路面',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Surface' : '路面',
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              ),
+              initialValue: settings['surface'],
+              onChanged: (value) {
+                settings['surface'] = value;
+              },
+            ),
+          ),
+          _buildSettingField(
+            'condition',
+            isEnglish ? 'Condition' : 'コンディション',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Condition' : 'コンディション',
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              ),
+              initialValue: settings['condition'],
+              onChanged: (value) {
+                settings['condition'] = value;
+              },
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // 気温と湿度の行
+        _buildSettingsRow(
+          'airTemp',
+          'humidity',
+          _buildSettingField(
+            'airTemp',
+            isEnglish ? 'Air Temperature' : '気温',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Air Temperature (℃)' : '気温 (℃)',
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              ),
+              initialValue: settings['airTemp'].toString(),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                settings['airTemp'] = int.tryParse(value) ?? 0;
+              },
+            ),
+          ),
+          _buildSettingField(
+            'humidity',
+            isEnglish ? 'Humidity' : '湿度',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Humidity (%)' : '湿度 (%)',
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              ),
+              initialValue: settings['humidity'].toString(),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                settings['humidity'] = int.tryParse(value) ?? 0;
+              },
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 16),
+
+        // 路面温度の行（単独項目）
+        _buildSingleSetting(
+          'trackTemp',
+          _buildSettingField(
+            'trackTemp',
+            isEnglish ? 'Track Temperature' : '路面温度',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Track Temperature (℃)' : '路面温度 (℃)',
+                border: OutlineInputBorder(),
+                contentPadding:
+                    EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+              ),
+              initialValue: settings['trackTemp'].toString(),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                settings['trackTemp'] = int.tryParse(value) ?? 0;
+              },
+            ),
+          ),
+        ),
+
         const SizedBox(height: 16),
       ],
     );
@@ -538,477 +537,469 @@ class _CarSettingPageState extends State<CarSettingPage> {
         Text(isEnglish ? 'Front Settings' : 'フロント設定',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildSettingField(
-                'frontCamber',
-                isEnglish ? 'Camber Angle' : 'キャンバー角',
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: isEnglish ? 'Camber Angle' : 'キャンバー角',
-                    border: OutlineInputBorder(),
-                    suffixText: '°',
-                  ),
-                  initialValue: settings['frontCamber'].toString(),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    settings['frontCamber'] = double.tryParse(value) ?? 0.0;
-                  },
-                ),
+
+        // キャンバー角と車高の行
+        _buildSettingsRow(
+          'frontCamber',
+          'frontRideHeight',
+          _buildSettingField(
+            'frontCamber',
+            isEnglish ? 'Camber Angle' : 'キャンバー角',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Camber Angle' : 'キャンバー角',
+                border: OutlineInputBorder(),
+                suffixText: '°',
               ),
+              initialValue: settings['frontCamber'].toString(),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                settings['frontCamber'] = double.tryParse(value) ?? 0.0;
+              },
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildSettingField(
-                'frontRideHeight',
-                isEnglish ? 'Ride Height' : '車高',
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: isEnglish ? 'Ride Height' : '車高',
-                    border: OutlineInputBorder(),
-                    suffixText: 'mm',
-                  ),
-                  initialValue: settings['frontRideHeight'].toString(),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    settings['frontRideHeight'] = double.tryParse(value) ?? 0.0;
-                  },
-                ),
+          ),
+          _buildSettingField(
+            'frontRideHeight',
+            isEnglish ? 'Ride Height' : '車高',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Ride Height' : '車高',
+                border: OutlineInputBorder(),
+                suffixText: 'mm',
               ),
+              initialValue: settings['frontRideHeight'].toString(),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                settings['frontRideHeight'] = double.tryParse(value) ?? 0.0;
+              },
             ),
-          ],
+          ),
         ),
-        Row(
-          children: [
-            Expanded(
-              child: _buildSettingField(
-                'frontDamperPosition',
-                isEnglish ? 'Damper Position' : 'ダンパーポジション',
-                DropdownButtonFormField<int>(
-                  decoration: InputDecoration(
-                    labelText: isEnglish ? 'Damper Position' : 'ダンパーポジション',
-                    border: OutlineInputBorder(),
-                  ),
-                  value: settings['frontDamperPosition'],
-                  items: List.generate(5, (index) {
-                    return DropdownMenuItem(
-                      value: index + 1,
-                      child: Text('${index + 1}'),
-                    );
-                  }),
-                  onChanged: (value) {
-                    settings['frontDamperPosition'] = value;
-                  },
-                ),
+
+        // ダンパーポジションとスプリングの行
+        _buildSettingsRow(
+          'frontDamperPosition',
+          'frontSpring',
+          _buildSettingField(
+            'frontDamperPosition',
+            isEnglish ? 'Damper Position' : 'ダンパーポジション',
+            DropdownButtonFormField<int>(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Damper Position' : 'ダンパーポジション',
+                border: OutlineInputBorder(),
               ),
+              value: settings['frontDamperPosition'],
+              items: List.generate(5, (index) {
+                return DropdownMenuItem(
+                  value: index + 1,
+                  child: Text('${index + 1}'),
+                );
+              }),
+              onChanged: (value) {
+                settings['frontDamperPosition'] = value;
+              },
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildSettingField(
-                'frontSpring',
-                isEnglish ? 'Spring' : 'スプリング',
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: isEnglish ? 'Spring' : 'スプリング',
-                    border: OutlineInputBorder(),
-                  ),
-                  initialValue: settings['frontSpring'],
-                  onChanged: (value) {
-                    settings['frontSpring'] = value;
-                  },
-                ),
+          ),
+          _buildSettingField(
+            'frontSpring',
+            isEnglish ? 'Spring' : 'スプリング',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Spring' : 'スプリング',
+                border: OutlineInputBorder(),
               ),
+              initialValue: settings['frontSpring'],
+              onChanged: (value) {
+                settings['frontSpring'] = value;
+              },
             ),
-          ],
+          ),
         ),
-        Row(
-          children: [
-            Expanded(
-              child: _buildSettingField(
-                'frontToe',
-                isEnglish ? 'Toe Angle' : 'トー角',
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: isEnglish ? 'Toe Angle' : 'トー角',
-                    border: OutlineInputBorder(),
-                    suffixText: '°',
-                  ),
-                  initialValue: settings['frontToe'].toString(),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    settings['frontToe'] = double.tryParse(value) ?? 0.0;
-                  },
-                ),
+
+        // トー角とスタビライザーの行
+        _buildSettingsRow(
+          'frontToe',
+          'frontStabilizer',
+          _buildSettingField(
+            'frontToe',
+            isEnglish ? 'Toe Angle' : 'トー角',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Toe Angle' : 'トー角',
+                border: OutlineInputBorder(),
+                suffixText: '°',
               ),
+              initialValue: settings['frontToe'].toString(),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                settings['frontToe'] = double.tryParse(value) ?? 0.0;
+              },
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildSettingField(
-                'frontStabilizer',
-                isEnglish ? 'Stabilizer' : 'スタビライザー',
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: isEnglish ? 'Stabilizer' : 'スタビライザー',
-                    border: OutlineInputBorder(),
-                  ),
-                  initialValue: settings['frontStabilizer'],
-                  onChanged: (value) {
-                    settings['frontStabilizer'] = value;
-                  },
-                ),
+          ),
+          _buildSettingField(
+            'frontStabilizer',
+            isEnglish ? 'Stabilizer' : 'スタビライザー',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Stabilizer' : 'スタビライザー',
+                border: OutlineInputBorder(),
               ),
+              initialValue: settings['frontStabilizer'],
+              onChanged: (value) {
+                settings['frontStabilizer'] = value;
+              },
             ),
-          ],
+          ),
         ),
-        _buildSettingField(
+
+        // キャスター角（単独項目）
+        _buildSingleSetting(
           'frontCasterAngle',
-          isEnglish ? 'Caster Angle' : 'キャスター角',
-          TextFormField(
-            decoration: InputDecoration(
-              labelText: isEnglish ? 'Caster Angle' : 'キャスター角',
-              border: OutlineInputBorder(),
-              suffixText: '°',
+          _buildSettingField(
+            'frontCasterAngle',
+            isEnglish ? 'Caster Angle' : 'キャスター角',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Caster Angle' : 'キャスター角',
+                border: OutlineInputBorder(),
+                suffixText: '°',
+              ),
+              initialValue: settings['frontCasterAngle'].toString(),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                settings['frontCasterAngle'] = double.tryParse(value) ?? 0.0;
+              },
             ),
-            initialValue: settings['frontCasterAngle'].toString(),
-            keyboardType: TextInputType.number,
-            onChanged: (value) {
-              settings['frontCasterAngle'] = double.tryParse(value) ?? 0.0;
-            },
           ),
         ),
 
         // 詳細設定の展開パネル
-        _buildSettingField(
+        _buildSingleSetting(
           'frontDetails',
-          isEnglish ? 'Detailed Settings' : '詳細設定',
-          _buildExpandablePanel(
-            title: isEnglish ? 'Detailed Settings' : '詳細設定',
-            children: [
-              const SizedBox(height: 8),
-              Text(
-                isEnglish ? 'Upper Arm Spacer' : 'アッパーアームスペーサー',
-                style: TextStyle(fontSize: 12),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSettingField(
-                      'frontUpperArmSpacerInside',
-                      isEnglish ? 'Inside' : '内側',
-                      TextFormField(
-                        decoration: InputDecoration(
-                          labelText: isEnglish ? 'Inside (mm)' : '内側 (mm)',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue:
-                            settings['frontUpperArmSpacerInside']?.toString() ??
-                                '0.0',
-                        keyboardType: TextInputType.number,
-                        onChanged: (value) {
-                          settings['frontUpperArmSpacerInside'] =
-                              double.tryParse(value) ?? 0.0;
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildSettingField(
-                      'frontUpperArmSpacerOutside',
-                      isEnglish ? 'Outside' : '外側',
-                      TextFormField(
-                        decoration: InputDecoration(
-                          labelText: isEnglish ? 'Outside (mm)' : '外側 (mm)',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue: settings['frontUpperArmSpacerOutside']
-                                ?.toString() ??
-                            '0.0',
-                        keyboardType: TextInputType.number,
-                        onChanged: (value) {
-                          settings['frontUpperArmSpacerOutside'] =
-                              double.tryParse(value) ?? 0.0;
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSettingField(
-                      'frontLowerArmSpacer',
-                      'ロアアームスペーサー',
-                      TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: 'ロアアームスペーサー (mm)',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue:
-                            settings['frontLowerArmSpacer']?.toString() ??
-                                '0.0',
-                        keyboardType: TextInputType.number,
-                        onChanged: (value) {
-                          settings['frontLowerArmSpacer'] =
-                              double.tryParse(value) ?? 0.0;
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSettingField(
-                      'frontWheelHub',
-                      'ホイールハブ',
-                      TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: 'ホイールハブ (mm)',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue:
-                            settings['frontWheelHub']?.toString() ?? '0.0',
-                        keyboardType: TextInputType.number,
-                        onChanged: (value) {
-                          settings['frontWheelHub'] =
-                              double.tryParse(value) ?? 0.0;
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildSettingField(
-                      'frontWheelHubSpacer',
-                      'ホイールハブスペーサー',
-                      TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: 'ホイールハブスペーサー (mm)',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue:
-                            settings['frontWheelHubSpacer']?.toString() ??
-                                '0.0',
-                        keyboardType: TextInputType.number,
-                        onChanged: (value) {
-                          settings['frontWheelHubSpacer'] =
-                              double.tryParse(value) ?? 0.0;
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSettingField(
-                      'frontDroop',
-                      'ドループ',
-                      TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: 'ドループ (mm)',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue:
-                            settings['frontDroop']?.toString() ?? '0.0',
-                        keyboardType: TextInputType.number,
-                        onChanged: (value) {
-                          settings['frontDroop'] =
-                              double.tryParse(value) ?? 0.0;
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildSettingField(
-                'frontDiffarentialPosition',
-                'デフ位置',
-                Row(
-                  children: [
-                    const Text('デフ位置: '),
-                    const SizedBox(width: 8),
-                    ToggleButtons(
-                      isSelected: [
-                        settings['frontDiffarentialPosition'] == 'high',
-                        settings['frontDiffarentialPosition'] == 'low',
-                      ],
-                      onPressed: (index) {
-                        setState(() {
-                          settings['frontDiffarentialPosition'] =
-                              ['high', 'low'][index];
-                        });
-                      },
-                      children: const [
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('高'),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('低'),
-                        ),
-                      ],
-                    ),
-                  ],
+          _buildSettingField(
+            'frontDetails',
+            isEnglish ? 'Detailed Settings' : '詳細設定',
+            _buildExpandablePanel(
+              title: isEnglish ? 'Detailed Settings' : '詳細設定',
+              children: [
+                const SizedBox(height: 8),
+                Text(
+                  isEnglish ? 'Upper Arm Spacer' : 'アッパーアームスペーサー',
+                  style: TextStyle(fontSize: 12),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSettingField(
-                      'frontSusMountFront',
-                      'サスマウント前',
-                      DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          labelText: 'サスマウント前',
-                          border: OutlineInputBorder(),
-                        ),
-                        value: settings['frontSusMountFront'].isEmpty
-                            ? null
-                            : settings['frontSusMountFront'],
-                        items: const [
-                          DropdownMenuItem(value: 'XB', child: Text('XB')),
-                          DropdownMenuItem(value: 'A', child: Text('A')),
-                          DropdownMenuItem(value: 'E', child: Text('E')),
-                        ],
-                        onChanged: (value) {
-                          settings['frontSusMountFront'] = value;
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildSettingField(
-                      'frontSusMountRear',
-                      'サスマウント後',
-                      DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          labelText: 'サスマウント後',
-                          border: OutlineInputBorder(),
-                        ),
-                        value: settings['frontSusMountRear'].isEmpty
-                            ? null
-                            : settings['frontSusMountRear'],
-                        items: const [
-                          DropdownMenuItem(value: 'XB', child: Text('XB')),
-                          DropdownMenuItem(value: 'A', child: Text('A')),
-                          DropdownMenuItem(value: 'E', child: Text('E')),
-                        ],
-                        onChanged: (value) {
-                          settings['frontSusMountRear'] = value;
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSettingField(
-                      'frontSusMountFrontShaftPosition',
-                      'サスマウント前シャフト位置',
-                      _buildGridSelector(
-                        label: 'サスマウント前シャフト位置',
-                        settingKey: 'frontSusMountFrontShaftPosition',
-                        size: 150,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildSettingField(
-                      'frontSusMountRearShaftPosition',
-                      'サスマウント後シャフト位置',
-                      _buildGridSelector(
-                        label: 'サスマウント後シャフト位置',
-                        settingKey: 'frontSusMountRearShaftPosition',
-                        size: 150,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSettingField(
-                      'frontDrive',
-                      'デフ種類',
-                      DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          labelText: 'デフ種類',
-                          border: OutlineInputBorder(),
-                        ),
-                        value: settings['frontDrive'].isEmpty
-                            ? null
-                            : settings['frontDrive'],
-                        items: const [
-                          DropdownMenuItem(value: 'スプール', child: Text('スプール')),
-                          DropdownMenuItem(value: 'ギアデフ', child: Text('ギアデフ')),
-                          DropdownMenuItem(
-                              value: 'ボールデフ', child: Text('ボールデフ')),
-                          DropdownMenuItem(
-                              value: 'ワンウェイ', child: Text('ワンウェイ')),
-                        ],
-                        onChanged: (value) {
-                          settings['frontDrive'] = value;
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildSettingField(
-                      'frontDifferentialOil',
-                      'デフオイル',
-                      TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: 'デフオイル',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue: settings['frontDifferentialOil'],
-                        onChanged: (value) {
-                          settings['frontDifferentialOil'] = value;
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                const SizedBox(height: 16),
 
-              // フロントダンパー設定の展開パネル
-              _buildSettingField(
-                'frontDamperSettings',
-                'フロントダンパー設定',
-                _buildExpandablePanel(
-                  title: 'フロントダンパー設定',
-                  children: [
-                    const SizedBox(height: 8),
-                    Text(
-                      'ダンパーオフセット (mm)',
-                      style: TextStyle(fontSize: 12),
+                // 内側と外側のスペーサー設定
+                _buildSettingsRow(
+                  'frontUpperArmSpacerInside',
+                  'frontUpperArmSpacerOutside',
+                  _buildSettingField(
+                    'frontUpperArmSpacerInside',
+                    isEnglish ? 'Inside' : '内側',
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: isEnglish ? 'Inside (mm)' : '内側 (mm)',
+                        border: OutlineInputBorder(),
+                      ),
+                      initialValue:
+                          settings['frontUpperArmSpacerInside']?.toString() ??
+                              '0.0',
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        settings['frontUpperArmSpacerInside'] =
+                            double.tryParse(value) ?? 0.0;
+                      },
                     ),
-                    const SizedBox(height: 16),
+                  ),
+                  _buildSettingField(
+                    'frontUpperArmSpacerOutside',
+                    isEnglish ? 'Outside' : '外側',
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: isEnglish ? 'Outside (mm)' : '外側 (mm)',
+                        border: OutlineInputBorder(),
+                      ),
+                      initialValue:
+                          settings['frontUpperArmSpacerOutside']?.toString() ??
+                              '0.0',
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        settings['frontUpperArmSpacerOutside'] =
+                            double.tryParse(value) ?? 0.0;
+                      },
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // ロアアームスペーサー（単独項目）
+                _buildSingleSetting(
+                  'frontLowerArmSpacer',
+                  _buildSettingField(
+                    'frontLowerArmSpacer',
+                    isEnglish ? 'Lower Arm Spacer' : 'ロアアームスペーサー',
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText:
+                            isEnglish ? 'Lower Arm Spacer' : 'ロアアームスペーサー (mm)',
+                        border: OutlineInputBorder(),
+                      ),
+                      initialValue:
+                          settings['frontLowerArmSpacer']?.toString() ?? '0.0',
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        settings['frontLowerArmSpacer'] =
+                            double.tryParse(value) ?? 0.0;
+                      },
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // ホイールハブ関連設定
+                _buildSettingsRow(
+                  'frontWheelHub',
+                  'frontWheelHubSpacer',
+                  _buildSettingField(
+                    'frontWheelHub',
+                    'ホイールハブ',
+                    TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: 'ホイールハブ (mm)',
+                        border: OutlineInputBorder(),
+                      ),
+                      initialValue:
+                          settings['frontWheelHub']?.toString() ?? '0.0',
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        settings['frontWheelHub'] =
+                            double.tryParse(value) ?? 0.0;
+                      },
+                    ),
+                  ),
+                  _buildSettingField(
+                    'frontWheelHubSpacer',
+                    'ホイールハブスペーサー',
+                    TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: 'ホイールハブスペーサー (mm)',
+                        border: OutlineInputBorder(),
+                      ),
+                      initialValue:
+                          settings['frontWheelHubSpacer']?.toString() ?? '0.0',
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        settings['frontWheelHubSpacer'] =
+                            double.tryParse(value) ?? 0.0;
+                      },
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // ドループ設定（単独項目）
+                _buildSingleSetting(
+                  'frontDroop',
+                  _buildSettingField(
+                    'frontDroop',
+                    'ドループ',
+                    TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: 'ドループ (mm)',
+                        border: OutlineInputBorder(),
+                      ),
+                      initialValue: settings['frontDroop']?.toString() ?? '0.0',
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        settings['frontDroop'] = double.tryParse(value) ?? 0.0;
+                      },
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // デフ位置設定（単独項目）
+                _buildSingleSetting(
+                  'frontDiffarentialPosition',
+                  _buildSettingField(
+                    'frontDiffarentialPosition',
+                    'デフ位置',
                     Row(
                       children: [
-                        Expanded(
-                          child: _buildSettingField(
+                        const Text('デフ位置: '),
+                        const SizedBox(width: 8),
+                        ToggleButtons(
+                          isSelected: [
+                            settings['frontDiffarentialPosition'] == 'high',
+                            settings['frontDiffarentialPosition'] == 'low',
+                          ],
+                          onPressed: (index) {
+                            setState(() {
+                              settings['frontDiffarentialPosition'] =
+                                  ['high', 'low'][index];
+                            });
+                          },
+                          children: const [
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              child: Text('高'),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              child: Text('低'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // サスマウント前後設定
+                _buildSettingsRow(
+                  'frontSusMountFront',
+                  'frontSusMountRear',
+                  _buildSettingField(
+                    'frontSusMountFront',
+                    'サスマウント前',
+                    DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        labelText: 'サスマウント前',
+                        border: OutlineInputBorder(),
+                      ),
+                      value: settings['frontSusMountFront'].isEmpty
+                          ? null
+                          : settings['frontSusMountFront'],
+                      items: const [
+                        DropdownMenuItem(value: 'XB', child: Text('XB')),
+                        DropdownMenuItem(value: 'A', child: Text('A')),
+                        DropdownMenuItem(value: 'E', child: Text('E')),
+                      ],
+                      onChanged: (value) {
+                        settings['frontSusMountFront'] = value;
+                      },
+                    ),
+                  ),
+                  _buildSettingField(
+                    'frontSusMountRear',
+                    'サスマウント後',
+                    DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        labelText: 'サスマウント後',
+                        border: OutlineInputBorder(),
+                      ),
+                      value: settings['frontSusMountRear'].isEmpty
+                          ? null
+                          : settings['frontSusMountRear'],
+                      items: const [
+                        DropdownMenuItem(value: 'XB', child: Text('XB')),
+                        DropdownMenuItem(value: 'A', child: Text('A')),
+                        DropdownMenuItem(value: 'E', child: Text('E')),
+                      ],
+                      onChanged: (value) {
+                        settings['frontSusMountRear'] = value;
+                      },
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // サスマウントシャフト位置設定
+                _buildSettingsRow(
+                  'frontSusMountFrontShaftPosition',
+                  'frontSusMountRearShaftPosition',
+                  _buildSettingField(
+                    'frontSusMountFrontShaftPosition',
+                    'サスマウント前シャフト位置',
+                    _buildGridSelector(
+                      label: 'サスマウント前シャフト位置',
+                      settingKey: 'frontSusMountFrontShaftPosition',
+                      size: 150,
+                    ),
+                  ),
+                  _buildSettingField(
+                    'frontSusMountRearShaftPosition',
+                    'サスマウント後シャフト位置',
+                    _buildGridSelector(
+                      label: 'サスマウント後シャフト位置',
+                      settingKey: 'frontSusMountRearShaftPosition',
+                      size: 150,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                // デフ関連設定
+                _buildSettingsRow(
+                  'frontDrive',
+                  'frontDifferentialOil',
+                  _buildSettingField(
+                    'frontDrive',
+                    'デフ種類',
+                    DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        labelText: 'デフ種類',
+                        border: OutlineInputBorder(),
+                      ),
+                      value: settings['frontDrive'].isEmpty
+                          ? null
+                          : settings['frontDrive'],
+                      items: const [
+                        DropdownMenuItem(value: 'スプール', child: Text('スプール')),
+                        DropdownMenuItem(value: 'ギアデフ', child: Text('ギアデフ')),
+                        DropdownMenuItem(value: 'ボールデフ', child: Text('ボールデフ')),
+                        DropdownMenuItem(value: 'ワンウェイ', child: Text('ワンウェイ')),
+                      ],
+                      onChanged: (value) {
+                        settings['frontDrive'] = value;
+                      },
+                    ),
+                  ),
+                  _buildSettingField(
+                    'frontDifferentialOil',
+                    'デフオイル',
+                    TextFormField(
+                      decoration: const InputDecoration(
+                        labelText: 'デフオイル',
+                        border: OutlineInputBorder(),
+                      ),
+                      initialValue: settings['frontDifferentialOil'],
+                      onChanged: (value) {
+                        settings['frontDifferentialOil'] = value;
+                      },
+                    ),
+                  ),
+                ),
+
+                // フロントダンパー設定の展開パネル
+                _buildSingleSetting(
+                  'frontDamperSettings',
+                  _buildSettingField(
+                    'frontDamperSettings',
+                    'フロントダンパー設定',
+                    _buildExpandablePanel(
+                      title: 'フロントダンパー設定',
+                      children: [
+                        const SizedBox(height: 8),
+                        Text(
+                          'ダンパーオフセット (mm)',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // ダンパーオフセット設定
+                        _buildSettingsRow(
+                          'frontDamperOffsetStay',
+                          'frontDamperOffsetArm',
+                          _buildSettingField(
                             'frontDamperOffsetStay',
                             'ステー',
                             TextFormField(
@@ -1026,10 +1017,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                               },
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildSettingField(
+                          _buildSettingField(
                             'frontDamperOffsetArm',
                             'サスアーム',
                             TextFormField(
@@ -1048,13 +1036,14 @@ class _CarSettingPageState extends State<CarSettingPage> {
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildSettingField(
+
+                        const SizedBox(height: 16),
+
+                        // ダンパータイプとオイルシール設定
+                        _buildSettingsRow(
+                          'frontDumperType',
+                          'frontDumperOilSeal',
+                          _buildSettingField(
                             'frontDumperType',
                             'ダンパータイプ',
                             TextFormField(
@@ -1068,10 +1057,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                               },
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildSettingField(
+                          _buildSettingField(
                             'frontDumperOilSeal',
                             'オイルシール',
                             TextFormField(
@@ -1086,13 +1072,14 @@ class _CarSettingPageState extends State<CarSettingPage> {
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildSettingField(
+
+                        const SizedBox(height: 16),
+
+                        // ピストン関連設定
+                        _buildSettingsRow(
+                          'frontDumperPistonSize',
+                          'frontDumperPistonHole',
+                          _buildSettingField(
                             'frontDumperPistonSize',
                             'ピストンサイズ',
                             TextFormField(
@@ -1106,10 +1093,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                               },
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildSettingField(
+                          _buildSettingField(
                             'frontDumperPistonHole',
                             'ピストン穴数',
                             TextFormField(
@@ -1124,13 +1108,14 @@ class _CarSettingPageState extends State<CarSettingPage> {
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildSettingField(
+
+                        const SizedBox(height: 16),
+
+                        // オイル関連設定
+                        _buildSettingsRow(
+                          'frontDumperOilHardness',
+                          'frontDumperOilName',
+                          _buildSettingField(
                             'frontDumperOilHardness',
                             'オイル硬度',
                             TextFormField(
@@ -1144,10 +1129,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                               },
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildSettingField(
+                          _buildSettingField(
                             'frontDumperOilName',
                             'オイル名',
                             TextFormField(
@@ -1162,13 +1144,14 @@ class _CarSettingPageState extends State<CarSettingPage> {
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildSettingField(
+
+                        const SizedBox(height: 16),
+
+                        // ストロークとエア抜き穴設定
+                        _buildSettingsRow(
+                          'frontDumperStroke',
+                          'frontDumperAirHole',
+                          _buildSettingField(
                             'frontDumperStroke',
                             'ストローク長',
                             TextFormField(
@@ -1182,10 +1165,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                               },
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildSettingField(
+                          _buildSettingField(
                             'frontDumperAirHole',
                             'エア抜き穴',
                             TextFormField(
@@ -1202,10 +1182,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
@@ -1222,463 +1202,440 @@ class _CarSettingPageState extends State<CarSettingPage> {
         Text(isEnglish ? 'Rear Settings' : 'リア設定',
             style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 16),
-        Row(
-          children: [
-            Expanded(
-              child: _buildSettingField(
-                'rearCamber',
-                isEnglish ? 'Camber Angle' : 'キャンバー角',
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: isEnglish ? 'Camber Angle' : 'キャンバー角',
-                    border: OutlineInputBorder(),
-                    suffixText: '°',
-                  ),
-                  initialValue: settings['rearCamber'].toString(),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    settings['rearCamber'] = double.tryParse(value) ?? 0.0;
-                  },
-                ),
+        _buildSettingsRow(
+          'rearCamber',
+          'rearToe',
+          _buildSettingField(
+            'rearCamber',
+            isEnglish ? 'Camber Angle' : 'キャンバー角',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Camber Angle' : 'キャンバー角',
+                border: OutlineInputBorder(),
+                suffixText: '°',
               ),
+              initialValue: settings['rearCamber'].toString(),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                settings['rearCamber'] = double.tryParse(value) ?? 0.0;
+              },
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildSettingField(
-                'rearToe',
-                isEnglish ? 'Toe Angle' : 'トー角',
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: isEnglish ? 'Toe Angle' : 'トー角',
-                    border: OutlineInputBorder(),
-                    suffixText: '°',
-                  ),
-                  initialValue: settings['rearToe'].toString(),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    settings['rearToe'] = double.tryParse(value) ?? 0.0;
-                  },
-                ),
+          ),
+          _buildSettingField(
+            'rearToe',
+            isEnglish ? 'Toe Angle' : 'トー角',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Toe Angle' : 'トー角',
+                border: OutlineInputBorder(),
+                suffixText: '°',
               ),
+              initialValue: settings['rearToe'].toString(),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                settings['rearToe'] = double.tryParse(value) ?? 0.0;
+              },
             ),
-          ],
+          ),
         ),
-        Row(
-          children: [
-            Expanded(
-              child: _buildSettingField(
-                'rearRideHeight',
-                isEnglish ? 'Ride Height' : '車高',
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: isEnglish ? 'Ride Height' : '車高',
-                    border: OutlineInputBorder(),
-                    suffixText: 'mm',
-                  ),
-                  initialValue: settings['rearRideHeight'].toString(),
-                  keyboardType: TextInputType.number,
-                  onChanged: (value) {
-                    settings['rearRideHeight'] = double.tryParse(value) ?? 0.0;
-                  },
-                ),
+        _buildSettingsRow(
+          'rearRideHeight',
+          'rearDamperPosition',
+          _buildSettingField(
+            'rearRideHeight',
+            isEnglish ? 'Ride Height' : '車高',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Ride Height' : '車高',
+                border: OutlineInputBorder(),
+                suffixText: 'mm',
               ),
+              initialValue: settings['rearRideHeight'].toString(),
+              keyboardType: TextInputType.number,
+              onChanged: (value) {
+                settings['rearRideHeight'] = double.tryParse(value) ?? 0.0;
+              },
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildSettingField(
-                'rearDamperPosition',
-                isEnglish ? 'Damper Position' : 'ダンパーポジション',
-                DropdownButtonFormField<int>(
-                  decoration: InputDecoration(
-                    labelText: isEnglish ? 'Damper Position' : 'ダンパーポジション',
-                    border: OutlineInputBorder(),
-                  ),
-                  value: settings['rearDamperPosition'],
-                  items: List.generate(5, (index) {
-                    return DropdownMenuItem(
-                      value: index + 1,
-                      child: Text('${index + 1}'),
-                    );
-                  }),
-                  onChanged: (value) {
-                    settings['rearDamperPosition'] = value;
-                  },
-                ),
+          ),
+          _buildSettingField(
+            'rearDamperPosition',
+            isEnglish ? 'Damper Position' : 'ダンパーポジション',
+            DropdownButtonFormField<int>(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Damper Position' : 'ダンパーポジション',
+                border: OutlineInputBorder(),
               ),
+              value: settings['rearDamperPosition'],
+              items: List.generate(5, (index) {
+                return DropdownMenuItem(
+                  value: index + 1,
+                  child: Text('${index + 1}'),
+                );
+              }),
+              onChanged: (value) {
+                settings['rearDamperPosition'] = value;
+              },
             ),
-          ],
+          ),
         ),
-        Row(
-          children: [
-            Expanded(
-              child: _buildSettingField(
-                'rearSpring',
-                isEnglish ? 'Spring' : 'スプリング',
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: isEnglish ? 'Spring' : 'スプリング',
-                    border: OutlineInputBorder(),
-                  ),
-                  initialValue: settings['rearSpring'],
-                  onChanged: (value) {
-                    settings['rearSpring'] = value;
-                  },
-                ),
+        _buildSettingsRow(
+          'rearSpring',
+          'rearStabilizer',
+          _buildSettingField(
+            'rearSpring',
+            isEnglish ? 'Spring' : 'スプリング',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Spring' : 'スプリング',
+                border: OutlineInputBorder(),
               ),
+              initialValue: settings['rearSpring'],
+              onChanged: (value) {
+                settings['rearSpring'] = value;
+              },
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: _buildSettingField(
-                'rearStabilizer',
-                isEnglish ? 'Stabilizer' : 'スタビライザー',
-                TextFormField(
-                  decoration: InputDecoration(
-                    labelText: isEnglish ? 'Stabilizer' : 'スタビライザー',
-                    border: OutlineInputBorder(),
-                  ),
-                  initialValue: settings['rearStabilizer'],
-                  onChanged: (value) {
-                    settings['rearStabilizer'] = value;
-                  },
-                ),
+          ),
+          _buildSettingField(
+            'rearStabilizer',
+            isEnglish ? 'Stabilizer' : 'スタビライザー',
+            TextFormField(
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Stabilizer' : 'スタビライザー',
+                border: OutlineInputBorder(),
               ),
+              initialValue: settings['rearStabilizer'],
+              onChanged: (value) {
+                settings['rearStabilizer'] = value;
+              },
             ),
-          ],
+          ),
         ),
 
         // 詳細設定の展開パネル
-        _buildSettingField(
+        _buildSingleSetting(
           'rearDetails',
-          isEnglish ? 'Details Settings' : '詳細設定',
-          _buildExpandablePanel(
-            title: isEnglish ? 'Details Settings' : '詳細設定',
-            children: [
-              const SizedBox(height: 8),
-              Text(
-                'アッパーアームスペーサー',
-                style: TextStyle(fontSize: 12),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSettingField(
-                      'rearUpperArmSpacerInside',
-                      '内側',
-                      TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: '内側 (mm)',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue:
-                            settings['rearUpperArmSpacerInside']?.toString() ??
-                                '0.0',
-                        keyboardType: TextInputType.number,
-                        onChanged: (value) {
-                          settings['rearUpperArmSpacerInside'] =
-                              double.tryParse(value) ?? 0.0;
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildSettingField(
-                      'rearUpperArmSpacerOutside',
-                      '外側',
-                      TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: '外側 (mm)',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue:
-                            settings['rearUpperArmSpacerOutside']?.toString() ??
-                                '0.0',
-                        keyboardType: TextInputType.number,
-                        onChanged: (value) {
-                          settings['rearUpperArmSpacerOutside'] =
-                              double.tryParse(value) ?? 0.0;
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSettingField(
-                      'rearLowerArmSpacer',
-                      'ロアアームスペーサー',
-                      TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: 'ロアアームスペーサー (mm)',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue:
-                            settings['rearLowerArmSpacer']?.toString() ?? '0.0',
-                        keyboardType: TextInputType.number,
-                        onChanged: (value) {
-                          settings['rearLowerArmSpacer'] =
-                              double.tryParse(value) ?? 0.0;
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSettingField(
-                      'rearWheelHub',
-                      'ホイールハブ',
-                      TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: 'ホイールハブ (mm)',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue:
-                            settings['rearWheelHub']?.toString() ?? '0.0',
-                        keyboardType: TextInputType.number,
-                        onChanged: (value) {
-                          settings['rearWheelHub'] =
-                              double.tryParse(value) ?? 0.0;
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildSettingField(
-                      'rearWheelHubSpacer',
-                      'ホイールハブスペーサー',
-                      TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: 'ホイールハブスペーサー (mm)',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue:
-                            settings['rearWheelHubSpacer']?.toString() ?? '0.0',
-                        keyboardType: TextInputType.number,
-                        onChanged: (value) {
-                          settings['rearWheelHubSpacer'] =
-                              double.tryParse(value) ?? 0.0;
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSettingField(
-                      'rearDroop',
-                      'ドループ',
-                      TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: 'ドループ (mm)',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue:
-                            settings['rearDroop']?.toString() ?? '0.0',
-                        keyboardType: TextInputType.number,
-                        onChanged: (value) {
-                          settings['rearDroop'] = double.tryParse(value) ?? 0.0;
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildSettingField(
-                'rearDiffarentialPosition',
-                'デフ位置',
-                Row(
-                  children: [
-                    const Text('デフ位置: '),
-                    const SizedBox(width: 8),
-                    ToggleButtons(
-                      isSelected: [
-                        settings['rearDiffarentialPosition'] == 'high',
-                        settings['rearDiffarentialPosition'] == 'low',
-                      ],
-                      onPressed: (index) {
-                        setState(() {
-                          settings['rearDiffarentialPosition'] =
-                              ['high', 'low'][index];
-                        });
-                      },
-                      children: const [
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('高'),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('低'),
-                        ),
-                      ],
-                    ),
-                  ],
+          _buildSettingField(
+            'rearDetails',
+            isEnglish ? 'Details Settings' : '詳細設定',
+            _buildExpandablePanel(
+              title: isEnglish ? 'Details Settings' : '詳細設定',
+              children: [
+                const SizedBox(height: 8),
+                Text(
+                  isEnglish ? 'Upper Arm Spacer' : 'アッパーアームスペーサー',
+                  style: TextStyle(fontSize: 12),
                 ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSettingField(
-                      'rearSusMountFront',
-                      'サスマウント前',
-                      DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          labelText: 'サスマウント前',
-                          border: OutlineInputBorder(),
-                        ),
-                        value: settings['rearSusMountFront'].isEmpty
-                            ? null
-                            : settings['rearSusMountFront'],
-                        items: const [
-                          DropdownMenuItem(value: 'XB', child: Text('XB')),
-                          DropdownMenuItem(value: 'A', child: Text('A')),
-                          DropdownMenuItem(value: 'E', child: Text('E')),
-                        ],
-                        onChanged: (value) {
-                          settings['rearSusMountFront'] = value;
-                        },
+                const SizedBox(height: 16),
+                _buildSettingsRow(
+                  'rearUpperArmSpacerInside',
+                  'rearUpperArmSpacerOutside',
+                  _buildSettingField(
+                    'rearUpperArmSpacerInside',
+                    isEnglish ? 'Inside' : '内側',
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: isEnglish ? 'Inside' : '内側 (mm)',
+                        border: OutlineInputBorder(),
                       ),
+                      initialValue:
+                          settings['rearUpperArmSpacerInside']?.toString() ??
+                              '0.0',
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        settings['rearUpperArmSpacerInside'] =
+                            double.tryParse(value) ?? 0.0;
+                      },
                     ),
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildSettingField(
-                      'rearSusMountRear',
-                      'サスマウント後',
-                      DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          labelText: 'サスマウント後',
-                          border: OutlineInputBorder(),
-                        ),
-                        value: settings['rearSusMountRear'].isEmpty
-                            ? null
-                            : settings['rearSusMountRear'],
-                        items: const [
-                          DropdownMenuItem(value: 'XB', child: Text('XB')),
-                          DropdownMenuItem(value: 'A', child: Text('A')),
-                          DropdownMenuItem(value: 'E', child: Text('E')),
-                        ],
-                        onChanged: (value) {
-                          settings['rearSusMountRear'] = value;
-                        },
+                  _buildSettingField(
+                    'rearUpperArmSpacerOutside',
+                    isEnglish ? 'Outside' : '外側',
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: isEnglish ? 'Outside' : '外側 (mm)',
+                        border: OutlineInputBorder(),
                       ),
+                      initialValue:
+                          settings['rearUpperArmSpacerOutside']?.toString() ??
+                              '0.0',
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        settings['rearUpperArmSpacerOutside'] =
+                            double.tryParse(value) ?? 0.0;
+                      },
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSettingField(
-                      'rearSusMountFrontShaftPosition',
-                      'サスマウント前シャフト位置',
-                      _buildGridSelector(
-                        label: 'サスマウント前シャフト位置',
-                        settingKey: 'rearSusMountFrontShaftPosition',
-                        size: 150,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildSettingField(
-                      'rearSusMountRearShaftPosition',
-                      'サスマウント後シャフト位置',
-                      _buildGridSelector(
-                        label: 'サスマウント後シャフト位置',
-                        settingKey: 'rearSusMountRearShaftPosition',
-                        size: 150,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildSettingField(
-                      'rearDrive',
-                      'デフ種類',
-                      DropdownButtonFormField<String>(
-                        decoration: const InputDecoration(
-                          labelText: 'デフ種類',
-                          border: OutlineInputBorder(),
-                        ),
-                        value: settings['rearDrive'].isEmpty
-                            ? null
-                            : settings['rearDrive'],
-                        items: const [
-                          DropdownMenuItem(value: 'スプール', child: Text('スプール')),
-                          DropdownMenuItem(value: 'ギアデフ', child: Text('ギアデフ')),
-                          DropdownMenuItem(
-                              value: 'ボールデフ', child: Text('ボールデフ')),
-                          DropdownMenuItem(
-                              value: 'ワンウェイ', child: Text('ワンウェイ')),
-                        ],
-                        onChanged: (value) {
-                          settings['rearDrive'] = value;
-                        },
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildSettingField(
-                      'rearDifferentialOil',
-                      'デフオイル',
-                      TextFormField(
-                        decoration: const InputDecoration(
-                          labelText: 'デフオイル',
-                          border: OutlineInputBorder(),
-                        ),
-                        initialValue: settings['rearDifferentialOil'],
-                        onChanged: (value) {
-                          settings['rearDifferentialOil'] = value;
-                        },
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
 
-              // リアダンパー設定の展開パネル
-              _buildSettingField(
-                'rearDamperSettings',
-                'リアダンパー設定',
-                _buildExpandablePanel(
-                  title: 'リアダンパー設定',
-                  children: [
-                    const SizedBox(height: 8),
-                    Text(
-                      'ダンパーオフセット (mm)',
-                      style: TextStyle(fontSize: 12),
+                const SizedBox(height: 16),
+
+                _buildSingleSetting(
+                  'rearLowerArmSpacer',
+                  _buildSettingField(
+                    'rearLowerArmSpacer',
+                    isEnglish ? 'Lower Arm Spacer' : 'ロアアームスペーサー',
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText:
+                            isEnglish ? 'Lower Arm Spacer' : 'ロアアームスペーサー (mm)',
+                        border: OutlineInputBorder(),
+                      ),
+                      initialValue:
+                          settings['rearLowerArmSpacer']?.toString() ?? '0.0',
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        settings['rearLowerArmSpacer'] =
+                            double.tryParse(value) ?? 0.0;
+                      },
                     ),
-                    const SizedBox(height: 16),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                _buildSettingsRow(
+                  'rearWheelHub',
+                  'rearWheelHubSpacer',
+                  _buildSettingField(
+                    'rearWheelHub',
+                    isEnglish ? 'Wheel Hub' : 'ホイールハブ',
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: isEnglish ? 'Wheel Hub' : 'ホイールハブ (mm)',
+                        border: OutlineInputBorder(),
+                      ),
+                      initialValue:
+                          settings['rearWheelHub']?.toString() ?? '0.0',
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        settings['rearWheelHub'] =
+                            double.tryParse(value) ?? 0.0;
+                      },
+                    ),
+                  ),
+                  _buildSettingField(
+                    'rearWheelHubSpacer',
+                    isEnglish ? 'Wheel Hub Spacer' : 'ホイールハブスペーサー',
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText:
+                            isEnglish ? 'Wheel Hub Spacer' : 'ホイールハブスペーサー (mm)',
+                        border: OutlineInputBorder(),
+                      ),
+                      initialValue:
+                          settings['rearWheelHubSpacer']?.toString() ?? '0.0',
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        settings['rearWheelHubSpacer'] =
+                            double.tryParse(value) ?? 0.0;
+                      },
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                _buildSingleSetting(
+                  'rearDroop',
+                  _buildSettingField(
+                    'rearDroop',
+                    isEnglish ? 'Droop' : 'ドループ',
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: isEnglish ? 'Droop' : 'ドループ (mm)',
+                        border: OutlineInputBorder(),
+                      ),
+                      initialValue: settings['rearDroop']?.toString() ?? '0.0',
+                      keyboardType: TextInputType.number,
+                      onChanged: (value) {
+                        settings['rearDroop'] = double.tryParse(value) ?? 0.0;
+                      },
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                _buildSingleSetting(
+                  'rearDiffarentialPosition',
+                  _buildSettingField(
+                    'rearDiffarentialPosition',
+                    isEnglish ? 'Differential Position' : 'デフ位置',
                     Row(
                       children: [
-                        Expanded(
-                          child: _buildSettingField(
+                        const Text('デフ位置: '),
+                        const SizedBox(width: 8),
+                        ToggleButtons(
+                          isSelected: [
+                            settings['rearDiffarentialPosition'] == 'high',
+                            settings['rearDiffarentialPosition'] == 'low',
+                          ],
+                          onPressed: (index) {
+                            setState(() {
+                              settings['rearDiffarentialPosition'] =
+                                  ['high', 'low'][index];
+                            });
+                          },
+                          children: const [
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              child: Text('高'),
+                            ),
+                            Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16),
+                              child: Text('低'),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                _buildSettingsRow(
+                  'rearSusMountFront',
+                  'rearSusMountRear',
+                  _buildSettingField(
+                    'rearSusMountFront',
+                    isEnglish ? 'Front Suspension Mount' : 'サスマウント前',
+                    DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        labelText:
+                            isEnglish ? 'Front Suspension Mount' : 'サスマウント前',
+                        border: OutlineInputBorder(),
+                      ),
+                      value: settings['rearSusMountFront'].isEmpty
+                          ? null
+                          : settings['rearSusMountFront'],
+                      items: const [
+                        DropdownMenuItem(value: 'XB', child: Text('XB')),
+                        DropdownMenuItem(value: 'A', child: Text('A')),
+                        DropdownMenuItem(value: 'E', child: Text('E')),
+                      ],
+                      onChanged: (value) {
+                        settings['rearSusMountFront'] = value;
+                      },
+                    ),
+                  ),
+                  _buildSettingField(
+                    'rearSusMountRear',
+                    isEnglish ? 'Rear Suspension Mount' : 'サスマウント後',
+                    DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        labelText:
+                            isEnglish ? 'Rear Suspension Mount' : 'サスマウント後',
+                        border: OutlineInputBorder(),
+                      ),
+                      value: settings['rearSusMountRear'].isEmpty
+                          ? null
+                          : settings['rearSusMountRear'],
+                      items: const [
+                        DropdownMenuItem(value: 'XB', child: Text('XB')),
+                        DropdownMenuItem(value: 'A', child: Text('A')),
+                        DropdownMenuItem(value: 'E', child: Text('E')),
+                      ],
+                      onChanged: (value) {
+                        settings['rearSusMountRear'] = value;
+                      },
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                _buildSettingsRow(
+                  'rearSusMountFrontShaftPosition',
+                  'rearSusMountRearShaftPosition',
+                  _buildSettingField(
+                    'rearSusMountFrontShaftPosition',
+                    isEnglish ? 'Front Shaft Position' : 'サスマウント前シャフト位置',
+                    _buildGridSelector(
+                      label:
+                          isEnglish ? 'Front Shaft Position' : 'サスマウント前シャフト位置',
+                      settingKey: 'rearSusMountFrontShaftPosition',
+                      size: 150,
+                    ),
+                  ),
+                  _buildSettingField(
+                    'rearSusMountRearShaftPosition',
+                    'サスマウント後シャフト位置',
+                    _buildGridSelector(
+                      label: 'サスマウント後シャフト位置',
+                      settingKey: 'rearSusMountRearShaftPosition',
+                      size: 150,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
+
+                _buildSettingsRow(
+                  'rearDrive',
+                  'rearDifferentialOil',
+                  _buildSettingField(
+                    'rearDrive',
+                    isEnglish ? 'Differential Type' : 'デフ種類',
+                    DropdownButtonFormField<String>(
+                      decoration: InputDecoration(
+                        labelText: isEnglish ? 'Differential Type' : 'デフ種類',
+                        border: OutlineInputBorder(),
+                      ),
+                      value: settings['rearDrive'].isEmpty
+                          ? null
+                          : settings['rearDrive'],
+                      items: const [
+                        DropdownMenuItem(value: 'スプール', child: Text('スプール')),
+                        DropdownMenuItem(value: 'ギアデフ', child: Text('ギアデフ')),
+                        DropdownMenuItem(value: 'ボールデフ', child: Text('ボールデフ')),
+                        DropdownMenuItem(value: 'ワンウェイ', child: Text('ワンウェイ')),
+                      ],
+                      onChanged: (value) {
+                        settings['rearDrive'] = value;
+                      },
+                    ),
+                  ),
+                  _buildSettingField(
+                    'rearDifferentialOil',
+                    isEnglish ? 'Differential Oil' : 'デフオイル',
+                    TextFormField(
+                      decoration: InputDecoration(
+                        labelText: isEnglish ? 'Differential Oil' : 'デフオイル',
+                        border: OutlineInputBorder(),
+                      ),
+                      initialValue: settings['rearDifferentialOil'],
+                      onChanged: (value) {
+                        settings['rearDifferentialOil'] = value;
+                      },
+                    ),
+                  ),
+                ),
+
+                // リアダンパー設定の展開パネル
+                _buildSingleSetting(
+                  'rearDamperSettings',
+                  _buildSettingField(
+                    'rearDamperSettings',
+                    isEnglish ? 'Rear Damper Settings' : 'リアダンパー設定',
+                    _buildExpandablePanel(
+                      title: isEnglish ? 'Rear Damper Settings' : 'リアダンパー設定',
+                      children: [
+                        const SizedBox(height: 8),
+                        Text(
+                          isEnglish ? 'Damper Offset (mm)' : 'ダンパーオフセット (mm)',
+                          style: TextStyle(fontSize: 12),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSettingsRow(
+                          'rearDamperOffsetStay',
+                          'rearDamperOffsetArm',
+                          _buildSettingField(
                             'rearDamperOffsetStay',
-                            'ステー',
+                            isEnglish ? 'Stay' : 'ステー',
                             TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'ステー (mm)',
+                              decoration: InputDecoration(
+                                labelText: isEnglish ? 'Stay' : 'ステー (mm)',
                                 border: OutlineInputBorder(),
                               ),
                               initialValue: settings['rearDamperOffsetStay']
@@ -1691,15 +1648,12 @@ class _CarSettingPageState extends State<CarSettingPage> {
                               },
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildSettingField(
+                          _buildSettingField(
                             'rearDamperOffsetArm',
-                            'サスアーム',
+                            isEnglish ? 'Arm' : 'サスアーム',
                             TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'サスアーム (mm)',
+                              decoration: InputDecoration(
+                                labelText: isEnglish ? 'Arm' : 'サスアーム (mm)',
                                 border: OutlineInputBorder(),
                               ),
                               initialValue:
@@ -1713,18 +1667,17 @@ class _CarSettingPageState extends State<CarSettingPage> {
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildSettingField(
+                        const SizedBox(height: 16),
+                        _buildSettingsRow(
+                          'rearDumperType',
+                          'rearDumperOilSeal',
+                          _buildSettingField(
                             'rearDumperType',
-                            'ダンパータイプ',
+                            isEnglish ? 'Damper Type' : 'ダンパータイプ',
                             TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'ダンパータイプ',
+                              decoration: InputDecoration(
+                                labelText:
+                                    isEnglish ? 'Damper Type' : 'ダンパータイプ',
                                 border: OutlineInputBorder(),
                               ),
                               initialValue: settings['rearDumperType'],
@@ -1733,15 +1686,12 @@ class _CarSettingPageState extends State<CarSettingPage> {
                               },
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildSettingField(
+                          _buildSettingField(
                             'rearDumperOilSeal',
-                            'オイルシール',
+                            isEnglish ? 'Oil Seal' : 'オイルシール',
                             TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'オイルシール',
+                              decoration: InputDecoration(
+                                labelText: isEnglish ? 'Oil Seal' : 'オイルシール',
                                 border: OutlineInputBorder(),
                               ),
                               initialValue: settings['rearDumperOilSeal'],
@@ -1751,18 +1701,17 @@ class _CarSettingPageState extends State<CarSettingPage> {
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildSettingField(
+                        const SizedBox(height: 16),
+                        _buildSettingsRow(
+                          'rearDumperPistonSize',
+                          'rearDumperPistonHole',
+                          _buildSettingField(
                             'rearDumperPistonSize',
-                            'ピストンサイズ',
+                            isEnglish ? 'Piston Size' : 'ピストンサイズ',
                             TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'ピストンサイズ',
+                              decoration: InputDecoration(
+                                labelText:
+                                    isEnglish ? 'Piston Size' : 'ピストンサイズ',
                                 border: OutlineInputBorder(),
                               ),
                               initialValue: settings['rearDumperPistonSize'],
@@ -1771,15 +1720,12 @@ class _CarSettingPageState extends State<CarSettingPage> {
                               },
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildSettingField(
+                          _buildSettingField(
                             'rearDumperPistonHole',
-                            'ピストン穴数',
+                            isEnglish ? 'Piston Hole' : 'ピストン穴数',
                             TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'ピストン穴数',
+                              decoration: InputDecoration(
+                                labelText: isEnglish ? 'Piston Hole' : 'ピストン穴数',
                                 border: OutlineInputBorder(),
                               ),
                               initialValue: settings['rearDumperPistonHole'],
@@ -1789,18 +1735,16 @@ class _CarSettingPageState extends State<CarSettingPage> {
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildSettingField(
+                        const SizedBox(height: 16),
+                        _buildSettingsRow(
+                          'rearDumperOilHardness',
+                          'rearDumperOilName',
+                          _buildSettingField(
                             'rearDumperOilHardness',
-                            'オイル硬度',
+                            isEnglish ? 'Oil Hardness' : 'オイル硬度',
                             TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'オイル硬度',
+                              decoration: InputDecoration(
+                                labelText: isEnglish ? 'Oil Hardness' : 'オイル硬度',
                                 border: OutlineInputBorder(),
                               ),
                               initialValue: settings['rearDumperOilHardness'],
@@ -1809,15 +1753,12 @@ class _CarSettingPageState extends State<CarSettingPage> {
                               },
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildSettingField(
+                          _buildSettingField(
                             'rearDumperOilName',
-                            'オイル名',
+                            isEnglish ? 'Oil Name' : 'オイル名',
                             TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'オイル名',
+                              decoration: InputDecoration(
+                                labelText: isEnglish ? 'Oil Name' : 'オイル名',
                                 border: OutlineInputBorder(),
                               ),
                               initialValue: settings['rearDumperOilName'],
@@ -1827,18 +1768,16 @@ class _CarSettingPageState extends State<CarSettingPage> {
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _buildSettingField(
+                        const SizedBox(height: 16),
+                        _buildSettingsRow(
+                          'rearDumperStroke',
+                          'rearDumperAirHole',
+                          _buildSettingField(
                             'rearDumperStroke',
-                            'ストローク長',
+                            isEnglish ? 'Stroke' : 'ストローク長',
                             TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'ストローク長',
+                              decoration: InputDecoration(
+                                labelText: isEnglish ? 'Stroke' : 'ストローク長',
                                 border: OutlineInputBorder(),
                               ),
                               initialValue: settings['rearDumperStroke'],
@@ -1847,15 +1786,12 @@ class _CarSettingPageState extends State<CarSettingPage> {
                               },
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: _buildSettingField(
+                          _buildSettingField(
                             'rearDumperAirHole',
-                            'エア抜き穴',
+                            isEnglish ? 'Air Hole' : 'エア抜き穴',
                             TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'エア抜き穴(mm)',
+                              decoration: InputDecoration(
+                                labelText: isEnglish ? 'Air Hole' : 'エア抜き穴(mm)',
                                 border: OutlineInputBorder(),
                               ),
                               initialValue: settings['rearDumperAirHole'],
@@ -1867,10 +1803,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ],
@@ -2787,5 +2723,66 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
   void _shareSetting() {
     // Implementation for sharing setting
+  }
+
+  // 横並びの設定項目を最適化して表示するためのヘルパーメソッド
+  Widget _buildSettingsRow(
+      String key1, String key2, Widget widget1, Widget widget2) {
+    // 可視性設定が読み込まれているかチェック
+    if (!_isVisibilityLoaded) {
+      return Row(
+        children: [
+          Expanded(child: widget1),
+          const SizedBox(width: 16),
+          Expanded(child: widget2),
+        ],
+      );
+    }
+
+    // 各項目の表示状態を取得
+    final isVisible1 = _visibilitySettings.settingsVisibility[key1] ?? true;
+    final isVisible2 = _visibilitySettings.settingsVisibility[key2] ?? true;
+
+    // 両方非表示の場合は空のコンテナを返す（行を詰める）
+    if (!isVisible1 && !isVisible2) {
+      return Container();
+    }
+
+    // 片方のみが表示される場合、その項目を横いっぱいに表示
+    if (!isVisible1) {
+      return widget2; // key1が非表示の場合、key2を全幅で表示
+    }
+
+    if (!isVisible2) {
+      return widget1; // key2が非表示の場合、key1を全幅で表示
+    }
+
+    // 両方表示する場合は通常通りRowで並べる
+    return Row(
+      children: [
+        Expanded(child: widget1),
+        const SizedBox(width: 16),
+        Expanded(child: widget2),
+      ],
+    );
+  }
+
+  // 単一項目の表示/非表示を処理するヘルパーメソッド
+  Widget _buildSingleSetting(String key, Widget widget) {
+    // 可視性設定が読み込まれていない場合はそのまま表示
+    if (!_isVisibilityLoaded) {
+      return widget;
+    }
+
+    // 表示状態を取得
+    final isVisible = _visibilitySettings.settingsVisibility[key] ?? true;
+
+    // 非表示の場合は空のコンテナを返す（行を詰める）
+    if (!isVisible) {
+      return Container();
+    }
+
+    // 表示する場合はウィジェットをそのまま返す
+    return widget;
   }
 }
