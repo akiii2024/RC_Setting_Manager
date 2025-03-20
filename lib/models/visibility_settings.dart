@@ -1,3 +1,5 @@
+import 'car_setting_definition.dart';
+
 class VisibilitySettings {
   final String carId;
   final Map<String, bool> settingsVisibility;
@@ -165,10 +167,6 @@ class VisibilitySettings {
         'rearSusMountPosition': true,
         'frontSuspensionArmThickness': true,
         'rearSuspensionArmThickness': true,
-
-        // TRF420固有の設定項目
-        'frontAxisHeight': true,
-        'motorCoolingType': true,
       },
     );
   }

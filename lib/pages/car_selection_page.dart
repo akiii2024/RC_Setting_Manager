@@ -21,8 +21,14 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
       name: 'タミヤ',
       //imageUrl: 'assets/images/tamia.png',
       cars: [
-        Car(id: '1', name: 'TRF420x', imageUrl: 'assets/images/drift_car.png'),
-        Car(id: '2', name: 'TRF421', imageUrl: 'assets/images/touring_car.png'),
+        Car(
+            id: 'trf420',
+            name: 'TRF420x',
+            imageUrl: 'assets/images/drift_car.png'),
+        Car(
+            id: 'trf421',
+            name: 'TRF421',
+            imageUrl: 'assets/images/touring_car.png'),
       ],
     ),
     Manufacturer(
@@ -30,7 +36,7 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
       name: 'ヨコモ',
       //imageUrl: 'assets/images/yokomo.png',
       cars: [
-        Car(id: '3', name: 'BD12', imageUrl: 'assets/images/buggy.png'),
+        Car(id: 'bd12', name: 'BD12', imageUrl: 'assets/images/buggy.png'),
       ],
     ),
   ];
