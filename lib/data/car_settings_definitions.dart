@@ -1,4 +1,6 @@
 import '../models/car_setting_definition.dart';
+import 'car_settings/definitions/tamiya/trf420x_settings.dart' as trf420x;
+import 'car_settings/definitions/tamiya/trf421_settings.dart' as trf421;
 
 // TRF421の設定定義
 final trf421Settings = CarSettingDefinition(
@@ -185,8 +187,8 @@ final trf420Settings = CarSettingDefinition(
 
 // 全ての車種の設定定義を管理
 final Map<String, CarSettingDefinition> carSettingsDefinitions = {
-  'trf421': trf421Settings,
-  'trf420': trf420Settings,
+  'trf421': trf421.trf421Settings,
+  'trf420': trf420x.trf420xSettings,
 };
 
 // 車種IDから設定定義を取得する関数

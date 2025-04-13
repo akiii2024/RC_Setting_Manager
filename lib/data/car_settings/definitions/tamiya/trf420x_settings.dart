@@ -3,6 +3,7 @@ import '../../common/basic_settings.dart';
 
 // TRF420固有の設定
 final List<SettingItem> trf420SpecificSettings = [
+  //フロント
   SettingItem(
     key: 'frontAxisHeight',
     type: 'number',

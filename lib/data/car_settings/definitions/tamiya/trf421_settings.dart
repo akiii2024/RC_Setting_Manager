@@ -3,6 +3,7 @@ import '../../common/basic_settings.dart';
 
 // TRF421固有の設定
 final List<SettingItem> trf421SpecificSettings = [
+  // フロント設定
   SettingItem(
     key: 'frontCamber',
     type: 'number',
