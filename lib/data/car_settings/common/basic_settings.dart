@@ -7,6 +7,8 @@ final List<SettingItem> basicSettings = [
     type: 'text',
     category: 'basic',
     label: '日付',
+    defaultValue: DateTime.now().toString().split(' ')[0],
+    isAutoFilled: true,
   ),
   SettingItem(
     key: 'track',
@@ -50,4 +52,10 @@ final List<SettingItem> basicSettings = [
     category: 'basic',
     label: 'コンディション',
   ),
+  SettingItem(
+    key: 'memo',
+    type: 'text',
+    category: 'memo',
+    label: 'メモ',
+  )
 ];

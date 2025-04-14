@@ -16,6 +16,7 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _autoSave = true;
   List<Car> _cars = [];
   Car? _selectedCar;
+  bool _canDisplaySetting = false;
 
   @override
   void didChangeDependencies() {
@@ -83,17 +84,12 @@ class _SettingsPageState extends State<SettingsPage> {
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           ),
           const SizedBox(height: 16.0),
-          SwitchListTile(
+          ListTile(
             title: Text(isEnglish ? 'Auto Save' : '自動保存'),
             subtitle: Text(isEnglish
-                ? 'Automatically save setting changes'
-                : 'セッティングの変更を自動的に保存します'),
-            value: _autoSave,
-            onChanged: (bool value) {
-              setState(() {
-                _autoSave = value;
-              });
-            },
+                ? 'Automatically save setting changes (Coming Soon)'
+                : 'セッティングの変更を自動的に保存します（準備中）'),
+            trailing: const Icon(Icons.lock_outline),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           ),
@@ -157,16 +153,26 @@ class _SettingsPageState extends State<SettingsPage> {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
-
-    if (_cars.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-            content: Text(isEnglish
-                ? 'Please register a car first to configure display settings'
-                : '表示設定を行うには、まず車両を登録してください')),
+    
+   if (_canDisplaySetting == false) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(isEnglish
+            ? 'This feature is not available yet'
+            : 'この機能はまだ準備中です。')),
       );
       return;
     }
+
+    //if (_cars.isEmpty) {
+      //ScaffoldMessenger.of(context).showSnackBar(
+        //SnackBar(
+            //content: Text(isEnglish
+                //? 'Please register a car first to configure display settings'
+                //: '表示設定を行うには、まず車両を登録してください')),
+      //);
+      //return;
+    //}
 
     showDialog(
       context: context,

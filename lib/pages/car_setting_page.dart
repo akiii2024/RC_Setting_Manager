@@ -59,6 +59,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
           settings[setting.key] = _getDefaultValueForType(setting);
         }
       }
+      // セッティング名の初期値を日付-車種名に設定
+      final now = DateTime.now();
+      final formattedDate = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      _settingNameController.text = '$formattedDate-$carName';
     }
 
     _initializeSettings();
@@ -70,6 +74,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
       case 'number':
         return setting.constraints['default'] ?? 0.0;
       case 'text':
+        if (setting.key == 'date' && setting.isAutoFilled) {
+          return DateTime.now().toString().split(' ')[0];
+        }
         return '';
       case 'select':
         return setting.options?.first;
@@ -143,12 +150,25 @@ class _CarSettingPageState extends State<CarSettingPage> {
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _saveSetting,
-        tooltip: _isEditing
-            ? (isEnglish ? 'Update' : '更新')
-            : (isEnglish ? 'Save' : '保存'),
-        child: const Icon(Icons.save),
+      floatingActionButton: Row(
+        mainAxisAlignment: MainAxisAlignment.end,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: FloatingActionButton(
+              heroTag: 'saveButton',
+              onPressed: _saveAsNewSetting,
+              tooltip: isEnglish ? 'Save as New' : '新規保存',
+              child: const Icon(Icons.save_as),
+            ),
+          ),
+          FloatingActionButton(
+            heroTag: 'updateButton',
+            onPressed: _updateSetting,
+            tooltip: isEnglish ? 'Update' : '更新',
+            child: const Icon(Icons.update),
+          ),
+        ],
       ),
     );
   }
@@ -202,6 +222,75 @@ class _CarSettingPageState extends State<CarSettingPage> {
     }
   }
 
+  void _saveAsNewSetting() async {
+    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
+
+    if (_settingNameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isEnglish ? 'Please enter a setting name' : 'セッティング名を入力してください'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    if (_settingNameController.text == widget.settingName) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isEnglish ? 'Please change the setting name to save as new' : '新規保存するにはセッティング名を変更してください'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Add new setting
+    await settingsProvider.addSetting(
+      _settingNameController.text,
+      widget.originalCar,
+      settings,
+    );
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(isEnglish ? 'Setting saved' : '設定を保存しました')),
+      );
+      Navigator.pop(context);
+    }
+  }
+
+  void _updateSetting() async {
+    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
+
+    if (_isEditing && widget.savedSettingId != null) {
+      // Update existing setting
+      final updatedSetting = SavedSetting(
+        id: widget.savedSettingId!,
+        name: _settingNameController.text,
+        createdAt: DateTime.now(),
+        car: widget.originalCar,
+        settings: settings,
+      );
+
+      await settingsProvider.updateSetting(updatedSetting);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(isEnglish ? 'Setting updated' : '設定を更新しました')),
+        );
+        Navigator.pop(context);
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isEnglish ? 'No setting to update' : '更新する設定がありません'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   Widget _buildSettingTabs(BuildContext context) {
     if (_carSettingDefinition == null) {
       return const Center(child: Text('車種の設定定義が見つかりません'));
@@ -217,6 +306,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
       'rear': isEnglish ? 'Rear' : 'リア',
       'top': isEnglish ? 'Top Deck' : 'トップデッキ',
       'other': isEnglish ? 'Other' : 'その他',
+      'memo': isEnglish ? 'Memo' : 'メモ',
     };
 
     return DefaultTabController(
@@ -341,10 +431,23 @@ class _CarSettingPageState extends State<CarSettingPage> {
         Text(setting.label),
         const SizedBox(height: 8),
         TextFormField(
-          decoration: const InputDecoration(
-            border: OutlineInputBorder(),
+          decoration: InputDecoration(
+            border: const OutlineInputBorder(),
+            suffixIcon: setting.key == 'date' && setting.isAutoFilled
+                ? IconButton(
+                    icon: const Icon(Icons.refresh),
+                    onPressed: () {
+                      setState(() {
+                        settings[setting.key] = DateTime.now().toString().split(' ')[0];
+                      });
+                    },
+                    tooltip: '現在の日付を入力',
+                  )
+                : null,
           ),
-          initialValue: settings[setting.key] ?? '',
+          initialValue: setting.key == 'date' && setting.isAutoFilled
+              ? DateTime.now().toString().split(' ')[0]
+              : settings[setting.key] ?? '',
           onChanged: (value) {
             setState(() {
               settings[setting.key] = value;

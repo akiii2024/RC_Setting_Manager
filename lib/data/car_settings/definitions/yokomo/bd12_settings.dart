@@ -1,0 +1,301 @@
+import '../../../../models/car_setting_definition.dart';
+import '../../common/basic_settings.dart';
+
+// BD12固有の設定
+final List<SettingItem> bd12SpecificSettings = [
+  // フロント設定
+  SettingItem(
+    key: 'frontCHub',
+    type: 'select',
+    category: 'front',
+    label: 'Cハブ',
+    options: ['グラファイト', 'スタンダード'],
+  ),
+  SettingItem(
+    key: 'frontBellCrankPost',
+    type: 'number',
+    category: 'front',
+    label: 'ベルクランクポストスペーサー',
+    unit: 'mm',
+    constraints: {'min': 0, 'max': 10, 'step': 0.5},
+  ),
+  SettingItem(
+    key: 'frontWheelHub',
+    type: 'select',
+    category: 'front',
+    label: 'ホイールハブ',
+    options: ['4.0mm', '4.5mm', '5.0mm'],
+  ),
+  SettingItem(
+    key: 'frontBellCrank',
+    type: 'select',
+    category: 'front',
+    label: 'ベルクランク',
+    options: ['18.5mm', '20.0mm'],
+  ),
+  SettingItem(
+    key: 'frontCamHeight',
+    type: 'select',
+    category: 'front',
+    label: 'カム',
+    options: ['高', '低'],
+  ),
+  SettingItem(
+    key: 'frontSteeringBlock',
+    type: 'select',
+    category: 'front',
+    label: 'ステアリングナックル',
+    options: ['グラファイト', 'スタンダード'],
+  ),
+  SettingItem(
+    key: 'frontSpacerFF',
+    type: 'number',
+    category: 'front',
+    label: 'スペーサー FF',
+    unit: 'mm',
+    constraints: {'min': 0, 'max': 10, 'step': 0.5},
+  ),
+  SettingItem(
+    key: 'frontSpacerFR',
+    type: 'number',
+    category: 'front',
+    label: 'スペーサー FR',
+    unit: 'mm',
+    constraints: {'min': 0, 'max': 10, 'step': 0.5},
+  ),
+
+  // リア設定
+  SettingItem(
+    key: 'rearWheelHub',
+    type: 'select',
+    category: 'rear',
+    label: 'ホイールハブ',
+    options: ['4.0mm', '4.5mm', '5.0mm'],
+  ),
+  SettingItem(
+    key: 'rearGear',
+    type: 'number',
+    category: 'rear',
+    label: 'ギア',
+    unit: '#',
+  ),
+  SettingItem(
+    key: 'rearCamHeight',
+    type: 'select',
+    category: 'rear',
+    label: 'カム',
+    options: ['高', '低'],
+  ),
+  SettingItem(
+    key: 'rearSpacerRF',
+    type: 'number',
+    category: 'rear',
+    label: 'スペーサー RF',
+    unit: 'mm',
+    constraints: {'min': 0, 'max': 10, 'step': 0.5},
+  ),
+  SettingItem(
+    key: 'rearSpacerRR',
+    type: 'number',
+    category: 'rear',
+    label: 'スペーサー RR',
+    unit: 'mm',
+    constraints: {'min': 0, 'max': 10, 'step': 0.5},
+  ),
+
+  // シャーシ設定
+  SettingItem(
+    key: 'mainChassis',
+    type: 'select',
+    category: 'chassis',
+    label: 'メインシャーシ',
+    options: ['カーボン', 'アルミ'],
+  ),
+  SettingItem(
+    key: 'upperDeck',
+    type: 'select',
+    category: 'chassis',
+    label: 'アッパーデッキ',
+    options: ['標準タイプ', '薄型'],
+  ),
+  SettingItem(
+    key: 'motor',
+    type: 'text',
+    category: 'chassis',
+    label: 'モーター',
+  ),
+  SettingItem(
+    key: 'spurGear',
+    type: 'text',
+    category: 'chassis',
+    label: 'スパーギア',
+  ),
+  SettingItem(
+    key: 'pinionGear',
+    type: 'text',
+    category: 'chassis',
+    label: 'ピニオンギア',
+  ),
+  SettingItem(
+    key: 'battery',
+    type: 'text',
+    category: 'chassis',
+    label: 'バッテリー',
+  ),
+  SettingItem(
+    key: 'esc',
+    type: 'text',
+    category: 'chassis',
+    label: 'アンプ',
+  ),
+  SettingItem(
+    key: 'body',
+    type: 'text',
+    category: 'chassis',
+    label: 'ボディ',
+  ),
+  SettingItem(
+    key: 'wing',
+    type: 'text',
+    category: 'chassis',
+    label: 'ウイング',
+  ),
+
+  // サスペンション設定
+  SettingItem(
+    key: 'frontRideHeight',
+    type: 'number',
+    category: 'suspension',
+    label: '車高 フロント',
+    unit: 'mm',
+    constraints: {'min': 3, 'max': 10, 'step': 0.1},
+  ),
+  SettingItem(
+    key: 'rearRideHeight',
+    type: 'number',
+    category: 'suspension',
+    label: '車高 リア',
+    unit: 'mm',
+    constraints: {'min': 3, 'max': 10, 'step': 0.1},
+  ),
+  SettingItem(
+    key: 'frontCamber',
+    type: 'number',
+    category: 'suspension',
+    label: 'キャンバー フロント',
+    unit: '°',
+    constraints: {'min': -5, 'max': 5, 'step': 0.5},
+  ),
+  SettingItem(
+    key: 'rearCamber',
+    type: 'number',
+    category: 'suspension',
+    label: 'キャンバー リア',
+    unit: '°',
+    constraints: {'min': -5, 'max': 5, 'step': 0.5},
+  ),
+  SettingItem(
+    key: 'frontSwayBar',
+    type: 'select',
+    category: 'suspension',
+    label: 'スタビ フロント',
+    options: ['1.1', '1.2', '1.3', '1.4'],
+  ),
+  SettingItem(
+    key: 'rearSwayBar',
+    type: 'select',
+    category: 'suspension',
+    label: 'スタビ リア',
+    options: ['1.1', '1.2', '1.3', '1.4'],
+  ),
+  SettingItem(
+    key: 'frontDroop',
+    type: 'number',
+    category: 'suspension',
+    label: 'ドループ フロント',
+    unit: 'mm',
+    constraints: {'min': 0, 'max': 5, 'step': 0.5},
+  ),
+  SettingItem(
+    key: 'rearDroop',
+    type: 'number',
+    category: 'suspension',
+    label: 'ドループ リア',
+    unit: 'mm',
+    constraints: {'min': 0, 'max': 5, 'step': 0.5},
+  ),
+  SettingItem(
+    key: 'frontToe',
+    type: 'number',
+    category: 'suspension',
+    label: 'トー角 フロント',
+    unit: '°',
+    constraints: {'min': -5, 'max': 5, 'step': 0.5},
+  ),
+  SettingItem(
+    key: 'rearToe',
+    type: 'number',
+    category: 'suspension',
+    label: 'トー角 リア',
+    unit: '°',
+    constraints: {'min': -5, 'max': 5, 'step': 0.5},
+  ),
+
+  // ダンパー設定
+  SettingItem(
+    key: 'frontShockOil',
+    type: 'text',
+    category: 'damper',
+    label: 'オイル フロント',
+  ),
+  SettingItem(
+    key: 'rearShockOil',
+    type: 'text',
+    category: 'damper',
+    label: 'オイル リア',
+  ),
+  SettingItem(
+    key: 'frontPiston',
+    type: 'select',
+    category: 'damper',
+    label: 'ピストン フロント',
+    options: ['4穴', '6穴', '穴'],
+  ),
+  SettingItem(
+    key: 'rearPiston',
+    type: 'select',
+    category: 'damper',
+    label: 'ピストン リア',
+    options: ['4穴', '6穴', '穴'],
+  ),
+  SettingItem(
+    key: 'frontSpring',
+    type: 'text',
+    category: 'damper',
+    label: 'スプリング フロント',
+  ),
+  SettingItem(
+    key: 'rearSpring',
+    type: 'text',
+    category: 'damper',
+    label: 'スプリング リア',
+  ),
+  SettingItem(
+    key: 'frontBladder',
+    type: 'text',
+    category: 'damper',
+    label: 'ブラダー フロント',
+  ),
+  SettingItem(
+    key: 'rearBladder',
+    type: 'text',
+    category: 'damper',
+    label: 'ブラダー リア',
+  ),
+];
+
+// BD12の設定定義（基本設定 + 固有設定）
+final bd12Settings = CarSettingDefinition(
+  carId: 'yokomo/bd12',
+  availableSettings: [...basicSettings, ...bd12SpecificSettings],
+);

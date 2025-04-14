@@ -35,6 +35,8 @@ class SettingItem {
   final String category; // 'basic', 'front', 'rear', 'top', 'other' など
   final String label; // 表示名
   final List<String>? options; // select typeの場合の選択肢
+  final String? defaultValue; // デフォルト値
+  final bool isAutoFilled; // 自動入力フラグ
 
   SettingItem({
     required this.key,
@@ -44,6 +46,8 @@ class SettingItem {
     required this.category,
     required this.label,
     this.options,
+    this.defaultValue,
+    this.isAutoFilled = false,
   });
 
   // JSONからの変換
@@ -56,6 +60,8 @@ class SettingItem {
       category: json['category'] as String,
       label: json['label'] as String,
       options: (json['options'] as List?)?.map((e) => e as String).toList(),
+      defaultValue: json['defaultValue'] as String?,
+      isAutoFilled: json['isAutoFilled'] as bool? ?? false,
     );
   }
 
@@ -69,6 +75,8 @@ class SettingItem {
       'category': category,
       'label': label,
       'options': options,
+      'defaultValue': defaultValue,
+      'isAutoFilled': isAutoFilled,
     };
   }
 }
