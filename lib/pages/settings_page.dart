@@ -217,11 +217,11 @@ class _SettingsPageState extends State<SettingsPage> {
                   onPressed: () {
                     Navigator.of(context).pop();
                   },
-                  child: Text(isEnglish ? 'Close' : '閉じる'),
                   style: TextButton.styleFrom(
                     padding: const EdgeInsets.symmetric(
                         horizontal: 16.0, vertical: 10.0),
                   ),
+                  child: Text(isEnglish ? 'Close' : '閉じる'),
                 ),
               ],
             );
@@ -573,11 +573,11 @@ class _SettingsPageState extends State<SettingsPage> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text(isEnglish ? 'Close' : '閉じる'),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 16.0, vertical: 10.0),
               ),
+              child: Text(isEnglish ? 'Close' : '閉じる'),
             ),
           ],
         );
@@ -614,11 +614,11 @@ class _SettingsPageState extends State<SettingsPage> {
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text(isEnglish ? 'Close' : '閉じる'),
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 16.0, vertical: 10.0),
               ),
+              child: Text(isEnglish ? 'Close' : '閉じる'),
             ),
           ],
         );

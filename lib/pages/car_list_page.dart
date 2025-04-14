@@ -287,9 +287,9 @@ class _CarListPageState extends State<CarListPage> {
             } else {
               // 日本語ラベルの生成（ここでは簡易的に実装）
               if (key.startsWith('front')) {
-                label = 'フロント' + key.substring(5);
+                label = 'フロント${key.substring(5)}';
               } else if (key.startsWith('rear')) {
-                label = 'リア' + key.substring(4);
+                label = 'リア${key.substring(4)}';
               }
             }
 
@@ -385,9 +385,9 @@ class _CarListPageState extends State<CarListPage> {
             } else {
               // 日本語ラベルの生成
               if (key.startsWith('front')) {
-                label = 'フロント' + key.substring(5);
+                label = 'フロント${key.substring(5)}';
               } else if (key.startsWith('rear')) {
-                label = 'リア' + key.substring(4);
+                label = 'リア${key.substring(4)}';
               }
             }
 
@@ -475,10 +475,10 @@ class CarListItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const CarListItem({
-    Key? key,
+    super.key,
     required this.car,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -790,9 +790,9 @@ class CarListItem extends StatelessWidget {
             } else {
               // 日本語ラベルの生成
               if (key.startsWith('front')) {
-                label = 'フロント' + key.substring(5);
+                label = 'フロント${key.substring(5)}';
               } else if (key.startsWith('rear')) {
-                label = 'リア' + key.substring(4);
+                label = 'リア${key.substring(4)}';
               }
             }
 

@@ -8,6 +8,7 @@ import '../models/saved_setting.dart';
 import '../models/visibility_settings.dart';
 import '../data/car_settings_definitions.dart';
 import '../models/car_setting_definition.dart';
+import '../widgets/grid_selector.dart';
 
 class CarSettingPage extends StatefulWidget {
   final Car originalCar;
@@ -16,12 +17,12 @@ class CarSettingPage extends StatefulWidget {
   final String? settingName;
 
   const CarSettingPage({
-    Key? key,
+    super.key,
     required this.originalCar,
     this.savedSettings,
     this.savedSettingId,
     this.settingName,
-  }) : super(key: key);
+  });
 
   @override
   State<CarSettingPage> createState() => _CarSettingPageState();
@@ -265,6 +266,22 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   Widget _buildSettingField(SettingItem setting) {
+    if (setting.type == 'grid') {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(setting.label),
+          const SizedBox(height: 8),
+          GridSelector(
+            rows: setting.constraints['rows'] as int,
+            cols: setting.constraints['cols'] as int,
+            allowMultiple: setting.constraints['multiple'] as bool,
+            initialValue: _getGridValue(setting.key),
+            onChanged: (points) => _updateGridValue(setting.key, points),
+          ),
+        ],
+      );
+    }
     switch (setting.type) {
       case 'number':
         return _buildNumberField(setting);
@@ -277,6 +294,21 @@ class _CarSettingPageState extends State<CarSettingPage> {
       default:
         return Container();
     }
+  }
+
+  List<Point> _getGridValue(String key) {
+    final value = settings[key];
+    if (value == null) return [];
+    if (value is List) {
+      return value.map((p) => Point.fromJson(p)).toList();
+    }
+    return [];
+  }
+
+  void _updateGridValue(String key, List<Point> points) {
+    setState(() {
+      settings[key] = points.map((p) => p.toJson()).toList();
+    });
   }
 
   Widget _buildNumberField(SettingItem setting) {

@@ -28,7 +28,7 @@ class _HomePageState extends State<HomePage> {
     final settingsProvider = Provider.of<SettingsProvider>(context);
     final isEnglish = settingsProvider.isEnglish;
 
-    final List<String> _titles = [
+    final List<String> titles = [
       isEnglish ? 'RC Car Settings' : 'RCカーセッティング',
       isEnglish ? 'Setting History' : 'セッティング履歴',
       isEnglish ? 'Tools' : 'ツール',
@@ -36,7 +36,7 @@ class _HomePageState extends State<HomePage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_titles[_selectedIndex]),
+        title: Text(titles[_selectedIndex]),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings),
@@ -88,7 +88,7 @@ class _HomePageState extends State<HomePage> {
 }
 
 class _HomeTab extends StatelessWidget {
-  const _HomeTab({Key? key}) : super(key: key);
+  const _HomeTab({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -139,7 +139,7 @@ class _HomeTab extends StatelessWidget {
 class SettingCard extends StatelessWidget {
   final SavedSetting setting;
 
-  const SettingCard({Key? key, required this.setting}) : super(key: key);
+  const SettingCard({super.key, required this.setting});
 
   @override
   Widget build(BuildContext context) {

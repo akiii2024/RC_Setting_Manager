@@ -1,4 +1,3 @@
-import 'car_setting_definition.dart';
 
 class VisibilitySettings {
   final String carId;
