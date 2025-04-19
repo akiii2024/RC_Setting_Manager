@@ -5,9 +5,9 @@ import 'car_settings/definitions/yokomo/bd12_settings.dart' as bd12;
 
 // 全ての車種の設定定義を管理
 final Map<String, CarSettingDefinition> carSettingsDefinitions = {
-  'trf421': trf421.trf421Settings,
-  'trf420x': trf420x.trf420xSettings,
-  'bd12': bd12.bd12Settings,
+  'tamiya/trf421': trf421.trf421Settings,
+  'tamiya/trf420x': trf420x.trf420xSettings,
+  'yokomo/bd12': bd12.bd12Settings,
 };
 
 // 車種IDから設定定義を取得する関数

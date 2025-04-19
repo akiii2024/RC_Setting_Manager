@@ -22,11 +22,11 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
       //imageUrl: 'assets/images/tamia.png',
       cars: [
         Car(
-            id: 'trf420',
+            id: 'tamiya/trf420x',
             name: 'TRF420x',
             imageUrl: 'assets/images/drift_car.png'),
         Car(
-            id: 'trf421',
+            id: 'tamiya/trf421',
             name: 'TRF421',
             imageUrl: 'assets/images/touring_car.png'),
       ],
@@ -36,7 +36,7 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
       name: 'ヨコモ',
       //imageUrl: 'assets/images/yokomo.png',
       cars: [
-        Car(id: 'bd12', name: 'BD12', imageUrl: 'assets/images/buggy.png'),
+        Car(id: 'yokomo/bd12', name: 'BD12', imageUrl: 'assets/images/buggy.png'),
       ],
     ),
   ];
