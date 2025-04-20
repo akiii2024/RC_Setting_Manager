@@ -47,11 +47,22 @@ class _GridSelectorState extends State<GridSelector> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey),
-        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.3)),
+        borderRadius: BorderRadius.circular(8),
+        color: theme.colorScheme.surface,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
+      padding: const EdgeInsets.all(4),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: List.generate(widget.rows, (row) {
@@ -60,14 +71,36 @@ class _GridSelectorState extends State<GridSelector> {
             children: List.generate(widget.cols, (col) {
               final point = Point(row, col);
               final isSelected = selectedPoints.contains(point);
-              return GestureDetector(
-                onTap: () => _handleTap(row, col),
-                child: Container(
-                  width: 30,
-                  height: 30,
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.withOpacity(0.5)),
-                    color: isSelected ? Theme.of(context).primaryColor : null,
+              return Padding(
+                padding: const EdgeInsets.all(2),
+                child: InkWell(
+                  onTap: () => _handleTap(row, col),
+                  borderRadius: BorderRadius.circular(6),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                        color: isSelected
+                            ? theme.colorScheme.primary
+                            : theme.colorScheme.outline.withOpacity(0.3),
+                        width: isSelected ? 2 : 1,
+                      ),
+                      color: isSelected
+                          ? theme.colorScheme.primary.withOpacity(0.15)
+                          : theme.colorScheme.surface,
+                    ),
+                    child: isSelected
+                        ? Center(
+                            child: Icon(
+                              Icons.check_rounded,
+                              size: 18,
+                              color: theme.colorScheme.primary,
+                            ),
+                          )
+                        : null,
                   ),
                 ),
               );
@@ -107,4 +140,4 @@ class Point {
       json['col'] as int,
     );
   }
-} 
+}

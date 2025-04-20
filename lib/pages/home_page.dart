@@ -44,6 +44,7 @@ class _HomePageState extends State<HomePage> {
               // Navigate to settings page
               Navigator.pushNamed(context, '/settings');
             },
+            tooltip: isEnglish ? 'Settings' : '設定',
           ),
         ],
       ),
@@ -55,17 +56,20 @@ class _HomePageState extends State<HomePage> {
             _selectedIndex = index;
           });
         },
+        elevation: 8,
+        selectedItemColor: Theme.of(context).colorScheme.primary,
+        unselectedItemColor: Colors.grey,
         items: [
           BottomNavigationBarItem(
-            icon: const Icon(Icons.home),
+            icon: const Icon(Icons.home_rounded),
             label: isEnglish ? 'Home' : 'ホーム',
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.history),
+            icon: const Icon(Icons.history_rounded),
             label: isEnglish ? 'History' : '履歴',
           ),
           BottomNavigationBarItem(
-            icon: const Icon(Icons.build),
+            icon: const Icon(Icons.build_rounded),
             label: isEnglish ? 'Tools' : 'ツール',
           ),
         ],
@@ -81,6 +85,7 @@ class _HomePageState extends State<HomePage> {
                 );
               },
               child: const Icon(Icons.add),
+              tooltip: isEnglish ? 'Add new setting' : '新しい設定を追加',
             )
           : null,
     );
@@ -99,32 +104,69 @@ class _HomeTab extends StatelessWidget {
 
         if (savedSettings.isEmpty) {
           return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.directions_car,
-                  size: 80,
-                  color: Colors.grey[400],
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  isEnglish ? 'No settings saved yet' : '保存された設定はありません',
-                  style: const TextStyle(fontSize: 18),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  isEnglish
-                      ? 'Tap the + button to create a new setting'
-                      : '+ ボタンをタップして新しい設定を作成してください',
-                  style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                ),
-              ],
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    padding: const EdgeInsets.all(24),
+                    child: Icon(
+                      Icons.directions_car_rounded,
+                      size: 80,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    isEnglish ? 'No settings saved yet' : '保存された設定はありません',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    isEnglish
+                        ? 'Create your first RC car setting by tapping the + button below'
+                        : '下の + ボタンをタップして最初のRCカー設定を作成しましょう',
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CarSelectionPage(),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.add),
+                    label: Text(isEnglish ? 'Create Setting' : '設定を作成'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
         }
 
         return ListView.builder(
+          padding: const EdgeInsets.only(top: 12, bottom: 24),
           itemCount: savedSettings.length,
           itemBuilder: (context, index) {
             final setting = savedSettings[index];
@@ -145,9 +187,11 @@ class SettingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final settingsProvider = Provider.of<SettingsProvider>(context);
     final isEnglish = settingsProvider.isEnglish;
+    final theme = Theme.of(context);
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 3,
       child: InkWell(
         onTap: () {
           Navigator.push(
@@ -162,89 +206,140 @@ class SettingCard extends StatelessWidget {
             ),
           );
         },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // カラーバー
+            Container(
+              height: 8,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: Text(
-                      setting.name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'edit') {
-                        // 編集画面へ遷移
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => CarSettingPage(
-                              originalCar: setting.car,
-                              savedSettings: setting.settings,
-                              settingName: setting.name,
-                              savedSettingId: setting.id,
-                            ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          setting.name,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
-                        );
-                      } else if (value == 'delete') {
-                        // 削除確認ダイアログを表示
-                        _showDeleteConfirmationDialog(context, setting);
-                      }
-                    },
-                    itemBuilder: (BuildContext context) => [
-                      PopupMenuItem<String>(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.edit, size: 20),
-                            const SizedBox(width: 8),
-                            Text(isEnglish ? 'Edit' : '編集'),
-                          ],
                         ),
                       ),
-                      PopupMenuItem<String>(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            const Icon(Icons.delete,
-                                size: 20, color: Colors.red),
-                            const SizedBox(width: 8),
-                            Text(
-                              isEnglish ? 'Delete' : '削除',
-                              style: const TextStyle(color: Colors.red),
+                      PopupMenuButton<String>(
+                        onSelected: (value) {
+                          if (value == 'edit') {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => CarSettingPage(
+                                  originalCar: setting.car,
+                                  savedSettings: setting.settings,
+                                  settingName: setting.name,
+                                  savedSettingId: setting.id,
+                                ),
+                              ),
+                            );
+                          } else if (value == 'delete') {
+                            _showDeleteConfirmationDialog(context, setting);
+                          }
+                        },
+                        icon: Icon(
+                          Icons.more_vert,
+                          color: theme.colorScheme.primary,
+                        ),
+                        elevation: 4,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        itemBuilder: (BuildContext context) => [
+                          PopupMenuItem<String>(
+                            value: 'edit',
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.edit_rounded,
+                                  size: 20,
+                                  color: theme.colorScheme.primary,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(isEnglish ? 'Edit' : '編集'),
+                              ],
                             ),
-                          ],
+                          ),
+                          PopupMenuItem<String>(
+                            value: 'delete',
+                            child: Row(
+                              children: [
+                                const Icon(
+                                  Icons.delete_rounded,
+                                  size: 20,
+                                  color: Colors.red,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  isEnglish ? 'Delete' : '削除',
+                                  style: const TextStyle(color: Colors.red),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.directions_car_rounded,
+                        size: 18,
+                        color: Colors.grey[600],
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        setting.car.name,
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.grey[600],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.calendar_today_rounded,
+                        size: 16,
+                        color: Colors.grey[500],
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _formatDate(setting.createdAt, isEnglish),
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[500],
                         ),
                       ),
                     ],
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                setting.car.name,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _formatDate(setting.createdAt, isEnglish),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey[500],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

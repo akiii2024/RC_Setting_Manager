@@ -13,9 +13,6 @@ class ToolsPage extends StatelessWidget {
     final isEnglish = settingsProvider.isEnglish;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(isEnglish ? 'Tools' : 'ツール'),
-      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
@@ -26,7 +23,8 @@ class ToolsPage extends StatelessWidget {
               description: isEnglish
                   ? 'Export all your setting data'
                   : 'すべてのセッティングデータをエクスポートします',
-              icon: Icons.backup,
+              icon: Icons.backup_rounded,
+              color: Colors.blue,
               onTap: () => _exportSettings(context),
             ),
             _ToolCard(
@@ -34,41 +32,46 @@ class ToolsPage extends StatelessWidget {
               description: isEnglish
                   ? 'Restore previously exported data'
                   : '以前にエクスポートしたデータを復元します',
-              icon: Icons.restore,
+              icon: Icons.restore_rounded,
+              color: Colors.indigo,
               onTap: () => _showComingSoonDialog(context),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             _SectionHeader(title: isEnglish ? 'Calculation Tools' : '計算ツール'),
             _ToolCard(
               title: isEnglish ? 'Gear Ratio Calculator' : 'ギヤレシオ計算',
               description: isEnglish
                   ? 'Calculate gear ratio from spur and pinion gears'
                   : 'スパーギヤとピニオンギヤからギヤレシオを計算',
-              icon: Icons.calculate,
+              icon: Icons.calculate_rounded,
+              color: Colors.orange,
               onTap: () => _showGearRatioCalculator(context),
             ),
             _ToolCard(
               title: isEnglish ? 'Roll Angle Calculator' : 'ロール角度計算',
               description:
                   isEnglish ? 'Calculate suspension angles' : 'サスペンションの角度を計算',
-              icon: Icons.straighten,
+              icon: Icons.straighten_rounded,
+              color: Colors.deepOrange,
               onTap: () => _showComingSoonDialog(context),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             _SectionHeader(title: isEnglish ? 'Other' : 'その他'),
             _ToolCard(
               title: isEnglish ? 'Share Settings' : 'セッティングデータを共有',
               description: isEnglish
                   ? 'Share setting information with other users'
                   : '他のユーザーとセッティング情報を共有',
-              icon: Icons.share,
+              icon: Icons.share_rounded,
+              color: Colors.teal,
               onTap: () => _shareSettings(context),
             ),
             _ToolCard(
               title: isEnglish ? 'Statistics' : '統計情報',
               description:
                   isEnglish ? 'View your setting trends' : 'あなたのセッティング傾向を確認',
-              icon: Icons.bar_chart,
+              icon: Icons.bar_chart_rounded,
+              color: Colors.purple,
               onTap: () => _showComingSoonDialog(context),
             ),
           ],
@@ -91,9 +94,14 @@ class ToolsPage extends StatelessWidget {
     if (savedSettings.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-            content: Text(isEnglish
-                ? 'No settings available to share'
-                : '共有可能なセッティングがありません')),
+          content: Text(isEnglish
+              ? 'No settings available to share'
+              : '共有可能なセッティングがありません'),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
       );
       return;
     }
@@ -102,8 +110,12 @@ class ToolsPage extends StatelessWidget {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title:
-              Text(isEnglish ? 'Select a setting to share' : '共有するセッティングを選択'),
+          title: Text(
+            isEnglish ? 'Select a setting to share' : '共有するセッティングを選択',
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           content: SizedBox(
             width: double.maxFinite,
             child: ListView.builder(
@@ -111,13 +123,36 @@ class ToolsPage extends StatelessWidget {
               itemCount: savedSettings.length,
               itemBuilder: (context, index) {
                 final setting = savedSettings[index];
-                return ListTile(
-                  title: Text(setting.name),
-                  subtitle: Text(setting.car.name),
-                  onTap: () {
-                    Navigator.pop(context);
-                    _shareSettingData(context, setting);
-                  },
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    title: Text(
+                      setting.name,
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    subtitle: Text(setting.car.name),
+                    leading: CircleAvatar(
+                      backgroundColor: Theme.of(context)
+                          .colorScheme
+                          .primary
+                          .withOpacity(0.1),
+                      child: Icon(
+                        Icons.directions_car_rounded,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      _shareSettingData(context, setting);
+                    },
+                  ),
                 );
               },
             ),
@@ -192,6 +227,7 @@ class ToolsPage extends StatelessWidget {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
+    final theme = Theme.of(context);
 
     showDialog(
       context: context,
@@ -199,6 +235,9 @@ class ToolsPage extends StatelessWidget {
         return StatefulBuilder(
           builder: (context, setState) {
             return AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
               title: Text(isEnglish ? 'Gear Ratio Calculator' : 'ギヤレシオ計算機'),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -207,39 +246,68 @@ class ToolsPage extends StatelessWidget {
                     controller: spurController,
                     decoration: InputDecoration(
                       labelText: isEnglish ? 'Spur Gear (teeth)' : 'スパーギヤ (歯数)',
+                      prefixIcon: const Icon(Icons.settings_rounded),
+                      filled: true,
                     ),
                     keyboardType: TextInputType.number,
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: pinionController,
                     decoration: InputDecoration(
                       labelText:
                           isEnglish ? 'Pinion Gear (teeth)' : 'ピニオンギヤ (歯数)',
+                      prefixIcon: const Icon(Icons.settings_rounded),
+                      filled: true,
                     ),
                     keyboardType: TextInputType.number,
                   ),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      final spur = int.tryParse(spurController.text);
-                      final pinion = int.tryParse(pinionController.text);
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        final spur = int.tryParse(spurController.text);
+                        final pinion = int.tryParse(pinionController.text);
 
-                      if (spur != null && pinion != null && pinion > 0) {
-                        setState(() {
-                          gearRatio = spur / pinion;
-                        });
-                      }
-                    },
-                    child: Text(isEnglish ? 'Calculate' : '計算'),
+                        if (spur != null && pinion != null && pinion > 0) {
+                          setState(() {
+                            gearRatio = spur / pinion;
+                          });
+                        }
+                      },
+                      icon: const Icon(Icons.calculate_rounded),
+                      label: Text(isEnglish ? 'Calculate' : '計算'),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 24),
                   if (gearRatio > 0)
-                    Text(
-                      '${isEnglish ? 'Gear Ratio' : 'ギヤレシオ'}: ${gearRatio.toStringAsFixed(2)}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.speed_rounded,
+                            color: theme.colorScheme.primary,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            '${isEnglish ? 'Gear Ratio' : 'ギヤレシオ'}: ${gearRatio.toStringAsFixed(2)}',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: theme.colorScheme.primary,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                 ],
@@ -266,22 +334,37 @@ class ToolsPage extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(isEnglish ? 'Coming Soon' : '準備中'),
-          content: Text(isEnglish
-              ? 'This feature is under development and will be available in a future update.'
-              : 'この機能は開発中で、今後のアップデートで利用可能になります。'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text(isEnglish ? 'OK' : 'OK'),
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        title: Text(isEnglish ? 'Coming Soon' : '準備中'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.construction_rounded,
+              size: 48,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isEnglish
+                  ? 'This feature is under development and will be available soon.'
+                  : 'この機能は開発中です。もうしばらくお待ちください。',
+              textAlign: TextAlign.center,
             ),
           ],
-        );
-      },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: Text(isEnglish ? 'OK' : '了解'),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -294,12 +377,13 @@ class _SectionHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.only(left: 8, bottom: 12, top: 16),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 18,
           fontWeight: FontWeight.bold,
+          color: Theme.of(context).colorScheme.primary,
         ),
       ),
     );
@@ -310,6 +394,7 @@ class _ToolCard extends StatelessWidget {
   final String title;
   final String description;
   final IconData icon;
+  final Color color;
   final VoidCallback onTap;
 
   const _ToolCard({
@@ -317,18 +402,65 @@ class _ToolCard extends StatelessWidget {
     required this.description,
     required this.icon,
     required this.onTap,
+    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        title: Text(title),
-        subtitle: Text(description),
-        leading: Icon(icon, size: 32),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: 28,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: color,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
