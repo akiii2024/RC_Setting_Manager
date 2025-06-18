@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "375147888843",
+    "project_id": "rc-setting-manager",
+    "storage_bucket": "rc-setting-manager.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:375147888843:android:092e818accc5187c235b4e",
+        "android_client_info": {
+          "package_name": "com.example.settingsheet_manager"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDnQdGoO5Tbn7ZbnsiRmRp1VbuVyylCRfM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

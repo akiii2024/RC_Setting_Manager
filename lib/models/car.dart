@@ -1,7 +1,11 @@
+import 'manufacturer.dart';
+
 class Car {
   final String id;
   final String name;
   final String imageUrl;
+  final Manufacturer manufacturer;
+  final String category;
   Map<String, dynamic>? settings;
   final List<String> availableSettings; // 車種固有の設定項目リスト
   final Map<String, String> settingTypes; // 設定項目のタイプを管理するマップ
@@ -10,6 +14,8 @@ class Car {
     required this.id,
     required this.name,
     required this.imageUrl,
+    required this.manufacturer,
+    required this.category,
     this.settings,
     this.availableSettings = const [], // デフォルトは空のリスト
     this.settingTypes = const {}, // デフォルトは空のマップ
@@ -20,7 +26,11 @@ class Car {
     return Car(
       id: json['id'] as String,
       name: json['name'] as String,
-      imageUrl: json['imageUrl'] as String,
+      imageUrl: json['imageUrl'] as String? ?? '',
+      manufacturer: json['manufacturer'] != null
+          ? Manufacturer.fromJson(json['manufacturer'] as Map<String, dynamic>)
+          : Manufacturer(id: 'unknown', name: 'Unknown', logoPath: ''),
+      category: json['category'] as String? ?? '',
       settings: json['settings'] != null
           ? Map<String, dynamic>.from(json['settings'])
           : null,
@@ -39,6 +49,8 @@ class Car {
       'id': id,
       'name': name,
       'imageUrl': imageUrl,
+      'manufacturer': manufacturer.toJson(),
+      'category': category,
       'settings': settings,
       'availableSettings': availableSettings,
       'settingTypes': settingTypes,

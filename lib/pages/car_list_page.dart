@@ -52,18 +52,27 @@ class _CarListPageState extends State<CarListPage> {
             ? '${widget.manufacturer.name} Models'
             : '${widget.manufacturer.name}の車種'),
       ),
-      body: ListView.builder(
-        itemCount: widget.manufacturer.cars.length,
-        itemBuilder: (context, index) {
-          return CarListItem(
-            car: widget.manufacturer.cars[index],
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CarSettingPage(
-                      originalCar: widget.manufacturer.cars[index]),
-                ),
+      body: Consumer<SettingsProvider>(
+        builder: (context, settingsProvider, child) {
+          // SettingsProviderから該当メーカーの車種を取得
+          final manufacturerCars = settingsProvider.cars
+              .where((car) => car.manufacturer.id == widget.manufacturer.id)
+              .toList();
+              
+          return ListView.builder(
+            itemCount: manufacturerCars.length,
+            itemBuilder: (context, index) {
+              return CarListItem(
+                car: manufacturerCars[index],
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CarSettingPage(
+                          originalCar: manufacturerCars[index]),
+                    ),
+                  );
+                },
               );
             },
           );
@@ -189,14 +198,11 @@ class _CarListPageState extends State<CarListPage> {
                         id: DateTime.now().millisecondsSinceEpoch.toString(),
                         name: nameController.text,
                         imageUrl: 'assets/images/default_car.png',
+                        manufacturer: widget.manufacturer,
+                        category: 'Custom',
                         availableSettings: selectedSettings,
                         settingTypes: selectedTypes,
                       );
-
-                      // 車種リストに追加
-                      setState(() {
-                        widget.manufacturer.cars.add(newCar);
-                      });
 
                       // SettingsProviderの車種リストにも追加
                       settingsProvider.addCar(newCar);
@@ -676,6 +682,8 @@ class CarListItem extends StatelessWidget {
                       id: car.id,
                       name: nameController.text,
                       imageUrl: car.imageUrl,
+                      manufacturer: car.manufacturer,
+                      category: car.category,
                       settings: car.settings,
                       availableSettings: selectedSettings,
                       settingTypes: selectedTypes,

@@ -15,29 +15,51 @@ class CarSelectionPage extends StatefulWidget {
 }
 
 class _CarSelectionPageState extends State<CarSelectionPage> {
-  final List<Manufacturer> manufacturers = [
-    Manufacturer(
+  late final List<Manufacturer> manufacturers;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    final tamiyaManufacturer = Manufacturer(
       id: '1',
       name: 'タミヤ',
-      //imageUrl: 'assets/images/tamia.png',
-      cars: [
-        Car(
-            id: 'tamiya/trf420x',
-            name: 'TRF420x',
-            imageUrl: 'assets/images/drift_car.png'),
-        Car(
-            id: 'tamiya/trf421',
-            name: 'TRF421',
-            imageUrl: 'assets/images/touring_car.png'),
-      ],
-    ),
-    Manufacturer(
+      logoPath: 'assets/images/tamiya.png',
+    );
+    
+    final yokomoManufacturer = Manufacturer(
       id: '2',
       name: 'ヨコモ',
-      //imageUrl: 'assets/images/yokomo.png',
-      cars: [
-        Car(id: 'yokomo/bd12', name: 'BD12', imageUrl: 'assets/images/buggy.png'),
-      ],
+      logoPath: 'assets/images/yokomo.png',
+    );
+    
+    manufacturers = [
+      tamiyaManufacturer,
+      yokomoManufacturer,
+    ];
+  }
+
+  List<Car> get allCars => [
+    Car(
+      id: 'tamiya/trf420x',
+      name: 'TRF420x',
+      imageUrl: 'assets/images/drift_car.png',
+      manufacturer: manufacturers[0],
+      category: 'Touring Car',
+    ),
+    Car(
+      id: 'tamiya/trf421',
+      name: 'TRF421',
+      imageUrl: 'assets/images/touring_car.png',
+      manufacturer: manufacturers[0],
+      category: 'Touring Car',
+    ),
+    Car(
+      id: 'yokomo/bd12',
+      name: 'BD12',
+      imageUrl: 'assets/images/buggy.png',
+      manufacturer: manufacturers[1],
+      category: 'Buggy',
     ),
   ];
 
@@ -131,7 +153,7 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
                     manufacturers.add(Manufacturer(
                       id: DateTime.now().millisecondsSinceEpoch.toString(),
                       name: name,
-                      cars: [],
+                      logoPath: '',
                     ));
                   });
                   Navigator.pop(context);
@@ -192,14 +214,21 @@ class ManufacturerListItem extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      isEnglish
-                          ? '${manufacturer.cars.length} models'
-                          : '${manufacturer.cars.length} 車種',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                      ),
+                    Consumer<SettingsProvider>(
+                      builder: (context, settingsProvider, child) {
+                        final carCount = settingsProvider.cars
+                            .where((car) => car.manufacturer.id == manufacturer.id)
+                            .length;
+                        return Text(
+                          isEnglish
+                              ? '$carCount models'
+                              : '$carCount 車種',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey,
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -223,23 +252,36 @@ class CarListPage extends StatefulWidget {
 }
 
 class _CarListPageState extends State<CarListPage> {
+  List<Car> get manufacturerCars {
+    // 親ページのallCarsから該当メーカーの車種を取得
+    final parentState = context.findAncestorStateOfType<_CarSelectionPageState>();
+    if (parentState != null) {
+      return parentState.allCars
+          .where((car) => car.manufacturer.id == widget.manufacturer.id)
+          .toList();
+    }
+    return [];
+  }
+
   @override
   Widget build(BuildContext context) {
+    final cars = manufacturerCars;
+    
     return Scaffold(
       appBar: AppBar(
         title: Text('${widget.manufacturer.name}の車種'),
       ),
       body: ListView.builder(
-        itemCount: widget.manufacturer.cars.length,
+        itemCount: cars.length,
         itemBuilder: (context, index) {
           return CarListItem(
-            car: widget.manufacturer.cars[index],
+            car: cars[index],
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => CarSettingPage(
-                      originalCar: widget.manufacturer.cars[index]),
+                      originalCar: cars[index]),
                 ),
               );
             },
@@ -280,16 +322,20 @@ class _CarListPageState extends State<CarListPage> {
             TextButton(
               onPressed: () {
                 if (nameController.text.isNotEmpty) {
-                  setState(() {
-                    widget.manufacturer.cars.add(
-                      Car(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        name: nameController.text,
-                        imageUrl: 'assets/images/default_car.png',
-                      ),
-                    );
-                  });
+                  final newCar = Car(
+                    id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    name: nameController.text,
+                    imageUrl: 'assets/images/default_car.png',
+                    manufacturer: widget.manufacturer,
+                    category: 'Custom',
+                  );
+                  
+                  // SettingsProviderに車種を追加
+                  final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+                  settingsProvider.addCar(newCar);
+                  
                   Navigator.of(context).pop();
+                  setState(() {}); // UIを更新
                 }
               },
               child: const Text('追加'),
@@ -332,16 +378,3 @@ class CarListItem extends StatelessWidget {
   }
 }
 
-class Manufacturer {
-  final String id;
-  final String name;
-  //final String imageUrl;
-  final List<Car> cars;
-
-  Manufacturer({
-    required this.id,
-    required this.name,
-    //required this.imageUrl,
-    required this.cars,
-  });
-}

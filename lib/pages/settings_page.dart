@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/settings_provider.dart';
+import '../services/auth_service.dart';
 import '../models/car.dart';
 import '../models/visibility_settings.dart';
+import 'import_export_page.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -48,6 +50,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final settingsProvider = Provider.of<SettingsProvider>(context);
+    final authService = Provider.of<AuthService>(context);
     final isEnglish = settingsProvider.isEnglish;
 
     return Scaffold(
@@ -102,40 +105,211 @@ class _SettingsPageState extends State<SettingsPage> {
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           ),
-          const SizedBox(height: 16.0),
+          const SizedBox(height: 8.0),
+          const Divider(),
+          const SizedBox(height: 8.0),
+          // オンライン機能セクション
           ListTile(
-            title: Text(isEnglish ? 'Backup Data' : 'データのバックアップ'),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              // Backup function implementation
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                    content: Text(isEnglish
-                        ? 'Backup feature is coming soon'
-                        : 'バックアップ機能は準備中です')),
-              );
-            },
+            title: Text(isEnglish ? 'Online Features' : 'オンライン機能'),
+            subtitle: Text(isEnglish 
+                ? 'Sign in to sync your data across devices' 
+                : 'サインインしてデバイス間でデータを同期'),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           ),
-          const SizedBox(height: 16.0),
-          ListTile(
-            title: Text(isEnglish ? 'Restore Data' : 'データの復元'),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              // Restore function implementation
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                    content: Text(isEnglish
-                        ? 'Restore feature is coming soon'
-                        : '復元機能は準備中です')),
-              );
-            },
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          ),
+          if (!authService.isFirebaseAvailable) ...[
+            ListTile(
+              title: Text(isEnglish ? 'Firebase Not Available' : 'Firebaseが利用できません'),
+              subtitle: Text(isEnglish 
+                  ? 'Please check Firebase configuration' 
+                  : 'Firebase設定を確認してください'),
+              leading: const Icon(Icons.warning, color: Colors.orange),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            ),
+          ] else if (!authService.isLoggedIn) ...[
+            ListTile(
+              title: Text(isEnglish ? 'Sign In / Sign Up' : 'サインイン / サインアップ'),
+              subtitle: Text(isEnglish 
+                  ? 'Create account or sign in to sync data' 
+                  : 'アカウントを作成またはサインインしてデータを同期'),
+              leading: const Icon(Icons.login),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () {
+                Navigator.of(context).pushNamed('/login');
+              },
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            ),
+          ] else ...[
+            ListTile(
+              title: Text(isEnglish ? 'Signed in as' : 'サインイン中'),
+              subtitle: Text(authService.user?.email ?? ''),
+              leading: const Icon(Icons.account_circle),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            ),
+            SwitchListTile(
+              title: Text(isEnglish ? 'Online Sync' : 'オンライン同期'),
+              subtitle: Text(isEnglish 
+                  ? 'Automatically sync data to cloud' 
+                  : 'データを自動的にクラウドに同期'),
+              value: settingsProvider.isOnlineMode,
+              onChanged: (bool value) async {
+                try {
+                  await settingsProvider.toggleOnlineMode();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(value 
+                            ? (isEnglish ? 'Online sync enabled' : 'オンライン同期が有効になりました')
+                            : (isEnglish ? 'Online sync disabled' : 'オンライン同期が無効になりました')),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(isEnglish 
+                            ? 'Failed to toggle sync: $e' 
+                            : '同期の切り替えに失敗しました: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            ),
+            ListTile(
+              title: Text(isEnglish ? 'Sync Now' : '今すぐ同期'),
+              subtitle: Text(isEnglish 
+                  ? 'Manually sync data to cloud' 
+                  : '手動でデータをクラウドに同期'),
+              leading: const Icon(Icons.sync),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () async {
+                try {
+                  await settingsProvider.syncToFirebase();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(isEnglish 
+                            ? 'Data synced successfully' 
+                            : 'データの同期が完了しました'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(isEnglish 
+                            ? 'Sync failed: $e' 
+                            : '同期に失敗しました: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            ),
+            ListTile(
+              title: Text(isEnglish ? 'Load from Cloud' : 'クラウドから読み込み'),
+              subtitle: Text(isEnglish 
+                  ? 'Load data from cloud storage' 
+                  : 'クラウドストレージからデータを読み込み'),
+              leading: const Icon(Icons.cloud_download),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () async {
+                try {
+                  await settingsProvider.loadFromFirebase();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(isEnglish 
+                            ? 'Data loaded successfully' 
+                            : 'データの読み込みが完了しました'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(isEnglish 
+                            ? 'Load failed: $e' 
+                            : '読み込みに失敗しました: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            ),
+            ListTile(
+              title: Text(isEnglish ? 'Sign Out' : 'サインアウト'),
+              leading: const Icon(Icons.logout),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () async {
+                try {
+                  await authService.signOut();
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(isEnglish 
+                            ? 'Signed out successfully' 
+                            : 'サインアウトしました'),
+                        backgroundColor: Colors.green,
+                      ),
+                    );
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(isEnglish 
+                            ? 'Sign out failed: $e' 
+                            : 'サインアウトに失敗しました: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            ),
+          ],
           const SizedBox(height: 16.0),
           const Divider(),
+          const SizedBox(height: 16.0),
+          ListTile(
+            title: Text(isEnglish ? 'Import / Export' : 'インポート / エクスポート'),
+            subtitle: Text(isEnglish 
+                ? 'Backup and restore data using XML files' 
+                : 'XMLファイルを使用してデータをバックアップ・復元'),
+            leading: const Icon(Icons.import_export),
+            trailing: const Icon(Icons.arrow_forward_ios),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const ImportExportPage(),
+                ),
+              );
+            },
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          ),
           const SizedBox(height: 16.0),
           ListTile(
             title: Text(isEnglish ? 'About This App' : 'アプリについて'),

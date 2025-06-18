@@ -1,21 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'pages/car_selection_page.dart';
 import 'pages/home_page.dart';
 import 'pages/settings_page.dart';
 import 'pages/history_page.dart';
 import 'pages/tools_page.dart';
+import 'pages/login_page.dart';
 import 'providers/theme_provider.dart';
 import 'providers/settings_provider.dart';
+import 'services/auth_service.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  
+  try {
+    await Firebase.initializeApp();
+  } catch (e) {
+    print('Firebase初期化エラー: $e');
+    print('Firebase設定ファイルが正しく配置されているか確認してください。');
+    // Firebase設定ファイルがない場合でもアプリを起動（オフラインモードのみ）
+  }
+  
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => SettingsProvider()),
+        ChangeNotifierProvider(create: (_) => AuthService()),
       ],
       child: const MyApp(),
     ),
@@ -211,6 +225,7 @@ class MyApp extends StatelessWidget {
             '/settings': (context) => const SettingsPage(),
             '/history': (context) => const HistoryPage(),
             '/tools': (context) => const ToolsPage(),
+            '/login': (context) => const LoginPage(),
           },
         );
       },
