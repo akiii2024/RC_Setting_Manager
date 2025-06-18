@@ -11,12 +11,6 @@ final List<SettingItem> basicSettings = [
     isAutoFilled: true,
   ),
   SettingItem(
-    key: 'track',
-    type: 'text',
-    category: 'basic',
-    label: 'トラック',
-  ),
-  SettingItem(
     key: 'surface',
     type: 'text',
     category: 'basic',
@@ -29,6 +23,7 @@ final List<SettingItem> basicSettings = [
     label: '気温',
     unit: '℃',
     constraints: {'min': -10, 'max': 50},
+    isAutoFilled: true,
   ),
   SettingItem(
     key: 'humidity',
@@ -37,6 +32,7 @@ final List<SettingItem> basicSettings = [
     label: '湿度',
     unit: '%',
     constraints: {'min': 0, 'max': 100},
+    isAutoFilled: true,
   ),
   SettingItem(
     key: 'trackTemp',

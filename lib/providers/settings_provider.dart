@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/saved_setting.dart';
 import '../models/car.dart';
+import '../models/manufacturer.dart';
 import '../models/visibility_settings.dart';
 import '../services/firestore_service.dart';
 import 'dart:convert';
@@ -44,11 +45,60 @@ class SettingsProvider extends ChangeNotifier {
       if (carsJson != null) {
         final List<dynamic> decoded = jsonDecode(carsJson);
         _cars = decoded.map((item) => Car.fromJson(item)).toList();
-        notifyListeners();
+      } else {
+        // 初回起動時は初期データを設定
+        _cars = _getInitialCars();
+        await _saveCars(); // 初期データを保存
       }
+      notifyListeners();
     } catch (e) {
       debugPrint('Error loading cars: $e');
+      // エラーが発生した場合も初期データを設定
+      _cars = _getInitialCars();
+      notifyListeners();
     }
+  }
+
+  // 初期車種データを取得
+  List<Car> _getInitialCars() {
+    final tamiyaManufacturer = Manufacturer(
+      id: 'tamiya',
+      name: 'タミヤ',
+      logoPath: 'assets/images/tamiya.png',
+    );
+    
+    final yokomoManufacturer = Manufacturer(
+      id: 'yokomo',
+      name: 'ヨコモ',
+      logoPath: 'assets/images/yokomo.png',
+    );
+
+    return [
+      // タミヤの車種
+      Car(
+        id: 'tamiya/trf421',
+        name: 'TRF421',
+        imageUrl: 'assets/images/trf421.jpg',
+        manufacturer: tamiyaManufacturer,
+        category: 'ツーリングカー',
+      ),
+      Car(
+        id: 'tamiya/trf420x',
+        name: 'TRF420X',
+        imageUrl: 'assets/images/trf420x.jpg',
+        manufacturer: tamiyaManufacturer,
+        category: 'ツーリングカー',
+      ),
+      
+      // ヨコモの車種
+      Car(
+        id: 'yokomo/bd12',
+        name: 'BD12',
+        imageUrl: 'assets/images/bd12.jpg',
+        manufacturer: yokomoManufacturer,
+        category: 'ツーリングカー',
+      ),
+    ];
   }
 
   // 車種リストを保存
@@ -82,6 +132,23 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
+  // 車種を追加
+  Future<void> addCar(Car newCar) async {
+    _cars.add(newCar);
+    await _saveCars();
+    
+    // オンラインモードの場合はFirebaseにも保存
+    if (_isOnlineMode) {
+      try {
+        await _firestoreService.saveCars(_cars);
+      } catch (e) {
+        debugPrint('Firebase保存エラー: $e');
+      }
+    }
+    
+    notifyListeners();
+  }
+
   // 車種を削除
   Future<void> deleteCar(String carId) async {
     _cars.removeWhere((car) => car.id == carId);
@@ -97,6 +164,15 @@ class SettingsProvider extends ChangeNotifier {
     }
     
     notifyListeners();
+  }
+
+  // メーカーリストを取得
+  List<Manufacturer> getManufacturers() {
+    final manufacturers = <String, Manufacturer>{};
+    for (final car in _cars) {
+      manufacturers[car.manufacturer.id] = car.manufacturer;
+    }
+    return manufacturers.values.toList();
   }
 
   // 特定の車種を取得
@@ -364,22 +440,6 @@ class SettingsProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // 車種追加時にFirebaseにも保存
-  Future<void> addCar(Car car) async {
-    _cars.add(car);
-    await _saveCars();
-    
-    // オンラインモードの場合はFirebaseにも保存
-    if (_isOnlineMode) {
-      try {
-        await _firestoreService.saveCars(_cars);
-      } catch (e) {
-        debugPrint('Firebase保存エラー: $e');
-      }
-    }
-    
-    notifyListeners();
-  }
 
   // 言語設定変更時にFirebaseにも保存
   Future<void> toggleLanguage() async {

@@ -15,58 +15,17 @@ class CarSelectionPage extends StatefulWidget {
 }
 
 class _CarSelectionPageState extends State<CarSelectionPage> {
-  late final List<Manufacturer> manufacturers;
-
   @override
   void initState() {
     super.initState();
-    
-    final tamiyaManufacturer = Manufacturer(
-      id: '1',
-      name: 'タミヤ',
-      logoPath: 'assets/images/tamiya.png',
-    );
-    
-    final yokomoManufacturer = Manufacturer(
-      id: '2',
-      name: 'ヨコモ',
-      logoPath: 'assets/images/yokomo.png',
-    );
-    
-    manufacturers = [
-      tamiyaManufacturer,
-      yokomoManufacturer,
-    ];
   }
 
-  List<Car> get allCars => [
-    Car(
-      id: 'tamiya/trf420x',
-      name: 'TRF420x',
-      imageUrl: 'assets/images/drift_car.png',
-      manufacturer: manufacturers[0],
-      category: 'Touring Car',
-    ),
-    Car(
-      id: 'tamiya/trf421',
-      name: 'TRF421',
-      imageUrl: 'assets/images/touring_car.png',
-      manufacturer: manufacturers[0],
-      category: 'Touring Car',
-    ),
-    Car(
-      id: 'yokomo/bd12',
-      name: 'BD12',
-      imageUrl: 'assets/images/buggy.png',
-      manufacturer: manufacturers[1],
-      category: 'Buggy',
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
     final settingsProvider = Provider.of<SettingsProvider>(context);
     final isEnglish = settingsProvider.isEnglish;
+    final manufacturers = settingsProvider.getManufacturers();
 
     return Scaffold(
       appBar: AppBar(
@@ -85,23 +44,47 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: manufacturers.length,
-        itemBuilder: (context, index) {
-          return ManufacturerListItem(
-            manufacturer: manufacturers[index],
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      CarListPage(manufacturer: manufacturers[index]),
-                ),
-              );
-            },
-          );
-        },
-      ),
+      body: manufacturers.isEmpty
+          ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.directions_car,
+                    size: 64,
+                    color: Colors.grey[400],
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    isEnglish 
+                        ? 'No manufacturers available.\nTap + to add one.'
+                        : 'メーカーがありません。\n+ボタンで追加してください。',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : ListView.builder(
+              itemCount: manufacturers.length,
+              itemBuilder: (context, index) {
+                return ManufacturerListItem(
+                  manufacturer: manufacturers[index],
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            CarListPage(manufacturer: manufacturers[index]),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           _showAddManufacturerDialog();
@@ -149,13 +132,22 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
               onPressed: () {
                 final name = nameController.text.trim();
                 if (name.isNotEmpty) {
-                  setState(() {
-                    manufacturers.add(Manufacturer(
-                      id: DateTime.now().millisecondsSinceEpoch.toString(),
-                      name: name,
-                      logoPath: '',
-                    ));
-                  });
+                  // 新しいメーカーの車種を追加（サンプル車種として）
+                  final newManufacturer = Manufacturer(
+                    id: name.toLowerCase().replaceAll(' ', '_'),
+                    name: name,
+                    logoPath: 'assets/images/default_manufacturer.png',
+                  );
+                  
+                  final sampleCar = Car(
+                    id: '${newManufacturer.id}/sample_car',
+                    name: 'Sample Car',
+                    imageUrl: 'assets/images/default_car.png',
+                    manufacturer: newManufacturer,
+                    category: 'Custom',
+                  );
+                  
+                  settingsProvider.addCar(sampleCar);
                   Navigator.pop(context);
                 }
               },
@@ -237,142 +229,6 @@ class ManufacturerListItem extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-class CarListPage extends StatefulWidget {
-  final Manufacturer manufacturer;
-
-  const CarListPage({super.key, required this.manufacturer});
-
-  @override
-  State<CarListPage> createState() => _CarListPageState();
-}
-
-class _CarListPageState extends State<CarListPage> {
-  List<Car> get manufacturerCars {
-    // 親ページのallCarsから該当メーカーの車種を取得
-    final parentState = context.findAncestorStateOfType<_CarSelectionPageState>();
-    if (parentState != null) {
-      return parentState.allCars
-          .where((car) => car.manufacturer.id == widget.manufacturer.id)
-          .toList();
-    }
-    return [];
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final cars = manufacturerCars;
-    
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('${widget.manufacturer.name}の車種'),
-      ),
-      body: ListView.builder(
-        itemCount: cars.length,
-        itemBuilder: (context, index) {
-          return CarListItem(
-            car: cars[index],
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CarSettingPage(
-                      originalCar: cars[index]),
-                ),
-              );
-            },
-          );
-        },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _showAddCarDialog();
-        },
-        tooltip: '車種を追加',
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
-
-  void _showAddCarDialog() {
-    final TextEditingController nameController = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('新しい車種を追加'),
-          content: TextField(
-            controller: nameController,
-            decoration: const InputDecoration(
-              labelText: '車種名',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('キャンセル'),
-            ),
-            TextButton(
-              onPressed: () {
-                if (nameController.text.isNotEmpty) {
-                  final newCar = Car(
-                    id: DateTime.now().millisecondsSinceEpoch.toString(),
-                    name: nameController.text,
-                    imageUrl: 'assets/images/default_car.png',
-                    manufacturer: widget.manufacturer,
-                    category: 'Custom',
-                  );
-                  
-                  // SettingsProviderに車種を追加
-                  final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
-                  settingsProvider.addCar(newCar);
-                  
-                  Navigator.of(context).pop();
-                  setState(() {}); // UIを更新
-                }
-              },
-              child: const Text('追加'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class CarListItem extends StatelessWidget {
-  final Car car;
-  final VoidCallback onTap;
-
-  const CarListItem({
-    super.key,
-    required this.car,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ListTile(
-        leading: Image.asset(
-          car.imageUrl,
-          width: 60,
-          height: 60,
-          errorBuilder: (context, error, stackTrace) {
-            return const Icon(Icons.directions_car, size: 60);
-          },
-        ),
-        title: Text(car.name),
-        subtitle: const Text('タップしてセッティングを表示'),
-        onTap: onTap,
       ),
     );
   }
