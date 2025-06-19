@@ -13,6 +13,7 @@ import '../services/location_service.dart';
 import '../services/weather_service.dart';
 import '../models/track_location.dart';
 import '../data/track_locations.dart';
+import './ocr_import_page.dart';
 
 class CarSettingPage extends StatefulWidget {
   final Car originalCar;
@@ -70,7 +71,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
       }
       // セッティング名の初期値を日付-車種名に設定
       final now = DateTime.now();
-      final formattedDate = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+      final formattedDate =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
       _settingNameController.text = '$formattedDate-$carName';
     }
 
@@ -115,37 +117,39 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
     try {
       final locationService = LocationService.instance;
-      
+
       // 位置情報の権限状況を確認
       final locationStatus = await locationService.getLocationStatus();
-      
+
       if (locationStatus == LocationStatus.permissionDenied) {
         print('位置情報の権限が拒否されています。手動でトラックを選択してください。');
         _showLocationPermissionDialog();
         return;
       }
-      
+
       if (locationStatus == LocationStatus.serviceDisabled) {
         print('位置情報サービスが無効です。設定で有効にしてください。');
         _showLocationServiceDialog();
         return;
       }
-      
+
       final nearestTrack = await locationService.findNearestTrack();
-      
+
       if (nearestTrack != null) {
         setState(() {
           _currentTrack = nearestTrack;
           _trackNameController.text = nearestTrack.name;
-          
+
           // 路面情報を自動入力
           _updateSurfaceFromTrack(nearestTrack);
-          
+
           // セッティング名にトラック名を含める（新規作成時のみ）
           if (!_isEditing) {
             final now = DateTime.now();
-            final formattedDate = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-            _settingNameController.text = '$formattedDate-${nearestTrack.name}-$carName';
+            final formattedDate =
+                '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+            _settingNameController.text =
+                '$formattedDate-${nearestTrack.name}-$carName';
           }
         });
       } else {
@@ -163,7 +167,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
   // 手動でトラック検索
   Future<void> _searchTrackManually() async {
-    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
 
     showDialog(
@@ -174,7 +179,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
           setState(() {
             _currentTrack = track;
             _trackNameController.text = track.name;
-            
+
             // 路面情報を自動入力
             _updateSurfaceFromTrack(track);
           });
@@ -196,7 +201,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
     try {
       final weatherService = WeatherService.instance;
-      
+
       // APIキーが設定されているかチェック
       if (!weatherService.isApiKeyConfigured()) {
         print('天気APIキーが設定されていません。モックデータを使用します。');
@@ -221,15 +226,15 @@ class _CarSettingPageState extends State<CarSettingPage> {
       }
 
       final weather = await weatherService.getCurrentWeather();
-      
+
       if (weather != null) {
         setState(() {
           _currentWeather = weather;
         });
-        
+
         // 気温と湿度を自動入力
         _updateWeatherSettings(weather);
-        
+
         print('天気情報を取得しました: ${weather.toString()}');
       } else {
         print('天気情報を取得できませんでした。モックデータを使用します。');
@@ -259,13 +264,15 @@ class _CarSettingPageState extends State<CarSettingPage> {
   void _updateWeatherSettings(WeatherData weather) {
     setState(() {
       // 気温を自動入力（小数点第1位まで）
-      settings['airTemp'] = double.parse(weather.temperature.toStringAsFixed(1));
-      
+      settings['airTemp'] =
+          double.parse(weather.temperature.toStringAsFixed(1));
+
       // 湿度を自動入力
       settings['humidity'] = weather.humidity.toDouble();
-      
+
       // コンディション情報も更新（オプション）
-      if (settings['condition'] == null || settings['condition'].toString().isEmpty) {
+      if (settings['condition'] == null ||
+          settings['condition'].toString().isEmpty) {
         settings['condition'] = weather.description;
       }
     });
@@ -283,20 +290,51 @@ class _CarSettingPageState extends State<CarSettingPage> {
     settings['surface'] = surfaceText;
   }
 
+  // OCRから設定をインポート
+  Future<void> _importFromOCR() async {
+    final result = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => OCRImportPage(
+          car: widget.originalCar,
+          currentSettings: settings,
+        ),
+      ),
+    );
+
+    if (result != null && result.isNotEmpty) {
+      setState(() {
+        settings = result;
+      });
+
+      final settingsProvider =
+          Provider.of<SettingsProvider>(context, listen: false);
+      final isEnglish = settingsProvider.isEnglish;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isEnglish
+              ? 'Settings imported successfully'
+              : 'セッティングをインポートしました'),
+        ),
+      );
+    }
+  }
+
   // 位置情報権限のダイアログを表示
   void _showLocationPermissionDialog() {
-    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isEnglish ? 'Location Permission Required' : '位置情報の権限が必要です'),
-        content: Text(
-          isEnglish 
-              ? 'This app needs location permission to automatically detect nearby tracks. You can still manually select tracks.'
-              : 'このアプリは近くのトラックを自動検出するために位置情報の権限が必要です。手動でトラックを選択することもできます。'
-        ),
+        title:
+            Text(isEnglish ? 'Location Permission Required' : '位置情報の権限が必要です'),
+        content: Text(isEnglish
+            ? 'This app needs location permission to automatically detect nearby tracks. You can still manually select tracks.'
+            : 'このアプリは近くのトラックを自動検出するために位置情報の権限が必要です。手動でトラックを選択することもできます。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -309,18 +347,17 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
   // 位置情報サービスのダイアログを表示
   void _showLocationServiceDialog() {
-    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(isEnglish ? 'Location Service Disabled' : '位置情報サービスが無効です'),
-        content: Text(
-          isEnglish 
-              ? 'Please enable location services in your device settings to use automatic track detection.'
-              : 'デバイスの設定で位置情報サービスを有効にして、自動トラック検出機能をご利用ください。'
-        ),
+        content: Text(isEnglish
+            ? 'Please enable location services in your device settings to use automatic track detection.'
+            : 'デバイスの設定で位置情報サービスを有効にして、自動トラック検出機能をご利用ください。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
@@ -347,6 +384,11 @@ class _CarSettingPageState extends State<CarSettingPage> {
             : (isEnglish ? 'New Setting' : '新規セッティング')),
         actions: [
           IconButton(
+            icon: const Icon(Icons.document_scanner),
+            onPressed: _importFromOCR,
+            tooltip: isEnglish ? 'Import from Image' : '画像から読み込み',
+          ),
+          IconButton(
             icon: const Icon(Icons.save),
             onPressed: _saveSetting,
             tooltip: _isEditing
@@ -372,7 +414,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
               ),
             ),
             const SizedBox(height: 16),
-            
+
             // Track name input with location features
             Row(
               children: [
@@ -381,16 +423,17 @@ class _CarSettingPageState extends State<CarSettingPage> {
                     controller: _trackNameController,
                     decoration: InputDecoration(
                       labelText: isEnglish ? 'Track Name' : 'トラック名',
-                      hintText: isEnglish ? 'e.g. Tamiya Circuit' : '例：タミヤサーキット',
+                      hintText:
+                          isEnglish ? 'e.g. Tamiya Circuit' : '例：タミヤサーキット',
                       border: const OutlineInputBorder(),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16.0, vertical: 16.0),
                       prefixIcon: _currentTrack != null
                           ? Icon(
-                              _currentTrack!.type == 'indoor' 
-                                  ? Icons.home_work 
+                              _currentTrack!.type == 'indoor'
+                                  ? Icons.home_work
                                   : Icons.landscape,
-                              color: Colors.blue,
+                              color: Theme.of(context).colorScheme.primary,
                             )
                           : const Icon(Icons.place),
                       suffixIcon: _isLocationLoading
@@ -399,7 +442,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
                               child: SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               ),
                             )
                           : null,
@@ -472,7 +516,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
         SnackBar(
           content: Text(
               isEnglish ? 'Please enter a setting name' : 'セッティング名を入力してください'),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
       return;
@@ -512,14 +556,16 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   void _saveAsNewSetting() async {
-    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
 
     if (_settingNameController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isEnglish ? 'Please enter a setting name' : 'セッティング名を入力してください'),
-          backgroundColor: Colors.red,
+          content: Text(
+              isEnglish ? 'Please enter a setting name' : 'セッティング名を入力してください'),
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
       return;
@@ -528,8 +574,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
     if (_settingNameController.text == widget.settingName) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isEnglish ? 'Please change the setting name to save as new' : '新規保存するにはセッティング名を変更してください'),
-          backgroundColor: Colors.red,
+          content: Text(isEnglish
+              ? 'Please change the setting name to save as new'
+              : '新規保存するにはセッティング名を変更してください'),
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
       return;
@@ -550,7 +598,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   void _updateSetting() async {
-    final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
 
     if (_isEditing && widget.savedSettingId != null) {
@@ -574,7 +623,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(isEnglish ? 'No setting to update' : '更新する設定がありません'),
-          backgroundColor: Colors.red,
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
     }
@@ -590,6 +639,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
     // カテゴリーごとに設定項目をグループ化
     final categories = {
+      'favorites': isEnglish ? 'Favorites' : 'よく使う項目',
       'basic': isEnglish ? 'Basic' : '基本',
       'front': isEnglish ? 'Front' : 'フロント',
       'rear': isEnglish ? 'Rear' : 'リア',
@@ -609,6 +659,13 @@ class _CarSettingPageState extends State<CarSettingPage> {
           Expanded(
             child: TabBarView(
               children: categories.keys.map((category) {
+                // よく使う項目タブの場合
+                if (category == 'favorites') {
+                  return SingleChildScrollView(
+                    padding: const EdgeInsets.all(16.0),
+                    child: _buildFavoriteSettings(),
+                  );
+                }
                 // TRF420Xのフロントタブの場合、専用のビルダーを使用
                 if (category == 'front' && widget.originalCar.id == 'trf420x') {
                   return SingleChildScrollView(
@@ -628,6 +685,60 @@ class _CarSettingPageState extends State<CarSettingPage> {
     );
   }
 
+  // よく使う項目を表示するメソッド
+  Widget _buildFavoriteSettings() {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final isEnglish = settingsProvider.isEnglish;
+    final favoriteKeys =
+        settingsProvider.getFavoriteSettings(widget.originalCar.id);
+
+    if (favoriteKeys.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.star_border,
+              size: 64,
+              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              isEnglish
+                  ? 'No favorite items yet.\nTap the star icon on any setting to add it here.'
+                  : 'よく使う項目がまだありません。\n各設定項目の星アイコンをタップして追加してください。',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // よく使う項目として選択された設定を表示
+    final favoriteSettings = _carSettingDefinition!.availableSettings
+        .where((setting) => favoriteKeys.contains(setting.key))
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 基本設定の項目があれば天気情報カードを表示
+        if (favoriteSettings.any((s) => s.category == 'basic'))
+          _buildWeatherInfoCard(),
+        ...favoriteSettings.map((setting) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: _buildSettingFieldWithFavorite(setting),
+          );
+        }).toList(),
+      ],
+    );
+  }
+
   Widget _buildCategorySettings(String category) {
     final categorySettings = _carSettingDefinition!.availableSettings
         .where((setting) => setting.category == category)
@@ -641,9 +752,42 @@ class _CarSettingPageState extends State<CarSettingPage> {
         ...categorySettings.map((setting) {
           return Padding(
             padding: const EdgeInsets.only(bottom: 16.0),
-            child: _buildSettingField(setting),
+            child: _buildSettingFieldWithFavorite(setting),
           );
         }).toList(),
+      ],
+    );
+  }
+
+  // よく使うマーク付きの設定フィールドを構築
+  Widget _buildSettingFieldWithFavorite(SettingItem setting) {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final favoriteKeys =
+        settingsProvider.getFavoriteSettings(widget.originalCar.id);
+    final isFavorite = favoriteKeys.contains(setting.key);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _buildSettingField(setting),
+        ),
+        IconButton(
+          icon: Icon(
+            isFavorite ? Icons.star : Icons.star_border,
+            color: isFavorite ? Colors.amber : null,
+          ),
+          onPressed: () {
+            settingsProvider.toggleFavoriteSetting(
+              widget.originalCar.id,
+              setting.key,
+              !isFavorite,
+            );
+          },
+          tooltip: settingsProvider.isEnglish
+              ? (isFavorite ? 'Remove from favorites' : 'Add to favorites')
+              : (isFavorite ? 'よく使う項目から削除' : 'よく使う項目に追加'),
+        ),
       ],
     );
   }
@@ -659,7 +803,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
           padding: const EdgeInsets.all(16.0),
           child: Row(
             children: [
-              const Icon(Icons.cloud_off, color: Colors.grey),
+              Icon(Icons.cloud_off,
+                  color:
+                      Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -670,10 +816,15 @@ class _CarSettingPageState extends State<CarSettingPage> {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      isEnglish 
-                          ? 'Weather data not available. Using manual input.' 
+                      isEnglish
+                          ? 'Weather data not available. Using manual input.'
                           : '天気データが利用できません。手動入力を使用してください。',
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.5)),
                     ),
                   ],
                 ),
@@ -714,9 +865,13 @@ class _CarSettingPageState extends State<CarSettingPage> {
     if (_currentWeather != null) {
       // モックデータかどうかを判定
       final isUsingMockData = _currentWeather!.cityName == 'テスト地点';
-      
+
       return Card(
-        color: isUsingMockData ? Colors.orange.shade50 : Colors.blue.shade50,
+        color: Theme.of(context).colorScheme.brightness == Brightness.light
+            ? (isUsingMockData ? Colors.orange.shade50 : Colors.blue.shade50)
+            : (isUsingMockData
+                ? Theme.of(context).colorScheme.errorContainer
+                : Theme.of(context).colorScheme.primaryContainer),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -725,12 +880,14 @@ class _CarSettingPageState extends State<CarSettingPage> {
               Row(
                 children: [
                   Icon(
-                    isUsingMockData ? Icons.warning : Icons.cloud, 
-                    color: isUsingMockData ? Colors.orange : Colors.blue,
+                    isUsingMockData ? Icons.warning : Icons.cloud,
+                    color: isUsingMockData
+                        ? Theme.of(context).colorScheme.error
+                        : Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    isUsingMockData 
+                    isUsingMockData
                         ? (isEnglish ? 'Sample Weather Data' : 'サンプル天気データ')
                         : (isEnglish ? 'Current Weather' : '現在の天気'),
                     style: const TextStyle(
@@ -749,12 +906,12 @@ class _CarSettingPageState extends State<CarSettingPage> {
               if (isUsingMockData) ...[
                 const SizedBox(height: 4),
                 Text(
-                  isEnglish 
+                  isEnglish
                       ? 'API key not configured or invalid. Using sample data.'
                       : 'APIキーが未設定または無効です。サンプルデータを使用中。',
                   style: TextStyle(
-                    fontSize: 12, 
-                    color: Colors.orange[700],
+                    fontSize: 12,
+                    color: Theme.of(context).colorScheme.error,
                     fontStyle: FontStyle.italic,
                   ),
                 ),
@@ -788,7 +945,12 @@ class _CarSettingPageState extends State<CarSettingPage> {
                         if (!isUsingMockData)
                           Text(
                             '${isEnglish ? "Location" : "地点"}: ${_currentWeather!.cityName}',
-                            style: const TextStyle(fontSize: 12, color: Colors.grey),
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.5)),
                           ),
                       ],
                     ),
@@ -857,7 +1019,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
         Text(setting.label),
         const SizedBox(height: 8),
         TextFormField(
-          key: ValueKey('${setting.key}_${settings[setting.key]}'), // 値が変わったら再構築
+          key:
+              ValueKey('${setting.key}_${settings[setting.key]}'), // 値が変わったら再構築
           decoration: InputDecoration(
             border: const OutlineInputBorder(),
             suffixText: setting.unit,
@@ -881,7 +1044,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
     if (setting.key == 'airTemp' || setting.key == 'humidity') {
       return IconButton(
-        icon: _isWeatherLoading 
+        icon: _isWeatherLoading
             ? const SizedBox(
                 width: 16,
                 height: 16,
@@ -889,12 +1052,12 @@ class _CarSettingPageState extends State<CarSettingPage> {
               )
             : Icon(
                 Icons.cloud,
-                color: _currentWeather != null ? Colors.blue : Colors.grey,
+                color: _currentWeather != null
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
               ),
         onPressed: _isWeatherLoading ? null : _refreshWeather,
-        tooltip: setting.key == 'airTemp' 
-            ? '現在の気温を取得' 
-            : '現在の湿度を取得',
+        tooltip: setting.key == 'airTemp' ? '現在の気温を取得' : '現在の湿度を取得',
       );
     }
 
@@ -908,7 +1071,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
         Text(setting.label),
         const SizedBox(height: 8),
         TextFormField(
-          key: ValueKey('${setting.key}_${settings[setting.key]}'), // 値が変わったら再構築
+          key:
+              ValueKey('${setting.key}_${settings[setting.key]}'), // 値が変わったら再構築
           decoration: InputDecoration(
             border: const OutlineInputBorder(),
             suffixIcon: setting.key == 'date' && setting.isAutoFilled
@@ -916,17 +1080,18 @@ class _CarSettingPageState extends State<CarSettingPage> {
                     icon: const Icon(Icons.refresh),
                     onPressed: () {
                       setState(() {
-                        settings[setting.key] = DateTime.now().toString().split(' ')[0];
+                        settings[setting.key] =
+                            DateTime.now().toString().split(' ')[0];
                       });
                     },
                     tooltip: '現在の日付を入力',
                   )
                 : setting.key == 'surface'
                     ? Icon(
-                        _currentTrack?.surfaceType == 'carpet' 
-                            ? Icons.texture 
+                        _currentTrack?.surfaceType == 'carpet'
+                            ? Icons.texture
                             : Icons.straighten,
-                        color: Colors.blue,
+                        color: Theme.of(context).colorScheme.primary,
                       )
                     : null,
           ),
@@ -1023,7 +1188,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
         // キャンバー角と車高の行
         _buildTRF420XSettingsRow(
-          _buildTRF420XSettingField(
+          _buildTRF420XSettingFieldWithFavorite(
             'frontCamber',
             isEnglish ? 'Camber Angle' : 'キャンバー角',
             TextFormField(
@@ -1041,7 +1206,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
               },
             ),
           ),
-          _buildTRF420XSettingField(
+          _buildTRF420XSettingFieldWithFavorite(
             'frontRideHeight',
             isEnglish ? 'Ride Height' : '車高',
             TextFormField(
@@ -1063,7 +1228,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
         // ダンパーポジションとスプリングの行
         _buildTRF420XSettingsRow(
-          _buildTRF420XSettingField(
+          _buildTRF420XSettingFieldWithFavorite(
             'frontDamperPosition',
             isEnglish ? 'Damper Position' : 'ダンパーポジション',
             DropdownButtonFormField<int>(
@@ -1085,7 +1250,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
               },
             ),
           ),
-          _buildTRF420XSettingField(
+          _buildTRF420XSettingFieldWithFavorite(
             'frontSpring',
             isEnglish ? 'Spring' : 'スプリング',
             TextFormField(
@@ -1105,7 +1270,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
         // トー角とスタビライザーの行
         _buildTRF420XSettingsRow(
-          _buildTRF420XSettingField(
+          _buildTRF420XSettingFieldWithFavorite(
             'frontToe',
             isEnglish ? 'Toe Angle' : 'トー角',
             TextFormField(
@@ -1123,7 +1288,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
               },
             ),
           ),
-          _buildTRF420XSettingField(
+          _buildTRF420XSettingFieldWithFavorite(
             'frontStabilizer',
             isEnglish ? 'Stabilizer' : 'スタビライザー',
             TextFormField(
@@ -1143,7 +1308,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
         // キャスター角（単独項目）
         _buildTRF420XSingleSetting(
-          _buildTRF420XSettingField(
+          _buildTRF420XSettingFieldWithFavorite(
             'frontCasterAngle',
             isEnglish ? 'Caster Angle' : 'キャスター角',
             TextFormField(
@@ -1180,7 +1345,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
                 // 内側と外側のスペーサー設定
                 _buildTRF420XSettingsRow(
-                  _buildTRF420XSettingField(
+                  _buildTRF420XSettingFieldWithFavorite(
                     'frontUpperArmSpacerInside',
                     isEnglish ? 'Inside' : '内側',
                     TextFormField(
@@ -1200,7 +1365,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                       },
                     ),
                   ),
-                  _buildTRF420XSettingField(
+                  _buildTRF420XSettingFieldWithFavorite(
                     'frontUpperArmSpacerOutside',
                     isEnglish ? 'Outside' : '外側',
                     TextFormField(
@@ -1226,7 +1391,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
                 // ロアアームスペーサー（単独項目）
                 _buildTRF420XSingleSetting(
-                  _buildTRF420XSettingField(
+                  _buildTRF420XSettingFieldWithFavorite(
                     'frontLowerArmSpacer',
                     isEnglish ? 'Lower Arm Spacer' : 'ロアアームスペーサー',
                     TextFormField(
@@ -1252,7 +1417,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
                 // ホイールハブ関連設定
                 _buildTRF420XSettingsRow(
-                  _buildTRF420XSettingField(
+                  _buildTRF420XSettingFieldWithFavorite(
                     'frontWheelHub',
                     'ホイールハブ',
                     TextFormField(
@@ -1271,7 +1436,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                       },
                     ),
                   ),
-                  _buildTRF420XSettingField(
+                  _buildTRF420XSettingFieldWithFavorite(
                     'frontWheelHubSpacer',
                     'ホイールハブスペーサー',
                     TextFormField(
@@ -1296,7 +1461,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
                 // ドループ設定（単独項目）
                 _buildTRF420XSingleSetting(
-                  _buildTRF420XSettingField(
+                  _buildTRF420XSettingFieldWithFavorite(
                     'frontDroop',
                     'ドループ',
                     TextFormField(
@@ -1320,7 +1485,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
                 // デフ位置設定（単独項目）
                 _buildTRF420XSingleSetting(
-                  _buildTRF420XSettingField(
+                  _buildTRF420XSettingFieldWithFavorite(
                     'frontDiffarentialPosition',
                     'デフ位置',
                     Row(
@@ -1358,7 +1523,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
                 // サスマウント前後設定
                 _buildTRF420XSettingsRow(
-                  _buildTRF420XSettingField(
+                  _buildTRF420XSettingFieldWithFavorite(
                     'frontSusMountFront',
                     'サスマウント前',
                     DropdownButtonFormField<String>(
@@ -1382,7 +1547,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                       },
                     ),
                   ),
-                  _buildTRF420XSettingField(
+                  _buildTRF420XSettingFieldWithFavorite(
                     'frontSusMountRear',
                     'サスマウント後',
                     DropdownButtonFormField<String>(
@@ -1412,7 +1577,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
                 // サスマウントシャフト位置設定
                 _buildTRF420XSettingsRow(
-                  _buildTRF420XSettingField(
+                  _buildTRF420XSettingFieldWithFavorite(
                     'frontSusMountFrontShaftPosition',
                     'サスマウント前シャフト位置',
                     _buildTRF420XGridSelector(
@@ -1421,7 +1586,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                       size: 150,
                     ),
                   ),
-                  _buildTRF420XSettingField(
+                  _buildTRF420XSettingFieldWithFavorite(
                     'frontSusMountRearShaftPosition',
                     'サスマウント後シャフト位置',
                     _buildTRF420XGridSelector(
@@ -1436,7 +1601,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
                 // デフ関連設定
                 _buildTRF420XSettingsRow(
-                  _buildTRF420XSettingField(
+                  _buildTRF420XSettingFieldWithFavorite(
                     'frontDrive',
                     'デフ種類',
                     DropdownButtonFormField<String>(
@@ -1461,7 +1626,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                       },
                     ),
                   ),
-                  _buildTRF420XSettingField(
+                  _buildTRF420XSettingFieldWithFavorite(
                     'frontDifferentialOil',
                     'デフオイル',
                     TextFormField(
@@ -1496,7 +1661,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
                         // ダンパーオフセット設定
                         _buildTRF420XSettingsRow(
-                          _buildTRF420XSettingField(
+                          _buildTRF420XSettingFieldWithFavorite(
                             'frontDamperOffsetStay',
                             'ステー',
                             TextFormField(
@@ -1516,7 +1681,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                               },
                             ),
                           ),
-                          _buildTRF420XSettingField(
+                          _buildTRF420XSettingFieldWithFavorite(
                             'frontDamperOffsetArm',
                             'サスアーム',
                             TextFormField(
@@ -1542,7 +1707,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
                         // ダンパータイプとオイルシール設定
                         _buildTRF420XSettingsRow(
-                          _buildTRF420XSettingField(
+                          _buildTRF420XSettingFieldWithFavorite(
                             'frontDumperType',
                             'ダンパータイプ',
                             TextFormField(
@@ -1558,7 +1723,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                               },
                             ),
                           ),
-                          _buildTRF420XSettingField(
+                          _buildTRF420XSettingFieldWithFavorite(
                             'frontDumperOilSeal',
                             'オイルシール',
                             TextFormField(
@@ -1581,7 +1746,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
                         // ピストン関連設定
                         _buildTRF420XSettingsRow(
-                          _buildTRF420XSettingField(
+                          _buildTRF420XSettingFieldWithFavorite(
                             'frontDumperPistonSize',
                             'ピストンサイズ',
                             TextFormField(
@@ -1598,7 +1763,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                               },
                             ),
                           ),
-                          _buildTRF420XSettingField(
+                          _buildTRF420XSettingFieldWithFavorite(
                             'frontDumperPistonHole',
                             'ピストン穴数',
                             TextFormField(
@@ -1621,7 +1786,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
                         // オイル関連設定
                         _buildTRF420XSettingsRow(
-                          _buildTRF420XSettingField(
+                          _buildTRF420XSettingFieldWithFavorite(
                             'frontDumperOilHardness',
                             'オイル硬度',
                             TextFormField(
@@ -1638,7 +1803,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                               },
                             ),
                           ),
-                          _buildTRF420XSettingField(
+                          _buildTRF420XSettingFieldWithFavorite(
                             'frontDumperOilName',
                             'オイル名',
                             TextFormField(
@@ -1661,7 +1826,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
                         // ストロークとエア抜き穴設定
                         _buildTRF420XSettingsRow(
-                          _buildTRF420XSettingField(
+                          _buildTRF420XSettingFieldWithFavorite(
                             'frontDumperStroke',
                             'ストローク長',
                             TextFormField(
@@ -1677,7 +1842,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                               },
                             ),
                           ),
-                          _buildTRF420XSettingField(
+                          _buildTRF420XSettingFieldWithFavorite(
                             'frontDumperAirHole',
                             'エア抜き穴',
                             TextFormField(
@@ -1744,6 +1909,49 @@ class _CarSettingPageState extends State<CarSettingPage> {
     );
   }
 
+  // TRF420X専用の設定項目のフィールドを構築するヘルパーメソッド（よく使うマーク付き）
+  Widget _buildTRF420XSettingFieldWithFavorite(
+      String key, String label, Widget inputWidget) {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final favoriteKeys =
+        settingsProvider.getFavoriteSettings(widget.originalCar.id);
+    final isFavorite = favoriteKeys.contains(key);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: _buildTRF420XSettingField(key, label, inputWidget),
+        ),
+        Padding(
+          padding: const EdgeInsets.only(top: 20.0), // ラベルの高さに合わせて調整
+          child: IconButton(
+            icon: Icon(
+              isFavorite ? Icons.star : Icons.star_border,
+              color: isFavorite ? Colors.amber : null,
+              size: 20,
+            ),
+            onPressed: () {
+              settingsProvider.toggleFavoriteSetting(
+                widget.originalCar.id,
+                key,
+                !isFavorite,
+              );
+            },
+            tooltip: settingsProvider.isEnglish
+                ? (isFavorite ? 'Remove from favorites' : 'Add to favorites')
+                : (isFavorite ? 'よく使う項目から削除' : 'よく使う項目に追加'),
+            constraints: const BoxConstraints(
+              minWidth: 32,
+              minHeight: 32,
+            ),
+            padding: EdgeInsets.zero,
+          ),
+        ),
+      ],
+    );
+  }
+
   // TRF420X専用の展開可能なパネルを構築するヘルパーメソッド
   Widget _buildTRF420XExpandablePanel(
       {required String title, required List<Widget> children}) {
@@ -1801,15 +2009,19 @@ class _CarSettingPageState extends State<CarSettingPage> {
             child: Container(
               margin: const EdgeInsets.all(2),
               decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey),
-                color: isSelected ? Colors.blue : Colors.transparent,
+                border: Border.all(color: Theme.of(context).dividerColor),
+                color: isSelected
+                    ? Theme.of(context).colorScheme.primary
+                    : Colors.transparent,
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Center(
                 child: Text(
                   '$row,$col',
                   style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.black,
+                    color: isSelected
+                        ? Theme.of(context).colorScheme.onPrimary
+                        : Theme.of(context).colorScheme.onSurface,
                     fontWeight:
                         isSelected ? FontWeight.bold : FontWeight.normal,
                   ),
@@ -1855,9 +2067,9 @@ class _TrackSearchDialogState extends State<_TrackSearchDialog> {
         _searchResults = trackLocations;
       } else {
         _searchResults = trackLocations.where((track) {
-          bool matchesName = query.isEmpty || 
+          bool matchesName = query.isEmpty ||
               track.name.toLowerCase().contains(query.toLowerCase());
-          bool matchesPrefecture = _selectedPrefecture == null || 
+          bool matchesPrefecture = _selectedPrefecture == null ||
               track.prefecture == _selectedPrefecture;
           return matchesName && matchesPrefecture;
         }).toList();
@@ -1886,7 +2098,7 @@ class _TrackSearchDialogState extends State<_TrackSearchDialog> {
               onChanged: (value) => _performSearch(),
             ),
             const SizedBox(height: 16),
-            
+
             // 都道府県フィルター
             DropdownButtonFormField<String>(
               value: _selectedPrefecture,
@@ -1899,8 +2111,8 @@ class _TrackSearchDialogState extends State<_TrackSearchDialog> {
                   value: null,
                   child: Text(widget.isEnglish ? 'All Prefectures' : '全ての都道府県'),
                 ),
-                ...getAllPrefectures().map((prefecture) => 
-                  DropdownMenuItem<String>(
+                ...getAllPrefectures().map(
+                  (prefecture) => DropdownMenuItem<String>(
                     value: prefecture,
                     child: Text(prefecture),
                   ),
@@ -1914,28 +2126,26 @@ class _TrackSearchDialogState extends State<_TrackSearchDialog> {
               },
             ),
             const SizedBox(height: 16),
-            
+
             // 検索結果リスト
             Expanded(
               child: _searchResults.isEmpty
                   ? Center(
                       child: Text(
-                        widget.isEnglish 
-                            ? 'No tracks found' 
-                            : 'トラックが見つかりません',
+                        widget.isEnglish ? 'No tracks found' : 'トラックが見つかりません',
                       ),
                     )
                   : ListView.builder(
                       itemCount: _searchResults.length,
                       itemBuilder: (context, index) {
                         final track = _searchResults[index];
-                        final surfaceText = track.surfaceType == 'carpet' 
+                        final surfaceText = track.surfaceType == 'carpet'
                             ? (widget.isEnglish ? 'Carpet' : 'カーペット')
                             : (widget.isEnglish ? 'Asphalt' : 'アスファルト');
                         final typeText = track.type == 'indoor'
                             ? (widget.isEnglish ? 'Indoor' : '屋内')
                             : (widget.isEnglish ? 'Outdoor' : '屋外');
-                        
+
                         return ListTile(
                           title: Text(track.name),
                           subtitle: Column(
@@ -1946,7 +2156,7 @@ class _TrackSearchDialogState extends State<_TrackSearchDialog> {
                                 '$typeText • $surfaceText',
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: Colors.blue[600],
+                                  color: Theme.of(context).colorScheme.primary,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
@@ -1956,18 +2166,21 @@ class _TrackSearchDialogState extends State<_TrackSearchDialog> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Icon(
-                                track.surfaceType == 'carpet' 
-                                    ? Icons.texture 
+                                track.surfaceType == 'carpet'
+                                    ? Icons.texture
                                     : Icons.straighten,
                                 size: 16,
-                                color: Colors.grey[600],
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withOpacity(0.7),
                               ),
                               const SizedBox(width: 4),
                               Icon(
-                                track.type == 'indoor' 
-                                    ? Icons.home 
+                                track.type == 'indoor'
+                                    ? Icons.home
                                     : Icons.landscape,
-                                color: Colors.blue,
+                                color: Theme.of(context).colorScheme.primary,
                               ),
                             ],
                           ),

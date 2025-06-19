@@ -58,7 +58,8 @@ class _HomePageState extends State<HomePage> {
         },
         elevation: 8,
         selectedItemColor: Theme.of(context).colorScheme.primary,
-        unselectedItemColor: Colors.grey,
+        unselectedItemColor:
+            Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
         items: [
           BottomNavigationBarItem(
             icon: const Icon(Icons.home_rounded),
@@ -137,7 +138,13 @@ class _HomeTab extends StatelessWidget {
                     isEnglish
                         ? 'Create your first RC car setting by tapping the + button below'
                         : '下の + ボタンをタップして最初のRCカー設定を作成しましょう',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.7),
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 32),
@@ -165,13 +172,192 @@ class _HomeTab extends StatelessWidget {
           );
         }
 
-        return ListView.builder(
-          padding: const EdgeInsets.only(top: 12, bottom: 24),
-          itemCount: savedSettings.length,
-          itemBuilder: (context, index) {
-            final setting = savedSettings[index];
-            return SettingCard(setting: setting);
-          },
+        // 最近使った設定（最新3件）
+        final recentSettings = savedSettings.take(3).toList();
+
+        // 車種別にグループ化してカウント
+        final carCount = <String, int>{};
+        for (final setting in savedSettings) {
+          carCount[setting.car.name] = (carCount[setting.car.name] ?? 0) + 1;
+        }
+
+        // よく使う車（上位3件）
+        final frequentCars = carCount.entries.toList()
+          ..sort((a, b) => b.value.compareTo(a.value));
+        final topCars = frequentCars.take(3).toList();
+
+        return ListView(
+          padding: const EdgeInsets.only(top: 16, bottom: 80),
+          children: [
+            // よく使う車セクション
+            if (topCars.isNotEmpty) ...[
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      isEnglish ? 'Frequent Cars' : 'よく使う車',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CarSelectionPage(),
+                          ),
+                        );
+                      },
+                      child: Text(isEnglish ? 'Add New' : '新規追加'),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 100,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: topCars.length,
+                  itemBuilder: (context, index) {
+                    final carEntry = topCars[index];
+                    final carName = carEntry.key;
+                    final count = carEntry.value;
+
+                    // この車の最新の設定を取得
+                    final latestSetting = savedSettings.firstWhere(
+                      (s) => s.car.name == carName,
+                    );
+
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: InkWell(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CarSettingPage(
+                                originalCar: latestSetting.car,
+                                savedSettings: {},
+                                settingName: '',
+                              ),
+                            ),
+                          );
+                        },
+                        borderRadius: BorderRadius.circular(16),
+                        child: Container(
+                          width: 140,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .primary
+                                .withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .primary
+                                  .withOpacity(0.3),
+                            ),
+                          ),
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.directions_car_rounded,
+                                color: Theme.of(context).colorScheme.primary,
+                                size: 32,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                carName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                                textAlign: TextAlign.center,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '$count ${isEnglish ? 'settings' : '件'}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurface
+                                      .withOpacity(0.6),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+
+            // 最近使った設定セクション
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    isEnglish ? 'Recent Settings' : '最近使った設定',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (savedSettings.length > 3)
+                    TextButton(
+                      onPressed: () {
+                        // 履歴タブに切り替え
+                        final homePageState =
+                            context.findAncestorStateOfType<_HomePageState>();
+                        homePageState?.setState(() {
+                          homePageState._selectedIndex = 1;
+                        });
+                      },
+                      child: Text(isEnglish ? 'View All' : 'すべて表示'),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            ...recentSettings.map((setting) => SettingCard(setting: setting)),
+
+            // すべての設定セクション
+            if (savedSettings.length > 3) ...[
+              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  isEnglish ? 'All Settings' : 'すべての設定',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ...savedSettings
+                  .skip(3)
+                  .map((setting) => SettingCard(setting: setting)),
+            ],
+          ],
         );
       },
     );
@@ -282,15 +468,17 @@ class SettingCard extends StatelessWidget {
                             value: 'delete',
                             child: Row(
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.delete_rounded,
                                   size: 20,
-                                  color: Colors.red,
+                                  color: Theme.of(context).colorScheme.error,
                                 ),
                                 const SizedBox(width: 12),
                                 Text(
                                   isEnglish ? 'Delete' : '削除',
-                                  style: const TextStyle(color: Colors.red),
+                                  style: TextStyle(
+                                      color:
+                                          Theme.of(context).colorScheme.error),
                                 ),
                               ],
                             ),
@@ -305,14 +493,20 @@ class SettingCard extends StatelessWidget {
                       Icon(
                         Icons.directions_car_rounded,
                         size: 18,
-                        color: Colors.grey[600],
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.7),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         setting.car.name,
                         style: TextStyle(
                           fontSize: 15,
-                          color: Colors.grey[600],
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.7),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -324,14 +518,20 @@ class SettingCard extends StatelessWidget {
                       Icon(
                         Icons.calendar_today_rounded,
                         size: 16,
-                        color: Colors.grey[500],
+                        color: Theme.of(context)
+                            .colorScheme
+                            .onSurface
+                            .withOpacity(0.5),
                       ),
                       const SizedBox(width: 8),
                       Text(
                         _formatDate(setting.createdAt, isEnglish),
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.grey[500],
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.5),
                         ),
                       ),
                     ],
@@ -410,7 +610,7 @@ class SettingCard extends StatelessWidget {
               },
               child: Text(
                 isEnglish ? 'Delete' : '削除',
-                style: const TextStyle(color: Colors.red),
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             ),
           ],

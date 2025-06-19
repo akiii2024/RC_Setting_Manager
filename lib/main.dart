@@ -15,15 +15,14 @@ import 'package:google_fonts/google_fonts.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   try {
     await Firebase.initializeApp();
+    print('Firebase initialized successfully');
   } catch (e) {
-    print('Firebase初期化エラー: $e');
-    print('Firebase設定ファイルが正しく配置されているか確認してください。');
-    // Firebase設定ファイルがない場合でもアプリを起動（オフラインモードのみ）
+    print('Firebase initialization error: $e');
   }
-  
+
   runApp(
     MultiProvider(
       providers: [
@@ -54,8 +53,14 @@ class MyApp extends StatelessWidget {
               primary: const Color(0xFF4CAF50),
               secondary: const Color(0xFF66BB6A),
               tertiary: const Color(0xFF81C784),
-              surface: Colors.white,
+              surface: const Color(0xFFFAFAFA),
               background: const Color(0xFFF5F5F5),
+              error: Colors.red[700]!,
+              onPrimary: Colors.white,
+              onSecondary: Colors.white,
+              onSurface: Colors.black87,
+              onBackground: Colors.black87,
+              onError: Colors.white,
             ),
             useMaterial3: true,
             textTheme: GoogleFonts.notoSansJpTextTheme(
@@ -74,9 +79,10 @@ class MyApp extends StatelessWidget {
             ),
             bottomNavigationBarTheme: const BottomNavigationBarThemeData(
               selectedItemColor: Color(0xFF4CAF50),
-              unselectedItemColor: Colors.grey,
+              unselectedItemColor: Color(0xFF757575),
               type: BottomNavigationBarType.fixed,
               elevation: 8,
+              backgroundColor: Colors.white,
             ),
             cardTheme: CardTheme(
               elevation: 2,
@@ -106,14 +112,14 @@ class MyApp extends StatelessWidget {
             ),
             inputDecorationTheme: InputDecorationTheme(
               filled: true,
-              fillColor: Colors.grey.shade50,
+              fillColor: const Color(0xFFF5F5F5),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade300),
+                borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -121,18 +127,36 @@ class MyApp extends StatelessWidget {
                     const BorderSide(color: Color(0xFF4CAF50), width: 2),
               ),
               contentPadding: const EdgeInsets.all(16),
-              hintStyle: TextStyle(color: Colors.grey.shade400),
+              hintStyle: const TextStyle(color: Color(0xFF9E9E9E)),
+            ),
+            dividerTheme: const DividerThemeData(
+              color: Color(0xFFE0E0E0),
+              thickness: 1,
+            ),
+            iconTheme: const IconThemeData(
+              color: Color(0xFF757575),
+            ),
+            snackBarTheme: const SnackBarThemeData(
+              backgroundColor: Color(0xFF323232),
+              contentTextStyle: TextStyle(color: Colors.white),
+              actionTextColor: Color(0xFF81C784),
             ),
           ),
           darkTheme: ThemeData(
             colorScheme: ColorScheme.fromSeed(
               seedColor: const Color(0xFF4CAF50),
               brightness: Brightness.dark,
-              primary: const Color(0xFF4CAF50),
+              primary: const Color(0xFF81C784),
               secondary: const Color(0xFF66BB6A),
-              tertiary: const Color(0xFF81C784),
-              surface: const Color(0xFF303030),
+              tertiary: const Color(0xFFA5D6A7),
+              surface: const Color(0xFF1E1E1E),
               background: const Color(0xFF121212),
+              error: const Color(0xFFFF5252),
+              onPrimary: Colors.black,
+              onSecondary: Colors.black,
+              onSurface: Colors.white,
+              onBackground: Colors.white,
+              onError: Colors.black,
             ),
             useMaterial3: true,
             textTheme: GoogleFonts.notoSansJpTextTheme(
@@ -141,7 +165,7 @@ class MyApp extends StatelessWidget {
             appBarTheme: AppBarTheme(
               centerTitle: true,
               elevation: 0,
-              backgroundColor: const Color(0xFF1B5E20),
+              backgroundColor: const Color(0xFF2E7D32),
               foregroundColor: Colors.white,
               titleTextStyle: GoogleFonts.notoSansJp(
                 fontSize: 20,
@@ -151,7 +175,7 @@ class MyApp extends StatelessWidget {
             ),
             bottomNavigationBarTheme: const BottomNavigationBarThemeData(
               selectedItemColor: Color(0xFF81C784),
-              unselectedItemColor: Colors.grey,
+              unselectedItemColor: Color(0xFF9E9E9E),
               backgroundColor: Color(0xFF1E1E1E),
               type: BottomNavigationBarType.fixed,
               elevation: 8,
@@ -185,14 +209,14 @@ class MyApp extends StatelessWidget {
             ),
             inputDecorationTheme: InputDecorationTheme(
               filled: true,
-              fillColor: Colors.grey.shade900,
+              fillColor: const Color(0xFF2C2C2C),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
               ),
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade700),
+                borderSide: const BorderSide(color: Color(0xFF424242)),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
@@ -200,7 +224,19 @@ class MyApp extends StatelessWidget {
                     const BorderSide(color: Color(0xFF81C784), width: 2),
               ),
               contentPadding: const EdgeInsets.all(16),
-              hintStyle: TextStyle(color: Colors.grey.shade600),
+              hintStyle: const TextStyle(color: Color(0xFF757575)),
+            ),
+            dividerTheme: const DividerThemeData(
+              color: Color(0xFF424242),
+              thickness: 1,
+            ),
+            iconTheme: const IconThemeData(
+              color: Color(0xFF9E9E9E),
+            ),
+            snackBarTheme: const SnackBarThemeData(
+              backgroundColor: Color(0xFF424242),
+              contentTextStyle: TextStyle(color: Colors.white),
+              actionTextColor: Color(0xFF81C784),
             ),
           ),
           themeMode:

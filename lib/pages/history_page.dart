@@ -47,10 +47,15 @@ class HistoryPage extends StatelessWidget {
                   const SizedBox(height: 12),
                   Text(
                     isEnglish
-                        ? 'Your setting history will appear here'
-                        : '設定履歴はここに表示されます',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                    textAlign: TextAlign.center,
+                        ? 'Your saved settings will appear here'
+                        : 'ここに保存された設定が表示されます',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.6),
+                    ),
                   ),
                 ],
               ),
@@ -124,33 +129,46 @@ class HistoryPage extends StatelessWidget {
                       children: [
                         Icon(
                           Icons.directions_car_rounded,
-                          size: 16,
-                          color: Colors.grey[600],
+                          size: 18,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.6),
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 8),
                         Text(
                           setting.car.name,
                           style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
+                            fontSize: 15,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.6),
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         Icon(
                           Icons.calendar_today_rounded,
-                          size: 14,
-                          color: Colors.grey[500],
+                          size: 16,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withOpacity(0.5),
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 8),
                         Text(
                           _formatDate(setting.createdAt, isEnglish),
                           style: TextStyle(
-                            color: Colors.grey[500],
-                            fontSize: 12,
+                            fontSize: 13,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.5),
                           ),
                         ),
                       ],
