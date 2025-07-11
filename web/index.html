@@ -100,7 +100,7 @@
     // Service Worker Registration for PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
-        navigator.serviceWorker.register('sw.js')
+        navigator.serviceWorker.register('flutter_service_worker.js')
           .then(function(registration) {
             console.log('SW registered: ', registration);
           })
