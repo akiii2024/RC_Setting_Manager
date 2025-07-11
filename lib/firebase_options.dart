@@ -41,9 +41,10 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyDKIP88kAdkXBcWde69ofYkH3DGOQouwIE',
-    appId: '1:375147888843:web:48d5233eb229bf1e235b4e',
-    messagingSenderId: '375147888843',
+    apiKey: 'YOUR_WEB_API_KEY_HERE', // TODO: Replace with environment variable
+    appId: 'YOUR_WEB_APP_ID_HERE', // TODO: Replace with environment variable
+    messagingSenderId:
+        'YOUR_MESSAGING_SENDER_ID_HERE', // TODO: Replace with environment variable
     projectId: 'rc-setting-manager',
     authDomain: 'rc-setting-manager.firebaseapp.com',
     storageBucket: 'rc-setting-manager.firebasestorage.app',
@@ -51,35 +52,42 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyDnQdGoO5Tbn7ZbnsiRmRp1VbuVyylCRfM',
-    appId: '1:375147888843:android:092e818accc5187c235b4e',
-    messagingSenderId: '375147888843',
+    apiKey:
+        'YOUR_ANDROID_API_KEY_HERE', // TODO: Replace with environment variable
+    appId:
+        'YOUR_ANDROID_APP_ID_HERE', // TODO: Replace with environment variable
+    messagingSenderId:
+        'YOUR_MESSAGING_SENDER_ID_HERE', // TODO: Replace with environment variable
     projectId: 'rc-setting-manager',
     storageBucket: 'rc-setting-manager.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyC6KsW_0rJCbYlRNM9Z3LeQWifq1HlppLQ',
-    appId: '1:375147888843:ios:b8bdc6931e147db8235b4e',
-    messagingSenderId: '375147888843',
+    apiKey: 'YOUR_IOS_API_KEY_HERE', // TODO: Replace with environment variable
+    appId: 'YOUR_IOS_APP_ID_HERE', // TODO: Replace with environment variable
+    messagingSenderId:
+        'YOUR_MESSAGING_SENDER_ID_HERE', // TODO: Replace with environment variable
     projectId: 'rc-setting-manager',
     storageBucket: 'rc-setting-manager.firebasestorage.app',
     iosBundleId: 'com.example.settingsheetManager',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyC6KsW_0rJCbYlRNM9Z3LeQWifq1HlppLQ',
-    appId: '1:375147888843:ios:b8bdc6931e147db8235b4e',
-    messagingSenderId: '375147888843',
+    apiKey: 'YOUR_IOS_API_KEY_HERE', // TODO: Replace with environment variable
+    appId: 'YOUR_IOS_APP_ID_HERE', // TODO: Replace with environment variable
+    messagingSenderId:
+        'YOUR_MESSAGING_SENDER_ID_HERE', // TODO: Replace with environment variable
     projectId: 'rc-setting-manager',
     storageBucket: 'rc-setting-manager.firebasestorage.app',
     iosBundleId: 'com.example.settingsheetManager',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
-    apiKey: 'AIzaSyDKIP88kAdkXBcWde69ofYkH3DGOQouwIE',
-    appId: '1:375147888843:web:7c3499ad54828e5f235b4e',
-    messagingSenderId: '375147888843',
+    apiKey: 'YOUR_WEB_API_KEY_HERE', // TODO: Replace with environment variable
+    appId:
+        'YOUR_WINDOWS_APP_ID_HERE', // TODO: Replace with environment variable
+    messagingSenderId:
+        'YOUR_MESSAGING_SENDER_ID_HERE', // TODO: Replace with environment variable
     projectId: 'rc-setting-manager',
     authDomain: 'rc-setting-manager.firebaseapp.com',
     storageBucket: 'rc-setting-manager.firebasestorage.app',

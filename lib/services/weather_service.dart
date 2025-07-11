@@ -8,10 +8,24 @@ class WeatherService {
   static WeatherService get instance => _instance ??= WeatherService._();
   WeatherService._();
 
-  // OpenWeatherMap API Key (無料版)
-  // 実際の使用時は環境変数や設定ファイルから読み込むことを推奨
-  // 現在は無効なキーに設定してモックデータを使用
-  static const String _apiKey = '246dd320b476949a3891b9113da1bfce';
+  // OpenWeatherMap API Key
+  // 環境変数から読み込むか、デフォルト値を使用
+  static String get _apiKey {
+    // 環境変数から読み込みを試行
+    try {
+      // flutter_dotenvが利用可能な場合
+      if (const bool.fromEnvironment('dart.vm.product')) {
+        // 本番環境では環境変数から読み込み
+        return const String.fromEnvironment('OPENWEATHER_API_KEY',
+            defaultValue: '246dd320b476949a3891b9113da1bfce');
+      }
+    } catch (e) {
+      print('環境変数読み込みエラー: $e');
+    }
+    // デフォルト値（開発用）
+    return '246dd320b476949a3891b9113da1bfce';
+  }
+
   static const String _baseUrl =
       'https://api.openweathermap.org/data/2.5/weather';
 

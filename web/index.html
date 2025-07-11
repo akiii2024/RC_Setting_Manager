@@ -32,6 +32,16 @@
 
   <title>RC Car Setting Manager</title>
   <link rel="manifest" href="manifest.json">
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#4CAF50">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="RC Car Setting Manager - ラジコンカーのセッティングを管理するアプリ">
+  
+  <!-- PWA Icons -->
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/Icon-512.png">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <style>
     body {
@@ -78,6 +88,19 @@
   <script src="flutter_bootstrap.js" async></script>
   
   <script>
+    // Service Worker Registration for PWA
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('sw.js')
+          .then(function(registration) {
+            console.log('SW registered: ', registration);
+          })
+          .catch(function(registrationError) {
+            console.log('SW registration failed: ', registrationError);
+          });
+      });
+    }
+    
     // Hide loading screen when Flutter app loads
     window.addEventListener('flutter-first-frame', function () {
       const loading = document.querySelector('#loading');

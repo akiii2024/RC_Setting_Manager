@@ -1,11 +1,11 @@
 {
-    "name": "settingsheet_manager",
-    "short_name": "settingsheet_manager",
-    "start_url": ".",
+    "name": "RC Car Setting Manager",
+    "short_name": "RC Settings",
+    "start_url": "/settingsheet_manager/",
     "display": "standalone",
-    "background_color": "#hexcode",
-    "theme_color": "#hexcode",
-    "description": "A new Flutter project.",
+    "background_color": "#4CAF50",
+    "theme_color": "#4CAF50",
+    "description": "ラジコンカーのセッティングを管理するアプリ",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

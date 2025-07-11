@@ -2,6 +2,23 @@
 
 ラジコンのセッティングをスマホアプリで記録することを目的としたものです。
 
+## 🌐 Web版（PWA対応）
+
+このアプリはPWA（Progressive Web App）としても動作し、ブラウザから直接アクセスできます：
+
+**🌍 ライブデモ**: https://[your-username].github.io/settingsheet_manager/
+
+### PWA機能
+- 📱 ホーム画面に追加可能
+- 🔄 オフライン対応
+- 📲 ネイティブアプリのような体験
+- 🔔 プッシュ通知対応（将来実装予定）
+
+### インストール方法
+1. ブラウザで上記URLにアクセス
+2. アドレスバーの「インストール」ボタンをクリック
+3. または、メニューから「ホーム画面に追加」を選択
+
 ## 機能
 
 - RCカーのセッティング情報の記録・管理
@@ -70,6 +87,8 @@ service cloud.firestore {
 
 ## インストール
 
+### モバイルアプリ版
+
 1. リポジトリをクローン
 ```bash
 git clone <repository-url>
@@ -88,6 +107,23 @@ flutter pub get
 4. アプリを実行
 ```bash
 flutter run
+```
+
+### Web版（開発環境）
+
+1. 依存関係をインストール
+```bash
+flutter pub get
+```
+
+2. Web版をビルド
+```bash
+flutter build web --release --base-href "/settingsheet_manager/"
+```
+
+3. ローカルでテスト
+```bash
+flutter run -d chrome --web-port 8080
 ```
 
 ## 使用方法
