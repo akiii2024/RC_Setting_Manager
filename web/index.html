@@ -88,6 +88,15 @@
   <script src="flutter_bootstrap.js" async></script>
   
   <script>
+    // GitHub Pages用のルーティング処理
+    (function(){
+      var redirect = sessionStorage.redirect;
+      delete sessionStorage.redirect;
+      if (redirect && redirect != location.href) {
+        history.replaceState(null, null, redirect);
+      }
+    })();
+    
     // Service Worker Registration for PWA
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
