@@ -97,19 +97,6 @@
       }
     })();
     
-    // Service Worker Registration for PWA
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('flutter_service_worker.js')
-          .then(function(registration) {
-            console.log('SW registered: ', registration);
-          })
-          .catch(function(registrationError) {
-            console.log('SW registration failed: ', registrationError);
-          });
-      });
-    }
-    
     // Hide loading screen when Flutter app loads
     window.addEventListener('flutter-first-frame', function () {
       const loading = document.querySelector('#loading');

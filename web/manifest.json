@@ -1,7 +1,7 @@
 {
     "name": "RC Car Setting Manager",
     "short_name": "RC Settings",
-    "start_url": "/settingsheet_manager/",
+    "start_url": "./",
     "display": "standalone",
     "background_color": "#4CAF50",
     "theme_color": "#4CAF50",
