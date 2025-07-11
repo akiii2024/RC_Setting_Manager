@@ -2,6 +2,7 @@ C/C++ Structured Logs
 q
 oC:\Users\aki-i\Documents\flutter_tachibana\flutter\packages\flutter_tools\gradle\src\main\groovy\CMakeLists.txtC
 A
+<<<<<<< HEAD
 ?com.android.build.gradle.internal.cxx.io.EncodedFileFingerPrint	…†’Ìú2§ ïäŒÀØ2‰
 †
 ƒC:\Users\aki-i\Documents\flutter_tachibana\settingsheet_manager\android\app\.cxx\Debug\67393y2n\x86_64\additional_project_files.txt	…†’Ìú2 ·›ÃÀØ2†
@@ -26,3 +27,29 @@ vC:\Users\aki-i\Documents\flutter_tachibana\settingsheet_manager\android\app\.cx
 yC:\Users\aki-i\Documents\flutter_tachibana\settingsheet_manager\android\app\.cxx\Debug\67393y2n\x86_64\prefab_config.json	…†’Ìú2( º›ÃÀØ2ƒ
 €
 ~C:\Users\aki-i\Documents\flutter_tachibana\settingsheet_manager\android\app\.cxx\Debug\67393y2n\x86_64\symbol_folder_index.txt	††’Ìú2u »›ÃÀØ2
+=======
+?com.android.build.gradle.internal.cxx.io.EncodedFileFingerPrint	ü¡Ñ³ø2§ ïäŒÀØ2‰
+†
+ƒC:\Users\aki-i\Documents\flutter_tachibana\settingsheet_manager\android\app\.cxx\Debug\67393y2n\x86_64\additional_project_files.txt	ü¡Ñ³ø2 ·›ÃÀØ2†
+ƒ
+€C:\Users\aki-i\Documents\flutter_tachibana\settingsheet_manager\android\app\.cxx\Debug\67393y2n\x86_64\android_gradle_build.json	ü¡Ñ³ø2’	 ¸›ÃÀØ2‹
+ˆ
+…C:\Users\aki-i\Documents\flutter_tachibana\settingsheet_manager\android\app\.cxx\Debug\67393y2n\x86_64\android_gradle_build_mini.json	ü¡Ñ³ø2í ¹›ÃÀØ2v
+t
+rC:\Users\aki-i\Documents\flutter_tachibana\settingsheet_manager\android\app\.cxx\Debug\67393y2n\x86_64\build.ninja	ü¡Ñ³ø2ŽÖ õšÃÀØ2z
+x
+vC:\Users\aki-i\Documents\flutter_tachibana\settingsheet_manager\android\app\.cxx\Debug\67393y2n\x86_64\build.ninja.txt	ü¡Ñ³ø2
+}
+{C:\Users\aki-i\Documents\flutter_tachibana\settingsheet_manager\android\app\.cxx\Debug\67393y2n\x86_64\build_file_index.txt	ü¡Ñ³ø2o »›ÃÀØ2€
+~
+|C:\Users\aki-i\Documents\flutter_tachibana\settingsheet_manager\android\app\.cxx\Debug\67393y2n\x86_64\compile_commands.json	ý¡Ñ³ø2	†
+ƒ
+€C:\Users\aki-i\Documents\flutter_tachibana\settingsheet_manager\android\app\.cxx\Debug\67393y2n\x86_64\compile_commands.json.bin	ý¡Ñ³ø2
+Œ
+‰
+†C:\Users\aki-i\Documents\flutter_tachibana\settingsheet_manager\android\app\.cxx\Debug\67393y2n\x86_64\metadata_generation_command.txt	ý¡Ñ³ø2µ	 º›ÃÀØ2}
+{
+yC:\Users\aki-i\Documents\flutter_tachibana\settingsheet_manager\android\app\.cxx\Debug\67393y2n\x86_64\prefab_config.json	ý¡Ñ³ø2( º›ÃÀØ2ƒ
+€
+~C:\Users\aki-i\Documents\flutter_tachibana\settingsheet_manager\android\app\.cxx\Debug\67393y2n\x86_64\symbol_folder_index.txt	ý¡Ñ³ø2u »›ÃÀØ2
+>>>>>>> 2202ddb6415c8562ecf8adbdc663a80bcb6ff2a5

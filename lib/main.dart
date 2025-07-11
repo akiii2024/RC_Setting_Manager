@@ -49,7 +49,6 @@ void main() async {
     // Firebaseが初期化できなくてもアプリは続行
     firebaseInitialized = false;
   }
-
   runApp(
     MyAppWrapper(firebaseInitialized: firebaseInitialized),
   );
