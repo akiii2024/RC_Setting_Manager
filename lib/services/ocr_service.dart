@@ -1,18 +1,28 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/car_setting_definition.dart';
 
 class OCRService {
   // 日本語認識を削除し、デフォルトのラテン文字認識を使用
-  final TextRecognizer _textRecognizer = TextRecognizer();
+  final TextRecognizer? _textRecognizer;
   final ImagePicker _imagePicker = ImagePicker();
 
+  OCRService() : _textRecognizer = kIsWeb ? null : TextRecognizer();
+
+  // Web環境チェック
+  bool get isWebPlatform => kIsWeb;
+
   // 画像から文字を認識
-  Future<RecognizedText?> recognizeTextFromImage(File imageFile) async {
+  Future<RecognizedText?> recognizeTextFromImage(dynamic imageFile) async {
+    if (kIsWeb) {
+      throw UnsupportedError('OCR機能はWeb環境では利用できません');
+    }
+
     try {
-      final inputImage = InputImage.fromFile(imageFile);
-      final recognizedText = await _textRecognizer.processImage(inputImage);
+      final inputImage = InputImage.fromFile(imageFile as File);
+      final recognizedText = await _textRecognizer!.processImage(inputImage);
       return recognizedText;
     } catch (e) {
       print('Error recognizing text: $e');
@@ -24,7 +34,11 @@ class OCRService {
   }
 
   // カメラから画像を取得
-  Future<File?> pickImageFromCamera() async {
+  Future<dynamic> pickImageFromCamera() async {
+    if (kIsWeb) {
+      throw UnsupportedError('カメラ機能はWeb環境では制限されています');
+    }
+
     try {
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.camera,
@@ -44,7 +58,7 @@ class OCRService {
   }
 
   // ギャラリーから画像を取得
-  Future<File?> pickImageFromGallery() async {
+  Future<dynamic> pickImageFromGallery() async {
     try {
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
@@ -53,7 +67,11 @@ class OCRService {
         maxHeight: 1920,
       );
       if (image != null) {
-        return File(image.path);
+        if (kIsWeb) {
+          return image; // WebではXFileをそのまま返す
+        } else {
+          return File(image.path);
+        }
       }
       return null;
     } catch (e) {
@@ -156,6 +174,6 @@ class OCRService {
   }
 
   void dispose() {
-    _textRecognizer.close();
+    _textRecognizer?.close();
   }
 }

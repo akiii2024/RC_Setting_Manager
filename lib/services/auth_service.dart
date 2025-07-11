@@ -1,96 +1,82 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class AuthService extends ChangeNotifier {
-  FirebaseAuth? _auth;
+  final FirebaseAuth? _firebaseAuth;
   User? _user;
-  bool _isFirebaseAvailable = false;
 
-  User? get user => _user;
-  bool get isLoggedIn => _user != null;
-  bool get isFirebaseAvailable => _isFirebaseAvailable;
-
-  AuthService() {
-    try {
-      _auth = FirebaseAuth.instance;
-      _isFirebaseAvailable = true;
-      _auth!.authStateChanges().listen((User? user) {
-        _user = user;
-        notifyListeners();
-      });
-    } catch (e) {
-      print('Firebase Auth初期化エラー: $e');
-      _isFirebaseAvailable = false;
-    }
+  AuthService() : _firebaseAuth = _getFirebaseAuth() {
+    _firebaseAuth?.authStateChanges().listen((User? user) {
+      _user = user;
+      notifyListeners();
+    });
   }
 
-  // メールアドレスとパスワードでサインアップ
-  Future<UserCredential?> signUpWithEmailAndPassword(
-      String email, String password) async {
-    if (!_isFirebaseAvailable || _auth == null) {
-      throw Exception('Firebase is not available');
-    }
+  static FirebaseAuth? _getFirebaseAuth() {
     try {
-      UserCredential result = await _auth!.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      return result;
+      return FirebaseAuth.instance;
     } catch (e) {
-      print('サインアップエラー: $e');
-      rethrow;
-    }
-  }
-
-  // メールアドレスとパスワードでサインイン
-  Future<UserCredential?> signInWithEmailAndPassword(
-      String email, String password) async {
-    if (!_isFirebaseAvailable || _auth == null) {
-      throw Exception('Firebase is not available');
-    }
-    try {
-      UserCredential result = await _auth!.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      return result;
-    } catch (e) {
-      print('サインインエラー: $e');
-      rethrow;
-    }
-  }
-
-  // サインアウト
-  Future<void> signOut() async {
-    if (!_isFirebaseAvailable || _auth == null) {
-      throw Exception('Firebase is not available');
-    }
-    try {
-      await _auth!.signOut();
-    } catch (e) {
-      print('サインアウトエラー: $e');
-      rethrow;
-    }
-  }
-
-  // パスワードリセット
-  Future<void> sendPasswordResetEmail(String email) async {
-    if (!_isFirebaseAvailable || _auth == null) {
-      throw Exception('Firebase is not available');
-    }
-    try {
-      await _auth!.sendPasswordResetEmail(email: email);
-    } catch (e) {
-      print('パスワードリセットエラー: $e');
-      rethrow;
-    }
-  }
-
-  // 現在のユーザーを取得
-  User? getCurrentUser() {
-    if (!_isFirebaseAvailable || _auth == null) {
+      print('Firebase Auth not available: $e');
       return null;
     }
-    return _auth!.currentUser;
+  }
+
+  User? get currentUser => _user;
+  bool get isSignedIn => _user != null;
+  bool get isFirebaseAvailable => _firebaseAuth != null;
+
+  Future<void> signInWithEmailAndPassword(String email, String password) async {
+    if (_firebaseAuth == null) {
+      throw Exception('Firebase認証は現在利用できません');
+    }
+
+    try {
+      await _firebaseAuth!.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } catch (e) {
+      throw Exception('サインインに失敗しました: $e');
+    }
+  }
+
+  Future<void> signUpWithEmailAndPassword(String email, String password) async {
+    if (_firebaseAuth == null) {
+      throw Exception('Firebase認証は現在利用できません');
+    }
+
+    try {
+      await _firebaseAuth!.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+    } catch (e) {
+      throw Exception('アカウント作成に失敗しました: $e');
+    }
+  }
+
+  Future<void> signOut() async {
+    if (_firebaseAuth == null) {
+      throw Exception('Firebase認証は現在利用できません');
+    }
+
+    try {
+      await _firebaseAuth!.signOut();
+    } catch (e) {
+      throw Exception('サインアウトに失敗しました: $e');
+    }
+  }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    if (_firebaseAuth == null) {
+      throw Exception('Firebase認証は現在利用できません');
+    }
+
+    try {
+      await _firebaseAuth!.sendPasswordResetEmail(email: email);
+    } catch (e) {
+      throw Exception('パスワードリセットメールの送信に失敗しました: $e');
+    }
   }
 }

@@ -111,27 +111,28 @@ class _SettingsPageState extends State<SettingsPage> {
           // オンライン機能セクション
           ListTile(
             title: Text(isEnglish ? 'Online Features' : 'オンライン機能'),
-            subtitle: Text(isEnglish 
-                ? 'Sign in to sync your data across devices' 
+            subtitle: Text(isEnglish
+                ? 'Sign in to sync your data across devices'
                 : 'サインインしてデバイス間でデータを同期'),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           ),
           if (!authService.isFirebaseAvailable) ...[
             ListTile(
-              title: Text(isEnglish ? 'Firebase Not Available' : 'Firebaseが利用できません'),
-              subtitle: Text(isEnglish 
-                  ? 'Please check Firebase configuration' 
+              title: Text(
+                  isEnglish ? 'Firebase Not Available' : 'Firebaseが利用できません'),
+              subtitle: Text(isEnglish
+                  ? 'Please check Firebase configuration'
                   : 'Firebase設定を確認してください'),
               leading: const Icon(Icons.warning, color: Colors.orange),
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             ),
-          ] else if (!authService.isLoggedIn) ...[
+          ] else if (!authService.isSignedIn) ...[
             ListTile(
               title: Text(isEnglish ? 'Sign In / Sign Up' : 'サインイン / サインアップ'),
-              subtitle: Text(isEnglish 
-                  ? 'Create account or sign in to sync data' 
+              subtitle: Text(isEnglish
+                  ? 'Create account or sign in to sync data'
                   : 'アカウントを作成またはサインインしてデータを同期'),
               leading: const Icon(Icons.login),
               trailing: const Icon(Icons.arrow_forward_ios),
@@ -144,15 +145,15 @@ class _SettingsPageState extends State<SettingsPage> {
           ] else ...[
             ListTile(
               title: Text(isEnglish ? 'Signed in as' : 'サインイン中'),
-              subtitle: Text(authService.user?.email ?? ''),
+              subtitle: Text(authService.currentUser?.email ?? ''),
               leading: const Icon(Icons.account_circle),
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             ),
             SwitchListTile(
               title: Text(isEnglish ? 'Online Sync' : 'オンライン同期'),
-              subtitle: Text(isEnglish 
-                  ? 'Automatically sync data to cloud' 
+              subtitle: Text(isEnglish
+                  ? 'Automatically sync data to cloud'
                   : 'データを自動的にクラウドに同期'),
               value: settingsProvider.isOnlineMode,
               onChanged: (bool value) async {
@@ -161,9 +162,13 @@ class _SettingsPageState extends State<SettingsPage> {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(value 
-                            ? (isEnglish ? 'Online sync enabled' : 'オンライン同期が有効になりました')
-                            : (isEnglish ? 'Online sync disabled' : 'オンライン同期が無効になりました')),
+                        content: Text(value
+                            ? (isEnglish
+                                ? 'Online sync enabled'
+                                : 'オンライン同期が有効になりました')
+                            : (isEnglish
+                                ? 'Online sync disabled'
+                                : 'オンライン同期が無効になりました')),
                         backgroundColor: Colors.green,
                       ),
                     );
@@ -172,8 +177,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(isEnglish 
-                            ? 'Failed to toggle sync: $e' 
+                        content: Text(isEnglish
+                            ? 'Failed to toggle sync: $e'
                             : '同期の切り替えに失敗しました: $e'),
                         backgroundColor: Colors.red,
                       ),
@@ -186,9 +191,8 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             ListTile(
               title: Text(isEnglish ? 'Sync Now' : '今すぐ同期'),
-              subtitle: Text(isEnglish 
-                  ? 'Manually sync data to cloud' 
-                  : '手動でデータをクラウドに同期'),
+              subtitle: Text(
+                  isEnglish ? 'Manually sync data to cloud' : '手動でデータをクラウドに同期'),
               leading: const Icon(Icons.sync),
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () async {
@@ -197,8 +201,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(isEnglish 
-                            ? 'Data synced successfully' 
+                        content: Text(isEnglish
+                            ? 'Data synced successfully'
                             : 'データの同期が完了しました'),
                         backgroundColor: Colors.green,
                       ),
@@ -208,9 +212,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(isEnglish 
-                            ? 'Sync failed: $e' 
-                            : '同期に失敗しました: $e'),
+                        content: Text(
+                            isEnglish ? 'Sync failed: $e' : '同期に失敗しました: $e'),
                         backgroundColor: Colors.red,
                       ),
                     );
@@ -222,8 +225,8 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             ListTile(
               title: Text(isEnglish ? 'Load from Cloud' : 'クラウドから読み込み'),
-              subtitle: Text(isEnglish 
-                  ? 'Load data from cloud storage' 
+              subtitle: Text(isEnglish
+                  ? 'Load data from cloud storage'
                   : 'クラウドストレージからデータを読み込み'),
               leading: const Icon(Icons.cloud_download),
               trailing: const Icon(Icons.arrow_forward_ios),
@@ -233,8 +236,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(isEnglish 
-                            ? 'Data loaded successfully' 
+                        content: Text(isEnglish
+                            ? 'Data loaded successfully'
                             : 'データの読み込みが完了しました'),
                         backgroundColor: Colors.green,
                       ),
@@ -244,9 +247,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(isEnglish 
-                            ? 'Load failed: $e' 
-                            : '読み込みに失敗しました: $e'),
+                        content: Text(
+                            isEnglish ? 'Load failed: $e' : '読み込みに失敗しました: $e'),
                         backgroundColor: Colors.red,
                       ),
                     );
@@ -266,8 +268,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(isEnglish 
-                            ? 'Signed out successfully' 
+                        content: Text(isEnglish
+                            ? 'Signed out successfully'
                             : 'サインアウトしました'),
                         backgroundColor: Colors.green,
                       ),
@@ -277,8 +279,8 @@ class _SettingsPageState extends State<SettingsPage> {
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text(isEnglish 
-                            ? 'Sign out failed: $e' 
+                        content: Text(isEnglish
+                            ? 'Sign out failed: $e'
                             : 'サインアウトに失敗しました: $e'),
                         backgroundColor: Colors.red,
                       ),
@@ -295,8 +297,8 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 16.0),
           ListTile(
             title: Text(isEnglish ? 'Import / Export' : 'インポート / エクスポート'),
-            subtitle: Text(isEnglish 
-                ? 'Backup and restore data using XML files' 
+            subtitle: Text(isEnglish
+                ? 'Backup and restore data using XML files'
                 : 'XMLファイルを使用してデータをバックアップ・復元'),
             leading: const Icon(Icons.import_export),
             trailing: const Icon(Icons.arrow_forward_ios),
@@ -327,25 +329,25 @@ class _SettingsPageState extends State<SettingsPage> {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
-    
-   if (_canDisplaySetting == false) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(isEnglish
-            ? 'This feature is not available yet'
-            : 'この機能はまだ準備中です。')),
+
+    if (_canDisplaySetting == false) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+            content: Text(isEnglish
+                ? 'This feature is not available yet'
+                : 'この機能はまだ準備中です。')),
       );
       return;
     }
 
     //if (_cars.isEmpty) {
-      //ScaffoldMessenger.of(context).showSnackBar(
-        //SnackBar(
-            //content: Text(isEnglish
-                //? 'Please register a car first to configure display settings'
-                //: '表示設定を行うには、まず車両を登録してください')),
-      //);
-      //return;
+    //ScaffoldMessenger.of(context).showSnackBar(
+    //SnackBar(
+    //content: Text(isEnglish
+    //? 'Please register a car first to configure display settings'
+    //: '表示設定を行うには、まず車両を登録してください')),
+    //);
+    //return;
     //}
 
     showDialog(

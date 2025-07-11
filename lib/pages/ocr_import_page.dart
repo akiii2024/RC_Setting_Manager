@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../models/car.dart';
 import '../models/car_setting_definition.dart';
@@ -22,20 +23,22 @@ class OCRImportPage extends StatefulWidget {
 
 class _OCRImportPageState extends State<OCRImportPage> {
   final OCRService _ocrService = OCRService();
-  File? _selectedImage;
+  dynamic _selectedImage;
   String? _recognizedText;
   Map<String, String>? _extractedSettings;
   bool _isProcessing = false;
 
   @override
   void dispose() {
-    _ocrService.dispose();
+    if (!kIsWeb) {
+      _ocrService.dispose();
+    }
     super.dispose();
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    // カメラの場合は権限を確認
-    if (source == ImageSource.camera) {
+    // カメラの場合は権限を確認（Web環境では不要）
+    if (source == ImageSource.camera && !kIsWeb) {
       final cameraStatus = await Permission.camera.status;
       if (!cameraStatus.isGranted) {
         final result = await Permission.camera.request();
@@ -57,7 +60,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
     });
 
     try {
-      File? imageFile;
+      dynamic imageFile;
       if (source == ImageSource.camera) {
         imageFile = await _ocrService.pickImageFromCamera();
       } else {
@@ -68,7 +71,16 @@ class _OCRImportPageState extends State<OCRImportPage> {
         setState(() {
           _selectedImage = imageFile;
         });
-        await _processImage(imageFile);
+        if (!kIsWeb) {
+          await _processImage(imageFile);
+        } else {
+          // Web環境ではOCR処理はスキップ
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Web版ではOCR処理は利用できません')),
+            );
+          }
+        }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -94,7 +106,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
     }
   }
 
-  Future<void> _processImage(File imageFile) async {
+  Future<void> _processImage(dynamic imageFile) async {
     try {
       print('Processing image: ${imageFile.path}');
       print('Image exists: ${await imageFile.exists()}');
@@ -199,6 +211,47 @@ class _OCRImportPageState extends State<OCRImportPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Web環境の場合は機能制限を表示
+    if (kIsWeb) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('OCRでセッティングをインポート'),
+        ),
+        body: const Center(
+          child: Padding(
+            padding: EdgeInsets.all(32.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.web,
+                  size: 64,
+                  color: Colors.grey,
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'OCR機能はWeb版では利用できません',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                SizedBox(height: 8),
+                Text(
+                  'この機能を使用するには、AndroidまたはiOSアプリをご利用ください。',
+                  style: TextStyle(
+                    color: Colors.grey,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('OCRでセッティングをインポート'),
@@ -244,10 +297,20 @@ class _OCRImportPageState extends State<OCRImportPage> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: Image.file(
-                    _selectedImage!,
-                    fit: BoxFit.contain,
-                  ),
+                  child: _selectedImage is File
+                      ? Image.file(
+                          _selectedImage as File,
+                          fit: BoxFit.contain,
+                        )
+                      : Image.network(
+                          (_selectedImage as dynamic).path ?? '',
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Center(
+                              child: Text('画像を表示できません'),
+                            );
+                          },
+                        ),
                 ),
               ),
               const SizedBox(height: 16),

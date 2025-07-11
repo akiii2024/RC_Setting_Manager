@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import '../models/saved_setting.dart';
 import '../models/car.dart';
 import '../models/manufacturer.dart';
@@ -13,6 +14,7 @@ class SettingsProvider extends ChangeNotifier {
   bool _isEnglish = false;
   List<Car> _cars = []; // 車種リストを保持
   bool _isOnlineMode = false; // オンラインモードかどうか
+  bool _isInitialized = false; // 初期化完了フラグ
 
   final String _savedSettingsKey = 'saved_settings';
   final String _visibilitySettingsKey = 'visibility_settings';
@@ -20,20 +22,46 @@ class SettingsProvider extends ChangeNotifier {
   final String _carsKey = 'cars_settings';
   final String _onlineModeKey = 'online_mode';
 
-  final FirestoreService _firestoreService = FirestoreService();
+  FirestoreService? _firestoreService;
 
   List<SavedSetting> get savedSettings => _savedSettings;
   Map<String, VisibilitySettings> get visibilitySettings => _visibilitySettings;
   bool get isEnglish => _isEnglish;
   List<Car> get cars => _cars;
   bool get isOnlineMode => _isOnlineMode;
+  bool get isInitialized => _isInitialized;
 
   SettingsProvider() {
-    _loadSettings();
-    _loadVisibilitySettings();
-    _loadLanguageSettings();
-    _loadCars();
-    _loadOnlineMode();
+    _initializeAsync();
+  }
+
+  // 非同期初期化を安全に実行
+  Future<void> _initializeAsync() async {
+    try {
+      // FirestoreServiceを安全に初期化
+      try {
+        _firestoreService = FirestoreService();
+      } catch (e) {
+        print('FirestoreService initialization failed: $e');
+        _firestoreService = null;
+      }
+
+      // 各設定を順次読み込み（並行処理を避ける）
+      await _loadCars();
+      await _loadSettings();
+      await _loadVisibilitySettings();
+      await _loadLanguageSettings();
+      await _loadOnlineMode();
+
+      _isInitialized = true;
+      notifyListeners();
+    } catch (e) {
+      print('SettingsProvider initialization error: $e');
+      // エラーが発生した場合でも最低限のデータで初期化
+      _cars = _getInitialCars();
+      _isInitialized = true;
+      notifyListeners();
+    }
   }
 
   // 車種リストを読み込み
@@ -50,55 +78,58 @@ class SettingsProvider extends ChangeNotifier {
         _cars = _getInitialCars();
         await _saveCars(); // 初期データを保存
       }
-      notifyListeners();
     } catch (e) {
-      debugPrint('Error loading cars: $e');
+      print('Error loading cars: $e');
       // エラーが発生した場合も初期データを設定
       _cars = _getInitialCars();
-      notifyListeners();
     }
   }
 
   // 初期車種データを取得
   List<Car> _getInitialCars() {
-    final tamiyaManufacturer = Manufacturer(
-      id: 'tamiya',
-      name: 'タミヤ',
-      logoPath: 'assets/images/tamiya.png',
-    );
+    try {
+      final tamiyaManufacturer = Manufacturer(
+        id: 'tamiya',
+        name: 'タミヤ',
+        logoPath: 'assets/images/tamiya.png',
+      );
 
-    final yokomoManufacturer = Manufacturer(
-      id: 'yokomo',
-      name: 'ヨコモ',
-      logoPath: 'assets/images/yokomo.png',
-    );
+      final yokomoManufacturer = Manufacturer(
+        id: 'yokomo',
+        name: 'ヨコモ',
+        logoPath: 'assets/images/yokomo.png',
+      );
 
-    return [
-      // タミヤの車種
-      Car(
-        id: 'tamiya/trf421',
-        name: 'TRF421',
-        imageUrl: 'assets/images/trf421.jpg',
-        manufacturer: tamiyaManufacturer,
-        category: 'ツーリングカー',
-      ),
-      Car(
-        id: 'tamiya/trf420x',
-        name: 'TRF420X',
-        imageUrl: 'assets/images/trf420x.jpg',
-        manufacturer: tamiyaManufacturer,
-        category: 'ツーリングカー',
-      ),
+      return [
+        // タミヤの車種
+        Car(
+          id: 'tamiya/trf421',
+          name: 'TRF421',
+          imageUrl: 'assets/images/trf421.jpg',
+          manufacturer: tamiyaManufacturer,
+          category: 'ツーリングカー',
+        ),
+        Car(
+          id: 'tamiya/trf420x',
+          name: 'TRF420X',
+          imageUrl: 'assets/images/trf420x.jpg',
+          manufacturer: tamiyaManufacturer,
+          category: 'ツーリングカー',
+        ),
 
-      // ヨコモの車種
-      Car(
-        id: 'yokomo/bd12',
-        name: 'BD12',
-        imageUrl: 'assets/images/bd12.jpg',
-        manufacturer: yokomoManufacturer,
-        category: 'ツーリングカー',
-      ),
-    ];
+        // ヨコモの車種
+        Car(
+          id: 'yokomo/bd12',
+          name: 'BD12',
+          imageUrl: 'assets/images/bd12.jpg',
+          manufacturer: yokomoManufacturer,
+          category: 'ツーリングカー',
+        ),
+      ];
+    } catch (e) {
+      print('Error creating initial cars: $e');
+      return []; // エラー時は空のリストを返す
+    }
   }
 
   // 車種リストを保存
@@ -108,27 +139,31 @@ class SettingsProvider extends ChangeNotifier {
       final carsJson = jsonEncode(_cars.map((car) => car.toJson()).toList());
       await prefs.setString(_carsKey, carsJson);
     } catch (e) {
-      debugPrint('Error saving cars: $e');
+      print('Error saving cars: $e');
     }
   }
 
   // 車種を更新
   Future<void> updateCar(Car updatedCar) async {
-    final index = _cars.indexWhere((car) => car.id == updatedCar.id);
-    if (index != -1) {
-      _cars[index] = updatedCar;
-      await _saveCars();
+    try {
+      final index = _cars.indexWhere((car) => car.id == updatedCar.id);
+      if (index != -1) {
+        _cars[index] = updatedCar;
+        await _saveCars();
 
-      // オンラインモードの場合はFirebaseにも保存
-      if (_isOnlineMode) {
-        try {
-          await _firestoreService.saveCars(_cars);
-        } catch (e) {
-          debugPrint('Firebase保存エラー: $e');
+        // オンラインモードの場合はFirebaseにも保存
+        if (_isOnlineMode && _firestoreService != null) {
+          try {
+            await _firestoreService!.saveCars(_cars);
+          } catch (e) {
+            print('Firebase保存エラー: $e');
+          }
         }
-      }
 
-      notifyListeners();
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error updating car: $e');
     }
   }
 
@@ -138,11 +173,11 @@ class SettingsProvider extends ChangeNotifier {
     await _saveCars();
 
     // オンラインモードの場合はFirebaseにも保存
-    if (_isOnlineMode) {
+    if (_isOnlineMode && _firestoreService != null) {
       try {
-        await _firestoreService.saveCars(_cars);
+        await _firestoreService!.saveCars(_cars);
       } catch (e) {
-        debugPrint('Firebase保存エラー: $e');
+        print('Firebase保存エラー: $e');
       }
     }
 
@@ -155,11 +190,11 @@ class SettingsProvider extends ChangeNotifier {
     await _saveCars();
 
     // オンラインモードの場合はFirebaseにも保存
-    if (_isOnlineMode) {
+    if (_isOnlineMode && _firestoreService != null) {
       try {
-        await _firestoreService.saveCars(_cars);
+        await _firestoreService!.saveCars(_cars);
       } catch (e) {
-        debugPrint('Firebase保存エラー: $e');
+        print('Firebase保存エラー: $e');
       }
     }
 
@@ -190,6 +225,7 @@ class SettingsProvider extends ChangeNotifier {
     return car?.availableSettings ?? [];
   }
 
+  // 設定読み込み関数を安全に変更
   Future<void> _loadSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -202,11 +238,10 @@ class SettingsProvider extends ChangeNotifier {
 
         // Sort by creation date in descending order
         _savedSettings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-        notifyListeners();
       }
     } catch (e) {
-      debugPrint('Error loading settings: $e');
+      print('Error loading settings: $e');
+      _savedSettings = [];
     }
   }
 
@@ -219,11 +254,10 @@ class SettingsProvider extends ChangeNotifier {
         final Map<String, dynamic> decoded = jsonDecode(visibilityJson);
         _visibilitySettings = decoded.map((key, value) => MapEntry(
             key, VisibilitySettings.fromJson(value as Map<String, dynamic>)));
-
-        notifyListeners();
       }
     } catch (e) {
-      debugPrint('Error loading visibility settings: $e');
+      print('Error loading visibility settings: $e');
+      _visibilitySettings = {};
     }
   }
 
@@ -231,9 +265,19 @@ class SettingsProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       _isEnglish = prefs.getBool(_languageKey) ?? false;
-      notifyListeners();
     } catch (e) {
-      debugPrint('Error loading language settings: $e');
+      print('Error loading language settings: $e');
+      _isEnglish = false;
+    }
+  }
+
+  Future<void> _loadOnlineMode() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _isOnlineMode = prefs.getBool(_onlineModeKey) ?? false;
+    } catch (e) {
+      print('Error loading online mode: $e');
+      _isOnlineMode = false;
     }
   }
 
@@ -244,7 +288,7 @@ class SettingsProvider extends ChangeNotifier {
           _savedSettings.map((setting) => setting.toJson()).toList());
       await prefs.setString(_savedSettingsKey, settingsJson);
     } catch (e) {
-      debugPrint('Error saving settings: $e');
+      print('Error saving settings: $e');
     }
   }
 
@@ -254,7 +298,7 @@ class SettingsProvider extends ChangeNotifier {
       final visibilityJson = jsonEncode(_visibilitySettings);
       await prefs.setString(_visibilitySettingsKey, visibilityJson);
     } catch (e) {
-      debugPrint('Error saving visibility settings: $e');
+      print('Error saving visibility settings: $e');
     }
   }
 
@@ -263,27 +307,31 @@ class SettingsProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_languageKey, _isEnglish);
     } catch (e) {
-      debugPrint('Error saving language settings: $e');
+      print('Error saving language settings: $e');
     }
   }
 
   Future<void> updateSetting(SavedSetting updatedSetting) async {
-    final index =
-        _savedSettings.indexWhere((setting) => setting.id == updatedSetting.id);
-    if (index != -1) {
-      _savedSettings[index] = updatedSetting;
-      await _saveSettings();
+    try {
+      final index = _savedSettings
+          .indexWhere((setting) => setting.id == updatedSetting.id);
+      if (index != -1) {
+        _savedSettings[index] = updatedSetting;
+        await _saveSettings();
 
-      // オンラインモードの場合はFirebaseにも保存
-      if (_isOnlineMode) {
-        try {
-          await _firestoreService.saveSetting(updatedSetting);
-        } catch (e) {
-          debugPrint('Firebase保存エラー: $e');
+        // オンラインモードの場合はFirebaseにも保存
+        if (_isOnlineMode && _firestoreService != null) {
+          try {
+            await _firestoreService!.saveSetting(updatedSetting);
+          } catch (e) {
+            print('Firebase保存エラー: $e');
+          }
         }
-      }
 
-      notifyListeners();
+        notifyListeners();
+      }
+    } catch (e) {
+      print('Error updating setting: $e');
     }
   }
 
@@ -349,24 +397,13 @@ class SettingsProvider extends ChangeNotifier {
         .toList();
   }
 
-  // オンラインモード設定を読み込み
-  Future<void> _loadOnlineMode() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      _isOnlineMode = prefs.getBool(_onlineModeKey) ?? false;
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error loading online mode: $e');
-    }
-  }
-
   // オンラインモード設定を保存
   Future<void> _saveOnlineMode() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_onlineModeKey, _isOnlineMode);
     } catch (e) {
-      debugPrint('Error saving online mode: $e');
+      print('Error saving online mode: $e');
     }
   }
 
@@ -384,44 +421,44 @@ class SettingsProvider extends ChangeNotifier {
 
   // Firebaseにデータを同期
   Future<void> syncToFirebase() async {
-    if (!_isOnlineMode) return;
+    if (!_isOnlineMode || _firestoreService == null) return;
 
     try {
-      await _firestoreService.syncAllData(
+      await _firestoreService!.syncAllData(
         savedSettings: _savedSettings,
         cars: _cars,
         visibilitySettings: _visibilitySettings,
         isEnglish: _isEnglish,
       );
-      debugPrint('データをFirebaseに同期しました');
+      print('データをFirebaseに同期しました');
     } catch (e) {
-      debugPrint('Firebase同期エラー: $e');
+      print('Firebase同期エラー: $e');
       rethrow;
     }
   }
 
   // Firebaseからデータを読み込み
   Future<void> loadFromFirebase() async {
-    if (!_isOnlineMode) return;
+    if (!_isOnlineMode || _firestoreService == null) return;
 
     try {
       // 保存された設定を読み込み
-      _savedSettings = await _firestoreService.getSavedSettings();
+      _savedSettings = await _firestoreService!.getSavedSettings();
       _savedSettings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       // 車種リストを読み込み
-      _cars = await _firestoreService.getCars();
+      _cars = await _firestoreService!.getCars();
 
       // 表示設定を読み込み
-      _visibilitySettings = await _firestoreService.getVisibilitySettings();
+      _visibilitySettings = await _firestoreService!.getVisibilitySettings();
 
       // 言語設定を読み込み
-      _isEnglish = await _firestoreService.getLanguageSettings();
+      _isEnglish = await _firestoreService!.getLanguageSettings();
 
       notifyListeners();
-      debugPrint('Firebaseからデータを読み込みました');
+      print('Firebaseからデータを読み込みました');
     } catch (e) {
-      debugPrint('Firebase読み込みエラー: $e');
+      print('Firebase読み込みエラー: $e');
       rethrow;
     }
   }
@@ -441,11 +478,11 @@ class SettingsProvider extends ChangeNotifier {
     await _saveSettings();
 
     // オンラインモードの場合はFirebaseにも保存
-    if (_isOnlineMode) {
+    if (_isOnlineMode && _firestoreService != null) {
       try {
-        await _firestoreService.saveSetting(newSetting);
+        await _firestoreService!.saveSetting(newSetting);
       } catch (e) {
-        debugPrint('Firebase保存エラー: $e');
+        print('Firebase保存エラー: $e');
       }
     }
 
@@ -458,11 +495,11 @@ class SettingsProvider extends ChangeNotifier {
     await _saveSettings();
 
     // オンラインモードの場合はFirebaseからも削除
-    if (_isOnlineMode) {
+    if (_isOnlineMode && _firestoreService != null) {
       try {
-        await _firestoreService.deleteSetting(id);
+        await _firestoreService!.deleteSetting(id);
       } catch (e) {
-        debugPrint('Firebase削除エラー: $e');
+        print('Firebase削除エラー: $e');
       }
     }
 
@@ -475,11 +512,11 @@ class SettingsProvider extends ChangeNotifier {
     await _saveLanguageSettings();
 
     // オンラインモードの場合はFirebaseにも保存
-    if (_isOnlineMode) {
+    if (_isOnlineMode && _firestoreService != null) {
       try {
-        await _firestoreService.saveLanguageSettings(_isEnglish);
+        await _firestoreService!.saveLanguageSettings(_isEnglish);
       } catch (e) {
-        debugPrint('Firebase保存エラー: $e');
+        print('Firebase保存エラー: $e');
       }
     }
 
@@ -492,11 +529,11 @@ class SettingsProvider extends ChangeNotifier {
     await _saveVisibilitySettings();
 
     // オンラインモードの場合はFirebaseにも保存
-    if (_isOnlineMode) {
+    if (_isOnlineMode && _firestoreService != null) {
       try {
-        await _firestoreService.saveVisibilitySettings(_visibilitySettings);
+        await _firestoreService!.saveVisibilitySettings(_visibilitySettings);
       } catch (e) {
-        debugPrint('Firebase保存エラー: $e');
+        print('Firebase保存エラー: $e');
       }
     }
 
@@ -521,22 +558,22 @@ class SettingsProvider extends ChangeNotifier {
       await _saveVisibilitySettings();
 
       // オンラインモードの場合はFirebaseにも同期
-      if (_isOnlineMode) {
+      if (_isOnlineMode && _firestoreService != null) {
         try {
-          await _firestoreService.syncAllData(
+          await _firestoreService!.syncAllData(
             savedSettings: _savedSettings,
             cars: _cars,
             visibilitySettings: _visibilitySettings,
             isEnglish: _isEnglish,
           );
         } catch (e) {
-          debugPrint('Firebase同期エラー: $e');
+          print('Firebase同期エラー: $e');
         }
       }
 
       notifyListeners();
     } catch (e) {
-      debugPrint('データ置き換えエラー: $e');
+      print('データ置き換えエラー: $e');
       rethrow;
     }
   }
@@ -571,22 +608,22 @@ class SettingsProvider extends ChangeNotifier {
       }
 
       // オンラインモードの場合はFirebaseにも同期
-      if (_isOnlineMode) {
+      if (_isOnlineMode && _firestoreService != null) {
         try {
-          await _firestoreService.syncAllData(
+          await _firestoreService!.syncAllData(
             savedSettings: _savedSettings,
             cars: _cars,
             visibilitySettings: _visibilitySettings,
             isEnglish: _isEnglish,
           );
         } catch (e) {
-          debugPrint('Firebase同期エラー: $e');
+          print('Firebase同期エラー: $e');
         }
       }
 
       notifyListeners();
     } catch (e) {
-      debugPrint('部分データ置き換えエラー: $e');
+      print('部分データ置き換えエラー: $e');
       rethrow;
     }
   }

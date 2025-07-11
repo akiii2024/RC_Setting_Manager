@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import '../models/track_location.dart';
@@ -10,23 +11,46 @@ class LocationService {
 
   // 位置情報の権限を確認・要求
   Future<bool> requestLocationPermission() async {
+    if (kIsWeb) {
+      // Web環境では位置情報APIが異なる処理を行う
+      return await _requestWebLocationPermission();
+    }
+
     try {
       // Geolocatorで権限を確認・要求
       LocationPermission permission = await Geolocator.checkPermission();
-      
+
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
-      
+
       if (permission == LocationPermission.deniedForever) {
         print('位置情報の権限が永続的に拒否されています。設定から許可してください。');
         return false;
       }
-      
+
       return permission == LocationPermission.whileInUse ||
-             permission == LocationPermission.always;
+          permission == LocationPermission.always;
     } catch (e) {
       print('権限確認エラー: $e');
+      return false;
+    }
+  }
+
+  // Web環境での位置情報権限要求
+  Future<bool> _requestWebLocationPermission() async {
+    try {
+      // Web環境ではGeolocatorを直接使用
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      return permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always;
+    } catch (e) {
+      print('Web位置情報権限エラー: $e');
       return false;
     }
   }
@@ -79,7 +103,7 @@ class LocationService {
   Future<LocationStatus> getLocationStatus() async {
     bool serviceEnabled = await isLocationServiceEnabled();
     bool permissionGranted = await requestLocationPermission();
-    
+
     if (!serviceEnabled) {
       return LocationStatus.serviceDisabled;
     } else if (!permissionGranted) {
@@ -115,9 +139,9 @@ enum LocationStatus {
 class LocationException implements Exception {
   final String message;
   final LocationStatus status;
-  
+
   LocationException(this.message, this.status);
-  
+
   @override
   String toString() => 'LocationException: $message';
 }
