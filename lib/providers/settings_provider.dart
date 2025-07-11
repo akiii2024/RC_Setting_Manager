@@ -19,7 +19,7 @@ class SettingsProvider extends ChangeNotifier {
   final String _languageKey = 'language_settings';
   final String _carsKey = 'cars_settings';
   final String _onlineModeKey = 'online_mode';
-  
+
   final FirestoreService _firestoreService = FirestoreService();
 
   List<SavedSetting> get savedSettings => _savedSettings;
@@ -66,7 +66,7 @@ class SettingsProvider extends ChangeNotifier {
       name: 'タミヤ',
       logoPath: 'assets/images/tamiya.png',
     );
-    
+
     final yokomoManufacturer = Manufacturer(
       id: 'yokomo',
       name: 'ヨコモ',
@@ -89,7 +89,7 @@ class SettingsProvider extends ChangeNotifier {
         manufacturer: tamiyaManufacturer,
         category: 'ツーリングカー',
       ),
-      
+
       // ヨコモの車種
       Car(
         id: 'yokomo/bd12',
@@ -118,7 +118,7 @@ class SettingsProvider extends ChangeNotifier {
     if (index != -1) {
       _cars[index] = updatedCar;
       await _saveCars();
-      
+
       // オンラインモードの場合はFirebaseにも保存
       if (_isOnlineMode) {
         try {
@@ -127,7 +127,7 @@ class SettingsProvider extends ChangeNotifier {
           debugPrint('Firebase保存エラー: $e');
         }
       }
-      
+
       notifyListeners();
     }
   }
@@ -136,7 +136,7 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> addCar(Car newCar) async {
     _cars.add(newCar);
     await _saveCars();
-    
+
     // オンラインモードの場合はFirebaseにも保存
     if (_isOnlineMode) {
       try {
@@ -145,7 +145,7 @@ class SettingsProvider extends ChangeNotifier {
         debugPrint('Firebase保存エラー: $e');
       }
     }
-    
+
     notifyListeners();
   }
 
@@ -153,7 +153,7 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> deleteCar(String carId) async {
     _cars.removeWhere((car) => car.id == carId);
     await _saveCars();
-    
+
     // オンラインモードの場合はFirebaseにも保存
     if (_isOnlineMode) {
       try {
@@ -162,7 +162,7 @@ class SettingsProvider extends ChangeNotifier {
         debugPrint('Firebase保存エラー: $e');
       }
     }
-    
+
     notifyListeners();
   }
 
@@ -267,14 +267,13 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
-
   Future<void> updateSetting(SavedSetting updatedSetting) async {
     final index =
         _savedSettings.indexWhere((setting) => setting.id == updatedSetting.id);
     if (index != -1) {
       _savedSettings[index] = updatedSetting;
       await _saveSettings();
-      
+
       // オンラインモードの場合はFirebaseにも保存
       if (_isOnlineMode) {
         try {
@@ -283,7 +282,7 @@ class SettingsProvider extends ChangeNotifier {
           debugPrint('Firebase保存エラー: $e');
         }
       }
-      
+
       notifyListeners();
     }
   }
@@ -303,7 +302,6 @@ class SettingsProvider extends ChangeNotifier {
     return _visibilitySettings[carId]!;
   }
 
-
   // Toggle visibility for a specific setting
   Future<void> toggleSettingVisibility(
       String carId, String settingKey, bool isVisible) async {
@@ -315,9 +313,40 @@ class SettingsProvider extends ChangeNotifier {
     final updatedSettings = VisibilitySettings(
       carId: carId,
       settingsVisibility: updatedVisibility,
+      favoriteSettings: settings.favoriteSettings, // favoritesを保持
     );
 
     await updateVisibilitySettings(updatedSettings);
+  }
+
+  // Toggle favorite for a specific setting
+  Future<void> toggleFavoriteSetting(
+      String carId, String settingKey, bool isFavorite) async {
+    final settings = getVisibilitySettings(carId);
+    final updatedFavorites = Map<String, bool>.from(settings.favoriteSettings);
+
+    if (isFavorite) {
+      updatedFavorites[settingKey] = true;
+    } else {
+      updatedFavorites.remove(settingKey);
+    }
+
+    final updatedSettings = VisibilitySettings(
+      carId: carId,
+      settingsVisibility: settings.settingsVisibility,
+      favoriteSettings: updatedFavorites,
+    );
+
+    await updateVisibilitySettings(updatedSettings);
+  }
+
+  // Get favorite settings for a car
+  List<String> getFavoriteSettings(String carId) {
+    final settings = getVisibilitySettings(carId);
+    return settings.favoriteSettings.entries
+        .where((entry) => entry.value)
+        .map((entry) => entry.key)
+        .toList();
   }
 
   // オンラインモード設定を読み込み
@@ -346,7 +375,7 @@ class SettingsProvider extends ChangeNotifier {
     _isOnlineMode = !_isOnlineMode;
     await _saveOnlineMode();
     notifyListeners();
-    
+
     if (_isOnlineMode) {
       // オンラインモードに切り替えた時、データを同期
       await syncToFirebase();
@@ -356,7 +385,7 @@ class SettingsProvider extends ChangeNotifier {
   // Firebaseにデータを同期
   Future<void> syncToFirebase() async {
     if (!_isOnlineMode) return;
-    
+
     try {
       await _firestoreService.syncAllData(
         savedSettings: _savedSettings,
@@ -374,21 +403,21 @@ class SettingsProvider extends ChangeNotifier {
   // Firebaseからデータを読み込み
   Future<void> loadFromFirebase() async {
     if (!_isOnlineMode) return;
-    
+
     try {
       // 保存された設定を読み込み
       _savedSettings = await _firestoreService.getSavedSettings();
       _savedSettings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      
+
       // 車種リストを読み込み
       _cars = await _firestoreService.getCars();
-      
+
       // 表示設定を読み込み
       _visibilitySettings = await _firestoreService.getVisibilitySettings();
-      
+
       // 言語設定を読み込み
       _isEnglish = await _firestoreService.getLanguageSettings();
-      
+
       notifyListeners();
       debugPrint('Firebaseからデータを読み込みました');
     } catch (e) {
@@ -410,7 +439,7 @@ class SettingsProvider extends ChangeNotifier {
 
     _savedSettings.insert(0, newSetting);
     await _saveSettings();
-    
+
     // オンラインモードの場合はFirebaseにも保存
     if (_isOnlineMode) {
       try {
@@ -419,7 +448,7 @@ class SettingsProvider extends ChangeNotifier {
         debugPrint('Firebase保存エラー: $e');
       }
     }
-    
+
     notifyListeners();
   }
 
@@ -427,7 +456,7 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> deleteSetting(String id) async {
     _savedSettings.removeWhere((setting) => setting.id == id);
     await _saveSettings();
-    
+
     // オンラインモードの場合はFirebaseからも削除
     if (_isOnlineMode) {
       try {
@@ -436,16 +465,15 @@ class SettingsProvider extends ChangeNotifier {
         debugPrint('Firebase削除エラー: $e');
       }
     }
-    
+
     notifyListeners();
   }
-
 
   // 言語設定変更時にFirebaseにも保存
   Future<void> toggleLanguage() async {
     _isEnglish = !_isEnglish;
     await _saveLanguageSettings();
-    
+
     // オンラインモードの場合はFirebaseにも保存
     if (_isOnlineMode) {
       try {
@@ -454,7 +482,7 @@ class SettingsProvider extends ChangeNotifier {
         debugPrint('Firebase保存エラー: $e');
       }
     }
-    
+
     notifyListeners();
   }
 
@@ -462,7 +490,7 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> updateVisibilitySettings(VisibilitySettings settings) async {
     _visibilitySettings[settings.carId] = settings;
     await _saveVisibilitySettings();
-    
+
     // オンラインモードの場合はFirebaseにも保存
     if (_isOnlineMode) {
       try {
@@ -471,7 +499,7 @@ class SettingsProvider extends ChangeNotifier {
         debugPrint('Firebase保存エラー: $e');
       }
     }
-    
+
     notifyListeners();
   }
 
@@ -486,12 +514,12 @@ class SettingsProvider extends ChangeNotifier {
       _cars = cars;
       _savedSettings = savedSettings;
       _visibilitySettings = visibilitySettings;
-      
+
       // ローカルストレージに保存
       await _saveCars();
       await _saveSettings();
       await _saveVisibilitySettings();
-      
+
       // オンラインモードの場合はFirebaseにも同期
       if (_isOnlineMode) {
         try {
@@ -505,7 +533,7 @@ class SettingsProvider extends ChangeNotifier {
           debugPrint('Firebase同期エラー: $e');
         }
       }
-      
+
       notifyListeners();
     } catch (e) {
       debugPrint('データ置き換えエラー: $e');
@@ -526,22 +554,22 @@ class SettingsProvider extends ChangeNotifier {
         _cars = cars;
         await _saveCars();
       }
-      
+
       if (savedSettings != null) {
         _savedSettings = savedSettings;
         await _saveSettings();
       }
-      
+
       if (visibilitySettings != null) {
         _visibilitySettings = visibilitySettings;
         await _saveVisibilitySettings();
       }
-      
+
       if (isEnglish != null) {
         _isEnglish = isEnglish;
         await _saveLanguageSettings();
       }
-      
+
       // オンラインモードの場合はFirebaseにも同期
       if (_isOnlineMode) {
         try {
@@ -555,7 +583,7 @@ class SettingsProvider extends ChangeNotifier {
           debugPrint('Firebase同期エラー: $e');
         }
       }
-      
+
       notifyListeners();
     } catch (e) {
       debugPrint('部分データ置き換えエラー: $e');

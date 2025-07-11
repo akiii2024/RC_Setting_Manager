@@ -20,7 +20,6 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
     super.initState();
   }
 
-
   @override
   Widget build(BuildContext context) {
     final settingsProvider = Provider.of<SettingsProvider>(context);
@@ -52,17 +51,23 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
                   Icon(
                     Icons.directions_car,
                     size: 64,
-                    color: Colors.grey[400],
+                    color: Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withOpacity(0.4),
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    isEnglish 
+                    isEnglish
                         ? 'No manufacturers available.\nTap + to add one.'
                         : 'メーカーがありません。\n+ボタンで追加してください。',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,
-                      color: Colors.grey[600],
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withOpacity(0.6),
                     ),
                   ),
                 ],
@@ -138,7 +143,7 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
                     name: name,
                     logoPath: 'assets/images/default_manufacturer.png',
                   );
-                  
+
                   final sampleCar = Car(
                     id: '${newManufacturer.id}/sample_car',
                     name: 'Sample Car',
@@ -146,7 +151,7 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
                     manufacturer: newManufacturer,
                     category: 'Custom',
                   );
-                  
+
                   settingsProvider.addCar(sampleCar);
                   Navigator.pop(context);
                 }
@@ -188,7 +193,7 @@ class ManufacturerListItem extends StatelessWidget {
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: Colors.grey[200],
+                  color: Theme.of(context).colorScheme.surfaceVariant,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(Icons.business, size: 40),
@@ -209,15 +214,17 @@ class ManufacturerListItem extends StatelessWidget {
                     Consumer<SettingsProvider>(
                       builder: (context, settingsProvider, child) {
                         final carCount = settingsProvider.cars
-                            .where((car) => car.manufacturer.id == manufacturer.id)
+                            .where(
+                                (car) => car.manufacturer.id == manufacturer.id)
                             .length;
                         return Text(
-                          isEnglish
-                              ? '$carCount models'
-                              : '$carCount 車種',
-                          style: const TextStyle(
+                          isEnglish ? '$carCount models' : '$carCount 車種',
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurface
+                                .withOpacity(0.6),
                           ),
                         );
                       },
@@ -233,4 +240,3 @@ class ManufacturerListItem extends StatelessWidget {
     );
   }
 }
-

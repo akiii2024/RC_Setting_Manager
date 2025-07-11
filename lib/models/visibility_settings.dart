@@ -1,12 +1,13 @@
-
 class VisibilitySettings {
   final String carId;
   final Map<String, bool> settingsVisibility;
+  final Map<String, bool> favoriteSettings; // よく使う項目を管理
 
   VisibilitySettings({
     required this.carId,
     required this.settingsVisibility,
-  });
+    Map<String, bool>? favoriteSettings,
+  }) : favoriteSettings = favoriteSettings ?? {};
 
   // Deserialize from JSON
   factory VisibilitySettings.fromJson(Map<String, dynamic> json) {
@@ -14,6 +15,9 @@ class VisibilitySettings {
       carId: json['carId'] as String,
       settingsVisibility:
           Map<String, bool>.from(json['settingsVisibility'] as Map),
+      favoriteSettings: json['favoriteSettings'] != null
+          ? Map<String, bool>.from(json['favoriteSettings'] as Map)
+          : {},
     );
   }
 
@@ -22,6 +26,7 @@ class VisibilitySettings {
     return {
       'carId': carId,
       'settingsVisibility': settingsVisibility,
+      'favoriteSettings': favoriteSettings,
     };
   }
 
@@ -37,6 +42,7 @@ class VisibilitySettings {
       return VisibilitySettings(
         carId: carId,
         settingsVisibility: visibility,
+        favoriteSettings: {}, // 初期状態では空
       );
     }
 
