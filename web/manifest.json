@@ -9,6 +9,8 @@
     "description": "ラジコンカーのセッティングを管理するアプリ",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
+    "lang": "ja-JP",
+    "categories": ["sports", "utilities"],
     "icons": [
         {
             "src": "icons/Icon-192.png",
