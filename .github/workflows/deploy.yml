@@ -39,7 +39,7 @@ jobs:
         echo "OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }}" >> .env
       
     - name: Build web
-      run: flutter build web --base-href "/settingsheet_manager/" --release
+      run: flutter build web --base-href "/RC_Setting_Manager/" --release
       
     - name: Setup Pages
       uses: actions/configure-pages@v4
