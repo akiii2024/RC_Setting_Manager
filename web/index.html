@@ -14,7 +14,7 @@
     This is a placeholder for base href that will be replaced by the value of
     the `--base-href` argument provided to `flutter build`.
   -->
-  <base href="/">
+  <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
@@ -91,7 +91,11 @@
     // Service Workerの登録
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/sw.js')
+        // ベースパスを動的に取得
+        const basePath = document.querySelector('base').getAttribute('href');
+        const swPath = basePath + 'sw.js';
+        
+        navigator.serviceWorker.register(swPath)
           .then(function(registration) {
             console.log('ServiceWorker registration successful with scope: ', registration.scope);
           })
@@ -103,6 +107,10 @@
 
     // PWA起動時のルーティング処理を改善
     window.addEventListener('load', function() {
+      // ベースパスを取得
+      const basePath = document.querySelector('base').getAttribute('href');
+      const basePathWithoutSlash = basePath.slice(0, -1); // 末尾のスラッシュを削除
+      
       // PWAとして起動されたかチェック
       const isPWA = window.matchMedia('(display-mode: standalone)').matches 
                     || window.navigator.standalone === true
@@ -110,10 +118,10 @@
 
       if (isPWA) {
         console.log('PWA mode detected');
-        // PWAとして起動された場合、ルートパスに強制的に遷移
-        if (window.location.pathname !== '/' && window.location.pathname !== '/index.html') {
-          console.log('Redirecting to root path from PWA');
-          window.history.replaceState({}, '', '/');
+        // PWAとして起動された場合、ベースパスに強制的に遷移
+        if (window.location.pathname !== basePath && window.location.pathname !== basePath + 'index.html') {
+          console.log('Redirecting to base path from PWA');
+          window.history.replaceState({}, '', basePath);
         }
       }
 
@@ -122,10 +130,13 @@
       var search = window.location.search;
       var hash = window.location.hash;
       
-      // ルートパス以外の場合、クエリパラメータとしてFlutterアプリに渡す
-      if (path !== '/' && path !== '/index.html' && !isPWA) {
+      // ベースパス以外の場合、クエリパラメータとしてFlutterアプリに渡す
+      if (path !== basePath && path !== basePath + 'index.html' && !isPWA) {
         var url = new URL(window.location);
-        url.searchParams.set('route', path);
+        // ベースパスを除いた相対パスを取得
+        var relativePath = path.startsWith(basePathWithoutSlash) ? 
+                          path.substring(basePathWithoutSlash.length) : path;
+        url.searchParams.set('route', relativePath);
         if (hash) {
           url.searchParams.set('hash', hash.substring(1));
         }

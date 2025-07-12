@@ -1,14 +1,24 @@
 // PWA Service Worker
 const CACHE_NAME = 'rc-settings-v1';
+
+// ベースパスを動的に取得
+const getBasePath = () => {
+  const path = self.location.pathname;
+  const basePath = path.substring(0, path.lastIndexOf('/') + 1);
+  return basePath;
+};
+
+const BASE_PATH = getBasePath();
+
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/favicon.png',
-  '/icons/Icon-192.png',
-  '/icons/Icon-512.png',
-  '/icons/Icon-maskable-192.png',
-  '/icons/Icon-maskable-512.png'
+  BASE_PATH,
+  BASE_PATH + 'index.html',
+  BASE_PATH + 'manifest.json',
+  BASE_PATH + 'favicon.png',
+  BASE_PATH + 'icons/Icon-192.png',
+  BASE_PATH + 'icons/Icon-512.png',
+  BASE_PATH + 'icons/Icon-maskable-192.png',
+  BASE_PATH + 'icons/Icon-maskable-512.png'
 ];
 
 // Service Workerのインストール
@@ -37,12 +47,12 @@ self.addEventListener('fetch', function(event) {
             return response;
           }
           // 404エラーの場合は index.html を返す
-          return caches.match('/index.html');
+          return caches.match(BASE_PATH + 'index.html');
         })
         .catch(function() {
           // ネットワークエラーの場合は index.html を返す
           console.log('Network error, serving index.html');
-          return caches.match('/index.html');
+          return caches.match(BASE_PATH + 'index.html');
         })
     );
     return;
@@ -78,7 +88,7 @@ self.addEventListener('fetch', function(event) {
         ).catch(function() {
           // ネットワークエラーの場合、HTMLリクエストならindex.htmlを返す
           if (event.request.headers.get('accept').includes('text/html')) {
-            return caches.match('/index.html');
+            return caches.match(BASE_PATH + 'index.html');
           }
           // その他のリクエストはエラーを返す
           throw error;
