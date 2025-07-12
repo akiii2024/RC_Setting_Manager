@@ -102,11 +102,22 @@
     }
 
     // PWA用のルーティング処理
-    // URLのハッシュ部分を処理してFlutterアプリに渡す
     window.addEventListener('load', function() {
+      // URLのパス部分を処理
+      var path = window.location.pathname;
+      var search = window.location.search;
       var hash = window.location.hash;
-      if (hash) {
-        // ハッシュをクエリパラメータとしてFlutterアプリに渡す
+      
+      // ルートパス以外の場合、クエリパラメータとしてFlutterアプリに渡す
+      if (path !== '/' && path !== '/index.html') {
+        var url = new URL(window.location);
+        url.searchParams.set('route', path);
+        if (hash) {
+          url.searchParams.set('hash', hash.substring(1));
+        }
+        window.history.replaceState({}, '', url);
+      } else if (hash) {
+        // ハッシュがある場合もクエリパラメータとして渡す
         var url = new URL(window.location);
         url.searchParams.set('route', hash.substring(1));
         window.history.replaceState({}, '', url);

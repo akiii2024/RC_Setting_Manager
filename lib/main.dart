@@ -120,6 +120,16 @@ class MyApp extends StatelessWidget {
                   '/settings': (context) => const SettingsPage(),
                   '/login': (context) => const LoginPage(),
                 },
+                onGenerateRoute: (settings) {
+                  // PWAからのルーティング処理
+                  if (settings.name != null && settings.name!.startsWith('/')) {
+                    // ルートパスにリダイレクト
+                    return MaterialPageRoute(
+                      builder: (context) => const HomePage(),
+                    );
+                  }
+                  return null;
+                },
                 // エラー時のフォールバック画面
                 builder: (context, widget) {
                   ErrorWidget.builder = (FlutterErrorDetails errorDetails) {

@@ -23,6 +23,18 @@ self.addEventListener('install', function(event) {
 
 // フェッチイベントの処理
 self.addEventListener('fetch', function(event) {
+  // PWAのルーティング処理
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .catch(function() {
+          // ナビゲーションリクエストが失敗した場合、index.htmlを返す
+          return caches.match('/index.html');
+        })
+    );
+    return;
+  }
+
   event.respondWith(
     caches.match(event.request)
       .then(function(response) {

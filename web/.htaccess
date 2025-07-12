@@ -1,0 +1,24 @@
+# PWA用のApache設定
+# すべてのリクエストをindex.htmlにリダイレクト
+
+RewriteEngine On
+
+# 実際のファイルやディレクトリが存在する場合はそれを使用
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# それ以外のすべてのリクエストをindex.htmlにリダイレクト
+RewriteRule ^(.*)$ /index.html [L,QSA]
+
+# PWA用のヘッダー設定
+<IfModule mod_headers.c>
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires 0
+</IfModule>
+
+# MIMEタイプの設定
+<IfModule mod_mime.c>
+    AddType application/manifest+json .webmanifest
+    AddType application/manifest+json .json
+</IfModule> 
