@@ -88,14 +88,30 @@
   <script src="flutter_bootstrap.js" async></script>
   
   <script>
-    // GitHub Pages用のルーティング処理
-    (function(){
-      var redirect = sessionStorage.redirect;
-      delete sessionStorage.redirect;
-      if (redirect && redirect != location.href) {
-        history.replaceState(null, null, redirect);
+    // Service Workerの登録
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/sw.js')
+          .then(function(registration) {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+          })
+          .catch(function(err) {
+            console.log('ServiceWorker registration failed: ', err);
+          });
+      });
+    }
+
+    // PWA用のルーティング処理
+    // URLのハッシュ部分を処理してFlutterアプリに渡す
+    window.addEventListener('load', function() {
+      var hash = window.location.hash;
+      if (hash) {
+        // ハッシュをクエリパラメータとしてFlutterアプリに渡す
+        var url = new URL(window.location);
+        url.searchParams.set('route', hash.substring(1));
+        window.history.replaceState({}, '', url);
       }
-    })();
+    });
     
     // Hide loading screen when Flutter app loads
     window.addEventListener('flutter-first-frame', function () {
