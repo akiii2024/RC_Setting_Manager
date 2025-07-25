@@ -37,9 +37,10 @@ jobs:
         echo "FIREBASE_MESSAGING_SENDER_ID=${{ secrets.FIREBASE_MESSAGING_SENDER_ID }}" >> .env
         echo "FIREBASE_WEB_APP_ID=${{ secrets.FIREBASE_WEB_APP_ID }}" >> .env
         echo "OPENWEATHER_API_KEY=${{ secrets.OPENWEATHER_API_KEY }}" >> .env
+        echo "GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}" >> .env
       
     - name: Build web
-      run: flutter build web --release --base-href "/RC_Setting_Manager/" --dart-define=GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+      run: flutter build web --base-href "/RC_Setting_Manager/" --release
       
     - name: Setup Pages
       uses: actions/configure-pages@v4
