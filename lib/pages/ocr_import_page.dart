@@ -30,14 +30,12 @@ class _OCRImportPageState extends State<OCRImportPage> {
 
   @override
   void dispose() {
-    if (!kIsWeb) {
-      _ocrService.dispose();
-    }
+    _ocrService.dispose();
     super.dispose();
   }
 
   Future<void> _pickImage(ImageSource source) async {
-    // カメラの場合は権限を確認（Web環境では不要）
+    // カメラの場合は権限を確認（Web環境では権限チェックをスキップ）
     if (source == ImageSource.camera && !kIsWeb) {
       final cameraStatus = await Permission.camera.status;
       if (!cameraStatus.isGranted) {
@@ -62,7 +60,20 @@ class _OCRImportPageState extends State<OCRImportPage> {
     try {
       dynamic imageFile;
       if (source == ImageSource.camera) {
-        imageFile = await _ocrService.pickImageFromCamera();
+        try {
+          imageFile = await _ocrService.pickImageFromCamera();
+        } catch (e) {
+          // Web環境でカメラが利用できない場合のエラーハンドリング
+          if (kIsWeb && e is UnsupportedError) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(e.message ?? 'カメラが利用できません')),
+              );
+            }
+            return;
+          }
+          rethrow;
+        }
       } else {
         imageFile = await _ocrService.pickImageFromGallery();
       }
@@ -71,16 +82,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
         setState(() {
           _selectedImage = imageFile;
         });
-        if (!kIsWeb) {
-          await _processImage(imageFile);
-        } else {
-          // Web環境ではOCR処理はスキップ
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Web版ではOCR処理は利用できません')),
-            );
-          }
-        }
+        await _processImage(imageFile);
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -108,9 +110,14 @@ class _OCRImportPageState extends State<OCRImportPage> {
 
   Future<void> _processImage(dynamic imageFile) async {
     try {
-      print('Processing image: ${imageFile.path}');
-      print('Image exists: ${await imageFile.exists()}');
-      print('Image size: ${await imageFile.length()} bytes');
+      if (kIsWeb) {
+        print('Processing image (Web): ${imageFile.name}');
+        print('Image size: ${await imageFile.length()} bytes');
+      } else {
+        print('Processing image: ${imageFile.path}');
+        print('Image exists: ${await imageFile.exists()}');
+        print('Image size: ${await imageFile.length()} bytes');
+      }
 
       final recognizedText =
           await _ocrService.recognizeTextFromImage(imageFile);
@@ -118,7 +125,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
       if (recognizedText != null) {
         print('Text recognized successfully');
         setState(() {
-          _recognizedText = recognizedText.text;
+          _recognizedText = recognizedText;
         });
 
         // セッティング定義を取得
@@ -127,13 +134,71 @@ class _OCRImportPageState extends State<OCRImportPage> {
         if (carDefinition != null) {
           // テキストからセッティングを抽出
           final extractedSettings = _ocrService.extractSettingsFromText(
-            recognizedText.text,
+            recognizedText,
             carDefinition.availableSettings,
           );
 
-          setState(() {
-            _extractedSettings = extractedSettings;
-          });
+          print('基本抽出完了: ${extractedSettings.length}個の設定を抽出');
+
+          // AIを使用してより正確なマッピングを実行
+          try {
+            // ユーザーに処理中であることを通知
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Row(
+                    children: [
+                      SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      SizedBox(width: 16),
+                      Text('AIが設定値を最適化しています...'),
+                    ],
+                  ),
+                  duration: Duration(seconds: 3),
+                ),
+              );
+            }
+
+            final mappedSettings = await _ocrService.aiMappingForSettings(
+              extractedSettings,
+              carDefinition.availableSettings,
+            );
+
+            setState(() {
+              _extractedSettings = mappedSettings;
+            });
+
+            print('設定値抽出完了: ${mappedSettings.length}個の設定を取得');
+            print('マッピング結果: $mappedSettings');
+
+            // 成功メッセージを表示
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${mappedSettings.length}個の設定値を認識しました'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          } catch (e) {
+            print('AIマッピングでエラーが発生しました: $e');
+            // エラーの場合は基本抽出結果を使用
+            setState(() {
+              _extractedSettings = extractedSettings;
+            });
+
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('基本的な設定値抽出を使用します'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            }
+          }
         }
       } else {
         print('No text recognized from image');
@@ -209,49 +274,37 @@ class _OCRImportPageState extends State<OCRImportPage> {
     }
   }
 
+  Widget _buildImageDisplay() {
+    if (_selectedImage == null) return Container();
+
+    return Container(
+      height: 300,
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: kIsWeb
+            ? Image.network(
+                _selectedImage.path ?? '',
+                fit: BoxFit.contain,
+                errorBuilder: (context, error, stackTrace) {
+                  return const Center(
+                    child: Text('画像を表示できません'),
+                  );
+                },
+              )
+            : Image.file(
+                _selectedImage as File,
+                fit: BoxFit.contain,
+              ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Web環境の場合は機能制限を表示
-    if (kIsWeb) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('OCRでセッティングをインポート'),
-        ),
-        body: const Center(
-          child: Padding(
-            padding: EdgeInsets.all(32.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.web,
-                  size: 64,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 16),
-                Text(
-                  'OCR機能はWeb版では利用できません',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'この機能を使用するには、AndroidまたはiOSアプリをご利用ください。',
-                  style: TextStyle(
-                    color: Colors.grey,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('OCRでセッティングをインポート'),
@@ -261,6 +314,31 @@ class _OCRImportPageState extends State<OCRImportPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Web環境での注意事項を表示
+            if (kIsWeb) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info, color: Colors.blue[700]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Web版ではカメラ機能が制限される場合があります。ギャラリーからの画像選択をお勧めします。',
+                        style: TextStyle(color: Colors.blue[700]),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+
             // 画像選択ボタン
             Row(
               children: [
@@ -270,7 +348,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
                         ? null
                         : () => _pickImage(ImageSource.camera),
                     icon: const Icon(Icons.camera_alt),
-                    label: const Text('カメラで撮影'),
+                    label: Text(kIsWeb ? 'カメラを起動' : 'カメラで撮影'),
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -289,30 +367,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
 
             // 選択された画像
             if (_selectedImage != null) ...[
-              Container(
-                height: 300,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: _selectedImage is File
-                      ? Image.file(
-                          _selectedImage as File,
-                          fit: BoxFit.contain,
-                        )
-                      : Image.network(
-                          (_selectedImage as dynamic).path ?? '',
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Center(
-                              child: Text('画像を表示できません'),
-                            );
-                          },
-                        ),
-                ),
-              ),
+              _buildImageDisplay(),
               const SizedBox(height: 16),
             ],
 

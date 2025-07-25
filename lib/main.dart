@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'pages/car_selection_page.dart';
 import 'pages/home_page.dart';
@@ -26,6 +27,15 @@ void main() async {
     WidgetsFlutterBinding.ensureInitialized();
   } catch (e) {
     print('WidgetsFlutterBinding initialization error: $e');
+  }
+
+  // 環境変数の読み込み
+  try {
+    await dotenv.load(fileName: ".env");
+    print('Environment variables loaded successfully');
+  } catch (e) {
+    print('Environment variables loading error: $e');
+    // 環境変数が読み込めなくてもアプリは続行
   }
 
   // Firebase初期化をより安全に行う

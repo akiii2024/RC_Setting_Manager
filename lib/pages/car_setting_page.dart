@@ -1109,6 +1109,32 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   Widget _buildSelectField(SettingItem setting) {
+    // 現在の設定値を取得
+    final currentValue = settings[setting.key];
+
+    // 設定値がオプションに存在するかチェック
+    String? validValue;
+    if (currentValue != null &&
+        setting.options != null &&
+        setting.options!.contains(currentValue)) {
+      validValue = currentValue;
+    } else {
+      // 値が無効な場合はnullに設定
+      validValue = null;
+      // 無効な値があった場合は設定からも削除
+      if (currentValue != null) {
+        // デバッグ情報を出力
+        print('無効なドロップダウン値を検出: ${setting.key} = "$currentValue"');
+        print('利用可能なオプション: ${setting.options}');
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          setState(() {
+            settings[setting.key] = null;
+          });
+        });
+      }
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1118,7 +1144,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
           ),
-          value: settings[setting.key],
+          value: validValue,
           items: setting.options?.map((option) {
             return DropdownMenuItem(
               value: option,

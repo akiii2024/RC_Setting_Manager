@@ -27,6 +27,7 @@ migrate_working_dir/
 .dart_tool/
 .flutter-plugins
 .flutter-plugins-dependencies
+.packages
 .pub-cache/
 .pub/
 /build/
@@ -42,6 +43,14 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Android NDK and CMake build artifacts
+/android/app/.cxx/
+/android/.cxx/
+**/CMakeCache.txt
+**/CMakeFiles/
+**/cmake_install.cmake
+**/Makefile
+
 # Environment variables and sensitive files
 .env
 .env.local
@@ -54,9 +63,15 @@ google-services.json
 GoogleService-Info.plist
 firebase-debug.log
 firebase-debug.*.log
+firebase-adminsdk-*.json
+
+# API Keys and sensitive configuration
+.secrets/
+secrets.json
+service-account-key.json
 
 # IDE and editor files
-.vscode/
+.vscode/settings.json
 *.swp
 *.swo
 *~
@@ -69,3 +84,25 @@ firebase-debug.*.log
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Windows specific
+*.tmp
+*.temp
+desktop.ini
+$RECYCLE.BIN/
+
+# Additional Flutter/Dart ignores
+coverage/
+.nyc_output/
+lib/generated_plugin_registrant.dart
+
+# FVM (Flutter Version Management)
+.fvm/flutter_sdk
+
+# Web specific
+/web/firebase-config.js
+
+# Test related
+test/coverage/
+coverage/
+.test_coverage/

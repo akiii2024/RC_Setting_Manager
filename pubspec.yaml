@@ -33,6 +33,8 @@ dependencies:
   image: ^4.1.3
   # 環境変数管理
   flutter_dotenv: ^5.1.0
+  # Gemini API
+  google_generative_ai: ^0.2.2
 
 dev_dependencies:
   flutter_test:
@@ -47,3 +49,4 @@ flutter:
   assets:
     - assets/launcher_icon/ios_icon.png
     - assets/trf420x.png
+    - .env
