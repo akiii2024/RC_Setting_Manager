@@ -4,7 +4,6 @@ import '../providers/theme_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/auth_service.dart';
 import '../models/car.dart';
-import '../models/visibility_settings.dart';
 import 'import_export_page.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -15,7 +14,6 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  bool _autoSave = true;
   List<Car> _cars = [];
   Car? _selectedCar;
   bool _canDisplaySetting = false;
@@ -50,7 +48,13 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final settingsProvider = Provider.of<SettingsProvider>(context);
-    final authService = Provider.of<AuthService>(context);
+    // AuthServiceを安全に取得（Firebaseが初期化されていない場合はnull）
+    AuthService? authService;
+    try {
+      authService = Provider.of<AuthService>(context, listen: false);
+    } catch (e) {
+      authService = null;
+    }
     final isEnglish = settingsProvider.isEnglish;
 
     return Scaffold(
@@ -117,7 +121,7 @@ class _SettingsPageState extends State<SettingsPage> {
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           ),
-          if (!authService.isFirebaseAvailable) ...[
+          if (authService == null || !authService.isFirebaseAvailable) ...[
             ListTile(
               title: Text(
                   isEnglish ? 'Firebase Not Available' : 'Firebaseが利用できません'),
@@ -264,7 +268,9 @@ class _SettingsPageState extends State<SettingsPage> {
               trailing: const Icon(Icons.arrow_forward_ios),
               onTap: () async {
                 try {
-                  await authService.signOut();
+                  if (authService != null) {
+                    await authService.signOut();
+                  }
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(

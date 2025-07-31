@@ -122,7 +122,13 @@ class TrackLocationService {
 
   // 現在位置から最も近いトラックを検索
   TrackLocation? findNearestTrack(double latitude, double longitude) {
-    if (_trackLocations.isEmpty) return null;
+    if (_trackLocations.isEmpty) {
+      print('トラック位置データが空です');
+      return null;
+    }
+
+    print('位置情報検索開始: 現在位置($latitude, $longitude)');
+    print('読み込み済みトラック数: ${_trackLocations.length}');
 
     TrackLocation? nearestTrack;
     double minDistance = double.infinity;
@@ -131,11 +137,22 @@ class TrackLocationService {
       final distance = _calculateDistance(
           latitude, longitude, track.latitude, track.longitude);
 
+      print(
+          '${track.name}: 距離=${distance.toStringAsFixed(1)}m, 範囲=${track.radius}m');
+
       // トラックの範囲内かつ最も近い場合
       if (distance <= track.radius && distance < minDistance) {
         minDistance = distance;
         nearestTrack = track;
+        print('範囲内トラック発見: ${track.name} (${distance.toStringAsFixed(1)}m)');
       }
+    }
+
+    if (nearestTrack != null) {
+      print(
+          '最寄りトラック決定: ${nearestTrack.name} (${minDistance.toStringAsFixed(1)}m)');
+    } else {
+      print('範囲内にトラックが見つかりませんでした');
     }
 
     return nearestTrack;

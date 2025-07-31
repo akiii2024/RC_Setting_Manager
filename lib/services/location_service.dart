@@ -1,8 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:permission_handler/permission_handler.dart';
+
 import '../models/track_location.dart';
-import '../data/track_locations.dart' as track_data;
+import '../services/track_location_service.dart';
 
 class LocationService {
   static LocationService? _instance;
@@ -92,7 +92,11 @@ class LocationService {
       Position? position = await getCurrentPosition();
       if (position == null) return null;
 
-      return track_data.findNearestTrack(position.latitude, position.longitude);
+      // トラック位置データを読み込み
+      await TrackLocationService.instance.loadTrackLocations();
+
+      return TrackLocationService.instance
+          .findNearestTrack(position.latitude, position.longitude);
     } catch (e) {
       print('最寄りトラック検索エラー: $e');
       return null;

@@ -50,3 +50,4 @@ flutter:
     - assets/launcher_icon/ios_icon.png
     - assets/trf420x.png
     - .env
+    - lib/data/track_locations.json

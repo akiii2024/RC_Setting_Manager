@@ -1,18 +1,17 @@
 import 'package:flutter/material.dart';
 import '../models/car.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
+
 import '../providers/settings_provider.dart';
 import 'package:provider/provider.dart';
 import '../models/saved_setting.dart';
-import '../models/visibility_settings.dart';
+
 import '../data/car_settings_definitions.dart';
 import '../models/car_setting_definition.dart';
 import '../widgets/grid_selector.dart';
 import '../services/location_service.dart';
 import '../services/weather_service.dart';
 import '../models/track_location.dart';
-import '../data/track_locations.dart';
+import '../services/track_location_service.dart';
 import './ocr_import_page.dart';
 
 class CarSettingPage extends StatefulWidget {
@@ -2078,21 +2077,39 @@ class _TrackSearchDialog extends StatefulWidget {
 class _TrackSearchDialogState extends State<_TrackSearchDialog> {
   final TextEditingController _searchController = TextEditingController();
   List<TrackLocation> _searchResults = [];
+  List<TrackLocation> _allTracks = [];
   String? _selectedPrefecture;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _searchResults = trackLocations; // 初期状態では全てのトラックを表示
+    _loadTracks();
+  }
+
+  Future<void> _loadTracks() async {
+    try {
+      final tracks = await TrackLocationService.instance.loadTrackLocations();
+      setState(() {
+        _allTracks = tracks;
+        _searchResults = tracks; // 初期状態では全てのトラックを表示
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('トラック読み込みエラー: $e');
+      setState(() {
+        _isLoading = false;
+      });
+    }
   }
 
   void _performSearch() {
     setState(() {
       String query = _searchController.text.trim();
       if (query.isEmpty && _selectedPrefecture == null) {
-        _searchResults = trackLocations;
+        _searchResults = _allTracks;
       } else {
-        _searchResults = trackLocations.where((track) {
+        _searchResults = _allTracks.where((track) {
           bool matchesName = query.isEmpty ||
               track.name.toLowerCase().contains(query.toLowerCase());
           bool matchesPrefecture = _selectedPrefecture == null ||
@@ -2137,7 +2154,9 @@ class _TrackSearchDialogState extends State<_TrackSearchDialog> {
                   value: null,
                   child: Text(widget.isEnglish ? 'All Prefectures' : '全ての都道府県'),
                 ),
-                ...getAllPrefectures().map(
+                ...(_allTracks.map((track) => track.prefecture).toSet().toList()
+                      ..sort())
+                    .map(
                   (prefecture) => DropdownMenuItem<String>(
                     value: prefecture,
                     child: Text(prefecture),
@@ -2155,68 +2174,75 @@ class _TrackSearchDialogState extends State<_TrackSearchDialog> {
 
             // 検索結果リスト
             Expanded(
-              child: _searchResults.isEmpty
-                  ? Center(
-                      child: Text(
-                        widget.isEnglish ? 'No tracks found' : 'トラックが見つかりません',
-                      ),
-                    )
-                  : ListView.builder(
-                      itemCount: _searchResults.length,
-                      itemBuilder: (context, index) {
-                        final track = _searchResults[index];
-                        final surfaceText = track.surfaceType == 'carpet'
-                            ? (widget.isEnglish ? 'Carpet' : 'カーペット')
-                            : (widget.isEnglish ? 'Asphalt' : 'アスファルト');
-                        final typeText = track.type == 'indoor'
-                            ? (widget.isEnglish ? 'Indoor' : '屋内')
-                            : (widget.isEnglish ? 'Outdoor' : '屋外');
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _searchResults.isEmpty
+                      ? Center(
+                          child: Text(
+                            widget.isEnglish
+                                ? 'No tracks found'
+                                : 'トラックが見つかりません',
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: _searchResults.length,
+                          itemBuilder: (context, index) {
+                            final track = _searchResults[index];
+                            final surfaceText = track.surfaceType == 'carpet'
+                                ? (widget.isEnglish ? 'Carpet' : 'カーペット')
+                                : (widget.isEnglish ? 'Asphalt' : 'アスファルト');
+                            final typeText = track.type == 'indoor'
+                                ? (widget.isEnglish ? 'Indoor' : '屋内')
+                                : (widget.isEnglish ? 'Outdoor' : '屋外');
 
-                        return ListTile(
-                          title: Text(track.name),
-                          subtitle: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('${track.prefecture} - ${track.address}'),
-                              Text(
-                                '$typeText • $surfaceText',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: Theme.of(context).colorScheme.primary,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                            return ListTile(
+                              title: Text(track.name),
+                              subtitle: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                      '${track.prefecture} - ${track.address}'),
+                                  Text(
+                                    '$typeText • $surfaceText',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color:
+                                          Theme.of(context).colorScheme.primary,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                track.surfaceType == 'carpet'
-                                    ? Icons.texture
-                                    : Icons.straighten,
-                                size: 16,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withOpacity(0.7),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    track.surfaceType == 'carpet'
+                                        ? Icons.texture
+                                        : Icons.straighten,
+                                    size: 16,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withOpacity(0.7),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Icon(
+                                    track.type == 'indoor'
+                                        ? Icons.home
+                                        : Icons.landscape,
+                                    color:
+                                        Theme.of(context).colorScheme.primary,
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 4),
-                              Icon(
-                                track.type == 'indoor'
-                                    ? Icons.home
-                                    : Icons.landscape,
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                            ],
-                          ),
-                          onTap: () {
-                            widget.onTrackSelected(track);
-                            Navigator.of(context).pop();
+                              onTap: () {
+                                widget.onTrackSelected(track);
+                                Navigator.of(context).pop();
+                              },
+                            );
                           },
-                        );
-                      },
-                    ),
+                        ),
             ),
           ],
         ),
