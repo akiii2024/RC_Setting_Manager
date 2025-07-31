@@ -6,7 +6,7 @@
 
 このアプリはPWA（Progressive Web App）としても動作し、ブラウザから直接アクセスできます：
 
-**🌍 ライブデモ**: https://[your-username].github.io/settingsheet_manager/
+**🌍 ライブデモ**: https://akiii2024.github.io/settingsheet_manager/
 
 ### PWA機能
 - 📱 ホーム画面に追加可能
