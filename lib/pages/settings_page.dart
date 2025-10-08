@@ -146,6 +146,30 @@ class _SettingsPageState extends State<SettingsPage> {
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             ),
+          ] else if (authService.isGuestUser) ...[
+            // ゲストユーザー用のアカウント作成セクション
+            ListTile(
+              title: Text(isEnglish ? 'Create Account' : 'アカウント作成'),
+              subtitle: Text(isEnglish
+                  ? 'Convert guest account to permanent account'
+                  : 'ゲストアカウントを永続アカウントに変換'),
+              leading: const Icon(Icons.person_add, color: Colors.blue),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () {
+                Navigator.of(context).pushNamed('/login');
+              },
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            ),
+            ListTile(
+              title: Text(isEnglish ? 'Guest Account' : 'ゲストアカウント'),
+              subtitle: Text(isEnglish
+                  ? 'Your data is saved locally and in cloud'
+                  : 'データはローカルとクラウドに保存されています'),
+              leading: const Icon(Icons.person_outline, color: Colors.green),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            ),
           ] else ...[
             ListTile(
               title: Text(isEnglish ? 'Signed in as' : 'サインイン中'),

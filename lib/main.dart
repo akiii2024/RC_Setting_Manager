@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'pages/car_selection_page.dart';
 import 'pages/home_page.dart';
 import 'pages/settings_page.dart';
-import 'pages/history_page.dart';
-import 'pages/tools_page.dart';
 import 'pages/login_page.dart';
 import 'providers/theme_provider.dart';
 import 'providers/settings_provider.dart';
@@ -41,21 +41,60 @@ void main() async {
   // Firebase初期化をより安全に行う
   bool firebaseInitialized = false;
   try {
-    if (kIsWeb) {
-      // Web環境でのFirebase初期化
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.web,
-      );
+    // Firebase設定の診断
+    print('=== Firebase Configuration Check ===');
+    print('Platform: ${kIsWeb ? 'Web' : 'Mobile'}');
+
+    // 既に初期化されているかチェック
+    if (Firebase.apps.isEmpty) {
+      print('No Firebase apps found, initializing...');
+
+      FirebaseOptions options;
+      if (kIsWeb) {
+        options = DefaultFirebaseOptions.web;
+        print('Using Web Firebase options');
+      } else {
+        options = DefaultFirebaseOptions.currentPlatform;
+        print('Using Mobile Firebase options');
+      }
+
+      // Firebase設定の詳細をログ出力
+      print('Project ID: ${options.projectId}');
+      print('App ID: ${options.appId}');
+      print('API Key: ${options.apiKey?.substring(0, 10)}...');
+
+      await Firebase.initializeApp(options: options);
+      print('Firebase initialized successfully');
     } else {
-      // モバイル環境でのFirebase初期化
-      await Firebase.initializeApp(
-        options: DefaultFirebaseOptions.currentPlatform,
-      );
+      print('Firebase already initialized (${Firebase.apps.length} apps)');
     }
+
+    // Firebase Auth のテスト
+    try {
+      final auth = FirebaseAuth.instance;
+      print('Firebase Auth instance created successfully');
+      print('Current user: ${auth.currentUser?.uid ?? 'None'}');
+    } catch (e) {
+      print('Firebase Auth test failed: $e');
+    }
+
+    // Firestore のテスト
+    try {
+      final firestore = FirebaseFirestore.instance;
+      print('Firebase Firestore instance created successfully');
+    } catch (e) {
+      print('Firebase Firestore test failed: $e');
+    }
+
+    print('=== Firebase Configuration Check Complete ===');
     firebaseInitialized = true;
-    print('Firebase initialized successfully');
   } catch (e) {
     print('Firebase initialization error: $e');
+    print('Error type: ${e.runtimeType}');
+    if (e is FirebaseException) {
+      print('Firebase Error Code: ${e.code}');
+      print('Firebase Error Message: ${e.message}');
+    }
     // Firebaseが初期化できなくてもアプリは続行
     firebaseInitialized = false;
   }
@@ -93,6 +132,45 @@ class MyAppWrapper extends StatelessWidget {
   }
 }
 
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthService?>(
+      builder: (context, authService, child) {
+        // Firebaseが初期化されていない場合はログインページを表示
+        if (authService == null) {
+          return const LoginPage();
+        }
+
+        // 認証状態を監視
+        return StreamBuilder<User?>(
+          stream: authService.firebaseAuth?.authStateChanges(),
+          builder: (context, snapshot) {
+            // ローディング中
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+
+            // ユーザーがログインしていない場合はログインページを表示
+            if (snapshot.data == null) {
+              return const LoginPage();
+            }
+
+            // ログイン済みの場合はホームページを表示
+            return const HomePage();
+          },
+        );
+      },
+    );
+  }
+}
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -125,7 +203,7 @@ class MyApp extends StatelessWidget {
                 debugShowCheckedModeBanner: false,
                 initialRoute: '/',
                 routes: {
-                  '/': (context) => const HomePage(),
+                  '/': (context) => const AuthWrapper(),
                   '/car-selection': (context) => const CarSelectionPage(),
                   '/settings': (context) => const SettingsPage(),
                   '/login': (context) => const LoginPage(),
@@ -251,7 +329,7 @@ class MyApp extends StatelessWidget {
         elevation: 8,
         backgroundColor: Colors.white,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -354,7 +432,7 @@ class MyApp extends StatelessWidget {
         type: BottomNavigationBarType.fixed,
         elevation: 8,
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         elevation: 4,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),

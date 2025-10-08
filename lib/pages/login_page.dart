@@ -34,7 +34,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
-      
+
       if (_isSignUp) {
         await authService.signUpWithEmailAndPassword(
           _emailController.text.trim(),
@@ -70,7 +70,7 @@ class _LoginPageState extends State<LoginPage> {
           );
         }
       }
-      
+
       if (mounted) {
         Navigator.of(context).pushReplacementNamed('/');
       }
@@ -93,20 +93,44 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   String _getErrorMessage(String error) {
-    final isEnglish = Provider.of<SettingsProvider>(context, listen: false).isEnglish;
-    
+    final isEnglish =
+        Provider.of<SettingsProvider>(context, listen: false).isEnglish;
+
+    print('Error message to parse: $error');
+
     if (error.contains('user-not-found')) {
-      return isEnglish ? 'No user found for that email.' : 'そのメールアドレスのユーザーが見つかりません。';
+      return isEnglish
+          ? 'No user found for that email.'
+          : 'そのメールアドレスのユーザーが見つかりません。';
     } else if (error.contains('wrong-password')) {
       return isEnglish ? 'Wrong password provided.' : 'パスワードが間違っています。';
     } else if (error.contains('email-already-in-use')) {
-      return isEnglish ? 'The account already exists for that email.' : 'そのメールアドレスのアカウントは既に存在します。';
+      return isEnglish
+          ? 'The account already exists for that email.'
+          : 'そのメールアドレスのアカウントは既に存在します。';
     } else if (error.contains('weak-password')) {
       return isEnglish ? 'The password provided is too weak.' : 'パスワードが弱すぎます。';
     } else if (error.contains('invalid-email')) {
       return isEnglish ? 'The email address is not valid.' : 'メールアドレスが無効です。';
+    } else if (error.contains('operation-not-allowed')) {
+      return isEnglish
+          ? 'Email/password accounts are not enabled. Please contact support.'
+          : 'メール/パスワードアカウントが有効になっていません。サポートにお問い合わせください。';
+    } else if (error.contains('too-many-requests')) {
+      return isEnglish
+          ? 'Too many failed attempts. Please try again later.'
+          : '試行回数が多すぎます。しばらくしてから再試行してください。';
+    } else if (error.contains('network-request-failed')) {
+      return isEnglish
+          ? 'Network error. Please check your internet connection.'
+          : 'ネットワークエラーです。インターネット接続を確認してください。';
+    } else if (error.contains('Firebase認証は現在利用できません')) {
+      return isEnglish
+          ? 'Firebase authentication is not available. Please check Firebase configuration.'
+          : 'Firebase認証が利用できません。Firebase設定を確認してください。';
     } else {
-      return isEnglish ? 'An error occurred. Please try again.' : 'エラーが発生しました。もう一度お試しください。';
+      // 詳細なエラーメッセージをそのまま表示
+      return error;
     }
   }
 
@@ -128,7 +152,7 @@ class _LoginPageState extends State<LoginPage> {
     try {
       final authService = Provider.of<AuthService>(context, listen: false);
       await authService.sendPasswordResetEmail(_emailController.text.trim());
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -153,6 +177,91 @@ class _LoginPageState extends State<LoginPage> {
     }
   }
 
+  Future<void> _signInAsGuest() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      await authService.signInAnonymously();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              Provider.of<SettingsProvider>(context, listen: false).isEnglish
+                  ? 'Signed in as guest!'
+                  : 'ゲストとしてサインインしました！',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pushReplacementNamed('/');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_getErrorMessage(e.toString())),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _convertGuestToAccount() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final authService = Provider.of<AuthService>(context, listen: false);
+      await authService.convertGuestToAccount(
+        _emailController.text.trim(),
+        _passwordController.text,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              Provider.of<SettingsProvider>(context, listen: false).isEnglish
+                  ? 'Account created successfully! Your guest data has been preserved.'
+                  : 'アカウントが正常に作成されました！ゲストデータは保持されています。',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pushReplacementNamed('/');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(_getErrorMessage(e.toString())),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final settingsProvider = Provider.of<SettingsProvider>(context);
@@ -160,21 +269,10 @@ class _LoginPageState extends State<LoginPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isSignUp 
+        title: Text(_isSignUp
             ? (isEnglish ? 'Sign Up' : 'サインアップ')
             : (isEnglish ? 'Sign In' : 'サインイン')),
         automaticallyImplyLeading: false,
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pushReplacementNamed('/');
-            },
-            child: Text(
-              isEnglish ? 'Skip' : 'スキップ',
-              style: const TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24.0),
@@ -191,22 +289,26 @@ class _LoginPageState extends State<LoginPage> {
               ),
               const SizedBox(height: 32),
               Text(
-                _isSignUp 
+                _isSignUp
                     ? (isEnglish ? 'Create Account' : 'アカウント作成')
                     : (isEnglish ? 'Welcome Back' : 'おかえりなさい'),
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                      fontWeight: FontWeight.bold,
+                    ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
-                _isSignUp 
-                    ? (isEnglish ? 'Sign up to sync your settings across devices' : 'デバイス間で設定を同期するためにサインアップしてください')
-                    : (isEnglish ? 'Sign in to access your saved settings' : '保存された設定にアクセスするためにサインインしてください'),
+                _isSignUp
+                    ? (isEnglish
+                        ? 'Sign up to sync your settings across devices'
+                        : 'デバイス間で設定を同期するためにサインアップしてください')
+                    : (isEnglish
+                        ? 'Sign in to access your saved settings'
+                        : '保存された設定にアクセスするためにサインインしてください'),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Colors.grey[600],
-                ),
+                      color: Colors.grey[600],
+                    ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
@@ -219,10 +321,15 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return isEnglish ? 'Please enter your email' : 'メールアドレスを入力してください';
+                    return isEnglish
+                        ? 'Please enter your email'
+                        : 'メールアドレスを入力してください';
                   }
-                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                    return isEnglish ? 'Please enter a valid email' : '有効なメールアドレスを入力してください';
+                  if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                      .hasMatch(value)) {
+                    return isEnglish
+                        ? 'Please enter a valid email'
+                        : '有効なメールアドレスを入力してください';
                   }
                   return null;
                 },
@@ -235,7 +342,9 @@ class _LoginPageState extends State<LoginPage> {
                   labelText: isEnglish ? 'Password' : 'パスワード',
                   prefixIcon: const Icon(Icons.lock),
                   suffixIcon: IconButton(
-                    icon: Icon(_obscurePassword ? Icons.visibility : Icons.visibility_off),
+                    icon: Icon(_obscurePassword
+                        ? Icons.visibility
+                        : Icons.visibility_off),
                     onPressed: () {
                       setState(() {
                         _obscurePassword = !_obscurePassword;
@@ -245,26 +354,67 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 validator: (value) {
                   if (value == null || value.isEmpty) {
-                    return isEnglish ? 'Please enter your password' : 'パスワードを入力してください';
+                    return isEnglish
+                        ? 'Please enter your password'
+                        : 'パスワードを入力してください';
                   }
                   if (_isSignUp && value.length < 6) {
-                    return isEnglish ? 'Password must be at least 6 characters' : 'パスワードは6文字以上である必要があります';
+                    return isEnglish
+                        ? 'Password must be at least 6 characters'
+                        : 'パスワードは6文字以上である必要があります';
                   }
                   return null;
                 },
               ),
               const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _submitForm,
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : Text(_isSignUp 
-                        ? (isEnglish ? 'Sign Up' : 'サインアップ')
-                        : (isEnglish ? 'Sign In' : 'サインイン')),
+              Consumer<AuthService?>(
+                builder: (context, authService, child) {
+                  final isGuestUser = authService?.isGuestUser ?? false;
+
+                  if (isGuestUser && _isSignUp) {
+                    // ゲストユーザーがサインアップ画面にいる場合、アップグレードボタンを表示
+                    return Column(
+                      children: [
+                        ElevatedButton(
+                          onPressed: _isLoading ? null : _convertGuestToAccount,
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : Text(isEnglish ? 'Create Account' : 'アカウントを作成'),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          isEnglish
+                              ? 'This will convert your guest account to a permanent account'
+                              : 'ゲストアカウントを永続アカウントに変換します',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                                    color: Colors.grey[600],
+                                  ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    );
+                  } else {
+                    // 通常のサインイン/サインアップボタン
+                    return ElevatedButton(
+                      onPressed: _isLoading ? null : _submitForm,
+                      child: _isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(_isSignUp
+                              ? (isEnglish ? 'Sign Up' : 'サインアップ')
+                              : (isEnglish ? 'Sign In' : 'サインイン')),
+                    );
+                  }
+                },
               ),
               const SizedBox(height: 16),
               if (!_isSignUp)
@@ -276,20 +426,48 @@ class _LoginPageState extends State<LoginPage> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(_isSignUp 
-                      ? (isEnglish ? 'Already have an account? ' : '既にアカウントをお持ちですか？ ')
-                      : (isEnglish ? "Don't have an account? " : 'アカウントをお持ちでないですか？ ')),
+                  Text(_isSignUp
+                      ? (isEnglish
+                          ? 'Already have an account? '
+                          : '既にアカウントをお持ちですか？ ')
+                      : (isEnglish
+                          ? "Don't have an account? "
+                          : 'アカウントをお持ちでないですか？ ')),
                   TextButton(
                     onPressed: () {
                       setState(() {
                         _isSignUp = !_isSignUp;
                       });
                     },
-                    child: Text(_isSignUp 
+                    child: Text(_isSignUp
                         ? (isEnglish ? 'Sign In' : 'サインイン')
                         : (isEnglish ? 'Sign Up' : 'サインアップ')),
                   ),
                 ],
+              ),
+              const SizedBox(height: 24),
+              Divider(
+                color: Colors.grey[300],
+                thickness: 1,
+              ),
+              const SizedBox(height: 16),
+              OutlinedButton.icon(
+                onPressed: _isLoading ? null : _signInAsGuest,
+                icon: const Icon(Icons.person_outline),
+                label: Text(isEnglish ? 'Continue as Guest' : 'ゲストとして続行'),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isEnglish
+                    ? 'Guest mode allows you to save settings locally and sync to cloud without creating an account'
+                    : 'ゲストモードでは、アカウントを作成せずに設定をローカルに保存し、クラウドに同期できます',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Colors.grey[600],
+                    ),
+                textAlign: TextAlign.center,
               ),
             ],
           ),

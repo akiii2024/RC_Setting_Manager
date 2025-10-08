@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
+import '../services/auth_service.dart';
 import '../models/saved_setting.dart';
 import 'car_selection_page.dart';
 import 'car_setting_page.dart';
 import 'history_page.dart';
 import 'tools_page.dart';
+import 'login_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -41,7 +43,6 @@ class _HomePageState extends State<HomePage> {
           IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () {
-              // Navigate to settings page
               Navigator.pushNamed(context, '/settings');
             },
             tooltip: isEnglish ? 'Settings' : '設定',
@@ -219,7 +220,7 @@ class _HomeTab extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               SizedBox(
-                height: 100,
+                height: 120,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -273,9 +274,9 @@ class _HomeTab extends StatelessWidget {
                               Icon(
                                 Icons.directions_car_rounded,
                                 color: Theme.of(context).colorScheme.primary,
-                                size: 32,
+                                size: 28,
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               Text(
                                 carName,
                                 style: const TextStyle(
@@ -286,11 +287,11 @@ class _HomeTab extends StatelessWidget {
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,
                               ),
-                              const SizedBox(height: 4),
+                              const SizedBox(height: 2),
                               Text(
                                 '$count ${isEnglish ? 'settings' : '件'}',
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 10,
                                   color: Theme.of(context)
                                       .colorScheme
                                       .onSurface

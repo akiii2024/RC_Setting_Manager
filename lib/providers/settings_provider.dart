@@ -53,6 +53,9 @@ class SettingsProvider extends ChangeNotifier {
       await _loadLanguageSettings();
       await _loadOnlineMode();
 
+      // Firebase認証状態をチェックしてオンラインモードを自動設定
+      await _checkAuthStateAndSetOnlineMode();
+
       _isInitialized = true;
       notifyListeners();
     } catch (e) {
@@ -61,6 +64,22 @@ class SettingsProvider extends ChangeNotifier {
       _cars = _getInitialCars();
       _isInitialized = true;
       notifyListeners();
+    }
+  }
+
+  // Firebase認証状態をチェックしてオンラインモードを設定
+  Future<void> _checkAuthStateAndSetOnlineMode() async {
+    try {
+      if (_firestoreService != null) {
+        // Firebase認証が利用可能で、ユーザーがログインしている場合はオンラインモードを有効にする
+        if (_firestoreService!.userId != null) {
+          _isOnlineMode = true;
+          await _saveOnlineMode();
+          print('Online mode enabled due to Firebase authentication');
+        }
+      }
+    } catch (e) {
+      print('Error checking auth state: $e');
     }
   }
 

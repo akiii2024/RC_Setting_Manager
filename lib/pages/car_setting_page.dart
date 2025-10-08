@@ -13,6 +13,7 @@ import '../services/weather_service.dart';
 import '../models/track_location.dart';
 import '../services/track_location_service.dart';
 import './ocr_import_page.dart';
+import '../services/ai_advisor_service.dart';
 
 class CarSettingPage extends StatefulWidget {
   final Car originalCar;
@@ -44,6 +45,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
   bool _isLocationLoading = false;
   WeatherData? _currentWeather;
   bool _isWeatherLoading = false;
+  bool _isAIAnalyzing = false;
 
   @override
   void initState() {
@@ -78,9 +80,18 @@ class _CarSettingPageState extends State<CarSettingPage> {
     _initializeSettings();
     // 位置情報と天気情報の初期化を少し遅延させる
     Future.delayed(const Duration(milliseconds: 500), () {
-      _initializeLocationAndTrack();
-      _initializeWeather();
+      if (mounted) {
+        _initializeLocationAndTrack();
+        _initializeWeather();
+      }
     });
+  }
+
+  @override
+  void dispose() {
+    _settingNameController.dispose();
+    _trackNameController.dispose();
+    super.dispose();
   }
 
   // 設定項目の型に応じたデフォルト値を返す
@@ -103,6 +114,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   Future<void> _initializeSettings() async {
+    if (!mounted) return;
+
     setState(() {
       _isLoading = false;
     });
@@ -110,6 +123,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
   // 位置情報を取得してトラック名を自動入力
   Future<void> _initializeLocationAndTrack() async {
+    if (!mounted) return;
+
     setState(() {
       _isLocationLoading = true;
     });
@@ -122,19 +137,19 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
       if (locationStatus == LocationStatus.permissionDenied) {
         print('位置情報の権限が拒否されています。手動でトラックを選択してください。');
-        _showLocationPermissionDialog();
+        if (mounted) _showLocationPermissionDialog();
         return;
       }
 
       if (locationStatus == LocationStatus.serviceDisabled) {
         print('位置情報サービスが無効です。設定で有効にしてください。');
-        _showLocationServiceDialog();
+        if (mounted) _showLocationServiceDialog();
         return;
       }
 
       final nearestTrack = await locationService.findNearestTrack();
 
-      if (nearestTrack != null) {
+      if (nearestTrack != null && mounted) {
         setState(() {
           _currentTrack = nearestTrack;
           _trackNameController.text = nearestTrack.name;
@@ -158,9 +173,11 @@ class _CarSettingPageState extends State<CarSettingPage> {
       print('位置情報取得エラー: $e');
       // エラーが発生してもアプリは継続
     } finally {
-      setState(() {
-        _isLocationLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLocationLoading = false;
+        });
+      }
     }
   }
 
@@ -175,13 +192,15 @@ class _CarSettingPageState extends State<CarSettingPage> {
       builder: (context) => _TrackSearchDialog(
         isEnglish: isEnglish,
         onTrackSelected: (track) {
-          setState(() {
-            _currentTrack = track;
-            _trackNameController.text = track.name;
+          if (mounted) {
+            setState(() {
+              _currentTrack = track;
+              _trackNameController.text = track.name;
 
-            // 路面情報を自動入力
-            _updateSurfaceFromTrack(track);
-          });
+              // 路面情報を自動入力
+              _updateSurfaceFromTrack(track);
+            });
+          }
         },
       ),
     );
@@ -194,6 +213,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
   // 天気情報を取得して気温・湿度を自動入力
   Future<void> _initializeWeather() async {
+    if (!mounted) return;
+
     setState(() {
       _isWeatherLoading = true;
     });
@@ -205,10 +226,12 @@ class _CarSettingPageState extends State<CarSettingPage> {
       if (!weatherService.isApiKeyConfigured()) {
         print('天気APIキーが設定されていません。モックデータを使用します。');
         final mockWeather = weatherService.getMockWeatherData();
-        setState(() {
-          _currentWeather = mockWeather;
-        });
-        _updateWeatherSettings(mockWeather);
+        if (mounted) {
+          setState(() {
+            _currentWeather = mockWeather;
+          });
+          _updateWeatherSettings(mockWeather);
+        }
         return;
       }
 
@@ -217,16 +240,18 @@ class _CarSettingPageState extends State<CarSettingPage> {
       if (!isValidApiKey) {
         print('APIキーが無効です。モックデータを使用します。');
         final mockWeather = weatherService.getMockWeatherData();
-        setState(() {
-          _currentWeather = mockWeather;
-        });
-        _updateWeatherSettings(mockWeather);
+        if (mounted) {
+          setState(() {
+            _currentWeather = mockWeather;
+          });
+          _updateWeatherSettings(mockWeather);
+        }
         return;
       }
 
       final weather = await weatherService.getCurrentWeather();
 
-      if (weather != null) {
+      if (weather != null && mounted) {
         setState(() {
           _currentWeather = weather;
         });
@@ -238,29 +263,37 @@ class _CarSettingPageState extends State<CarSettingPage> {
       } else {
         print('天気情報を取得できませんでした。モックデータを使用します。');
         final mockWeather = weatherService.getMockWeatherData();
-        setState(() {
-          _currentWeather = mockWeather;
-        });
-        _updateWeatherSettings(mockWeather);
+        if (mounted) {
+          setState(() {
+            _currentWeather = mockWeather;
+          });
+          _updateWeatherSettings(mockWeather);
+        }
       }
     } catch (e) {
       print('天気情報取得エラー: $e');
       print('モックデータを使用します。');
       final weatherService = WeatherService.instance;
       final mockWeather = weatherService.getMockWeatherData();
-      setState(() {
-        _currentWeather = mockWeather;
-      });
-      _updateWeatherSettings(mockWeather);
+      if (mounted) {
+        setState(() {
+          _currentWeather = mockWeather;
+        });
+        _updateWeatherSettings(mockWeather);
+      }
     } finally {
-      setState(() {
-        _isWeatherLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isWeatherLoading = false;
+        });
+      }
     }
   }
 
   // 天気情報から設定値を更新
   void _updateWeatherSettings(WeatherData weather) {
+    if (!mounted) return;
+
     setState(() {
       // 気温を自動入力（小数点第1位まで）
       settings['airTemp'] =
@@ -301,6 +334,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
       ),
     );
 
+    if (!mounted) return;
+
     if (result != null && result.isNotEmpty) {
       setState(() {
         settings = result;
@@ -318,6 +353,309 @@ class _CarSettingPageState extends State<CarSettingPage> {
         ),
       );
     }
+  }
+
+  // AIアドバイスを取得
+  Future<void> _getAIAdvice() async {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
+
+    if (_carSettingDefinition == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isEnglish
+              ? 'Car settings definition not found'
+              : 'セッティング定義が見つかりません'),
+        ),
+      );
+      return;
+    }
+
+    // 分析中の状態を表示
+    setState(() {
+      _isAIAnalyzing = true;
+    });
+
+    // プログレスダイアログを表示
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(isEnglish ? 'Analyzing settings...' : 'セッティングを分析中...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final aiService = AIAdvisorService();
+      final advice = await aiService.analyzeSettings(
+        car: widget.originalCar,
+        settings: settings,
+        settingDefinition: _carSettingDefinition!,
+        trackInfo: _currentTrack,
+        weatherInfo: _currentWeather,
+      );
+
+      // プログレスダイアログを閉じる
+      if (mounted) {
+        Navigator.of(context).pop();
+
+        // アドバイス結果を表示
+        _showAdviceDialog(advice);
+      }
+    } catch (e) {
+      // プログレスダイアログを閉じる
+      if (mounted) {
+        Navigator.of(context).pop();
+
+        // エラーメッセージを表示
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isEnglish
+                ? 'Failed to get AI advice: $e'
+                : 'AIアドバイスの取得に失敗しました: $e'),
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isAIAnalyzing = false;
+        });
+      }
+    }
+  }
+
+  // AIアドバイス結果を表示するダイアログ
+  void _showAdviceDialog(SettingAdvice advice) {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
+
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
+          child: Column(
+            children: [
+              // ヘッダー
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(4),
+                    topRight: Radius.circular(4),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.psychology,
+                      color: Theme.of(context).colorScheme.primary,
+                      size: 28,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        isEnglish ? 'AI Setting Advice' : 'AIセッティングアドバイス',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onPrimaryContainer,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+              ),
+
+              // コンテンツ
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 総合評価カード
+                      _buildScoreCard(advice, isEnglish),
+                      const SizedBox(height: 16),
+
+                      // タブビュー
+                      DefaultTabController(
+                        length: 3,
+                        child: Column(
+                          children: [
+                            TabBar(
+                              labelColor: Theme.of(context).colorScheme.primary,
+                              tabs: [
+                                Tab(text: isEnglish ? 'Analysis' : '分析結果'),
+                                Tab(
+                                    text:
+                                        isEnglish ? 'Recommendations' : '改善提案'),
+                                Tab(
+                                    text:
+                                        isEnglish ? 'Driving Tips' : '走行アドバイス'),
+                              ],
+                            ),
+                            SizedBox(
+                              height: 400,
+                              child: TabBarView(
+                                children: [
+                                  // 分析結果タブ
+                                  _buildAnalysisTab(advice),
+                                  // 改善提案タブ
+                                  _buildRecommendationsTab(advice),
+                                  // 走行アドバイスタブ
+                                  _buildDrivingTipsTab(advice),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // スコアカードウィジェット
+  Widget _buildScoreCard(SettingAdvice advice, bool isEnglish) {
+    Color scoreColor;
+    switch (advice.scoreColorName) {
+      case 'green':
+        scoreColor = Colors.green;
+        break;
+      case 'lightGreen':
+        scoreColor = Colors.lightGreen;
+        break;
+      case 'orange':
+        scoreColor = Colors.orange;
+        break;
+      case 'deepOrange':
+        scoreColor = Colors.deepOrange;
+        break;
+      case 'red':
+        scoreColor = Colors.red;
+        break;
+      default:
+        scoreColor = Colors.grey;
+    }
+
+    return Card(
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: scoreColor,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${advice.overallScore}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        isEnglish ? 'Overall Rating' : '総合評価',
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                      ),
+                      Text(
+                        advice.scoreText,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: scoreColor,
+                              fontWeight: FontWeight.bold,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            const Divider(),
+            const SizedBox(height: 8),
+            Text(
+              advice.overallComment,
+              style: Theme.of(context).textTheme.bodyMedium,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 分析結果タブ
+  Widget _buildAnalysisTab(SettingAdvice advice) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Text(
+        advice.detailedAnalysis,
+        style: const TextStyle(fontSize: 14, height: 1.6),
+      ),
+    );
+  }
+
+  // 改善提案タブ
+  Widget _buildRecommendationsTab(SettingAdvice advice) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Text(
+        advice.recommendations,
+        style: const TextStyle(fontSize: 14, height: 1.6),
+      ),
+    );
+  }
+
+  // 走行アドバイスタブ
+  Widget _buildDrivingTipsTab(SettingAdvice advice) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Text(
+        advice.drivingTips,
+        style: const TextStyle(fontSize: 14, height: 1.6),
+      ),
+    );
   }
 
   // 位置情報権限のダイアログを表示
@@ -382,6 +720,11 @@ class _CarSettingPageState extends State<CarSettingPage> {
             ? (isEnglish ? 'Edit Setting' : 'セッティング編集')
             : (isEnglish ? 'New Setting' : '新規セッティング')),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.psychology),
+            onPressed: _isAIAnalyzing ? null : _getAIAdvice,
+            tooltip: isEnglish ? 'AI Advice' : 'AIアドバイス',
+          ),
           IconButton(
             icon: const Icon(Icons.document_scanner),
             onPressed: _importFromOCR,
@@ -1127,9 +1470,11 @@ class _CarSettingPageState extends State<CarSettingPage> {
         print('利用可能なオプション: ${setting.options}');
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          setState(() {
-            settings[setting.key] = null;
-          });
+          if (mounted) {
+            setState(() {
+              settings[setting.key] = null;
+            });
+          }
         });
       }
     }

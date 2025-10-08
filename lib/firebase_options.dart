@@ -41,10 +41,12 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'YOUR_WEB_API_KEY_HERE', // TODO: Replace with environment variable
-    appId: 'YOUR_WEB_APP_ID_HERE', // TODO: Replace with environment variable
+    apiKey:
+        'AIzaSyDKIP88kAdkXBcWde69ofYkH3DGOQouwIE', // TODO: Replace with environment variable
+    appId:
+        '1:375147888843:web:48d5233eb229bf1e235b4e', // TODO: Replace with environment variable
     messagingSenderId:
-        'YOUR_MESSAGING_SENDER_ID_HERE', // TODO: Replace with environment variable
+        '375147888843', // TODO: Replace with environment variable
     projectId: 'rc-setting-manager',
     authDomain: 'rc-setting-manager.firebaseapp.com',
     storageBucket: 'rc-setting-manager.firebasestorage.app',
@@ -53,20 +55,22 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey:
-        'YOUR_ANDROID_API_KEY_HERE', // TODO: Replace with environment variable
+        'AIzaSyDnQdGoO5Tbn7ZbnsiRmRp1VbuVyylCRfM', // TODO: Replace with environment variable
     appId:
-        'YOUR_ANDROID_APP_ID_HERE', // TODO: Replace with environment variable
+        '1:375147888843:android:092e818accc5187c235b4e', // TODO: Replace with environment variable
     messagingSenderId:
-        'YOUR_MESSAGING_SENDER_ID_HERE', // TODO: Replace with environment variable
+        '375147888843', // TODO: Replace with environment variable
     projectId: 'rc-setting-manager',
     storageBucket: 'rc-setting-manager.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'YOUR_IOS_API_KEY_HERE', // TODO: Replace with environment variable
-    appId: 'YOUR_IOS_APP_ID_HERE', // TODO: Replace with environment variable
+    apiKey:
+        'AIzaSyC6KsW_0rJCbYlRNM9Z3LeQWifq1HlppLQ', // TODO: Replace with environment variable
+    appId:
+        '1:375147888843:ios:b8bdc6931e147db8235b4e', // TODO: Replace with environment variable
     messagingSenderId:
-        'YOUR_MESSAGING_SENDER_ID_HERE', // TODO: Replace with environment variable
+        '375147888843', // TODO: Replace with environment variable
     projectId: 'rc-setting-manager',
     storageBucket: 'rc-setting-manager.firebasestorage.app',
     iosBundleId: 'com.example.settingsheetManager',
