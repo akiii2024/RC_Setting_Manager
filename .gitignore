@@ -94,7 +94,6 @@ $RECYCLE.BIN/
 # Additional Flutter/Dart ignores
 coverage/
 .nyc_output/
-lib/generated_plugin_registrant.dart
 
 # FVM (Flutter Version Management)
 .fvm/flutter_sdk
