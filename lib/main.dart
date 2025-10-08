@@ -329,13 +329,13 @@ class MyApp extends StatelessWidget {
         elevation: 8,
         backgroundColor: Colors.white,
       ),
-      cardTheme: const CardThemeData(
+      cardTheme: CardThemeData(
         elevation: 2,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(16)),
+          borderRadius: BorderRadius.circular(16),
         ),
         clipBehavior: Clip.antiAlias,
-        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
@@ -432,14 +432,14 @@ class MyApp extends StatelessWidget {
         type: BottomNavigationBarType.fixed,
         elevation: 8,
       ),
-      cardTheme: const CardThemeData(
+      cardTheme: CardThemeData(
         elevation: 4,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(16)),
+          borderRadius: BorderRadius.circular(16),
         ),
         clipBehavior: Clip.antiAlias,
-        margin: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        color: Color(0xFF2C2C2C),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        color: const Color(0xFF2C2C2C),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
