@@ -7,6 +7,14 @@ import '../services/weather_service.dart';
 
 class AIAdvisorService {
   late final GenerativeModel _model;
+  ChatSession? _currentChatSession;
+
+  // 会話のコンテキスト情報
+  Car? _contextCar;
+  Map<String, dynamic>? _contextSettings;
+  CarSettingDefinition? _contextSettingDefinition;
+  TrackLocation? _contextTrackInfo;
+  WeatherData? _contextWeatherInfo;
 
   AIAdvisorService() {
     // 環境変数からGemini APIキーを取得
@@ -22,7 +30,218 @@ class AIAdvisorService {
     );
   }
 
-  /// セッティングを分析してアドバイスを生成
+  /// 会話セッションがアクティブかどうか
+  bool get isConversationActive => _currentChatSession != null;
+
+  /// 現在の会話コンテキストの車情報を取得
+  Car? get currentCar => _contextCar;
+
+  /// 現在の会話コンテキストのセッティング情報を取得
+  Map<String, dynamic>? get currentSettings => _contextSettings;
+
+  /// 現在の会話コンテキストのセッティング定義を取得
+  CarSettingDefinition? get currentSettingDefinition =>
+      _contextSettingDefinition;
+
+  /// 現在の会話コンテキストのトラック情報を取得
+  TrackLocation? get currentTrackInfo => _contextTrackInfo;
+
+  /// 現在の会話コンテキストの天候情報を取得
+  WeatherData? get currentWeatherInfo => _contextWeatherInfo;
+
+  /// 会話形式でのアドバイスセッションを開始
+  Future<String> startConversationSession({
+    required Car car,
+    required Map<String, dynamic> settings,
+    required CarSettingDefinition settingDefinition,
+    String? userProblem,
+    TrackLocation? trackInfo,
+    WeatherData? weatherInfo,
+  }) async {
+    try {
+      // コンテキスト情報を保存
+      _contextCar = car;
+      _contextSettings = settings;
+      _contextSettingDefinition = settingDefinition;
+      _contextTrackInfo = trackInfo;
+      _contextWeatherInfo = weatherInfo;
+
+      // システムプロンプトを構築
+      final systemPrompt = _buildConversationSystemPrompt(
+        car: car,
+        settings: settings,
+        settingDefinition: settingDefinition,
+        trackInfo: trackInfo,
+        weatherInfo: weatherInfo,
+      );
+
+      // チャットセッションを開始
+      _currentChatSession = _model.startChat(
+        history: [
+          Content.text(systemPrompt),
+          Content.model([
+            TextPart(
+                '了解しました。RCカーのセッティングアドバイザーとして、現在のセッティング情報を確認しました。どのような問題やお悩みがありますか？')
+          ]),
+        ],
+      );
+
+      // ユーザーの問題が指定されている場合は、それに対する応答を返す
+      if (userProblem != null && userProblem.isNotEmpty) {
+        return await sendMessage(userProblem);
+      }
+
+      return 'セッティングアドバイザーです。どのような問題やお悩みがありますか？（例：「曲がりにくい」「アンダーステアが強い」「リアが滑る」など）';
+    } catch (e) {
+      print('会話セッション開始エラー: $e');
+      rethrow;
+    }
+  }
+
+  /// 会話にメッセージを送信
+  Future<String> sendMessage(String message) async {
+    if (_currentChatSession == null) {
+      throw Exception(
+          '会話セッションが開始されていません。startConversationSessionを先に呼び出してください。');
+    }
+
+    try {
+      final response = await _currentChatSession!.sendMessage(
+        Content.text(message),
+      );
+
+      return response.text ?? 'AIからの応答を取得できませんでした';
+    } catch (e) {
+      print('メッセージ送信エラー: $e');
+      rethrow;
+    }
+  }
+
+  /// 会話を終了し、最終的なアドバイスを生成
+  Future<SettingAdvice> generateFinalAdvice() async {
+    if (_currentChatSession == null) {
+      throw Exception('会話セッションが開始されていません。');
+    }
+
+    try {
+      // 最終的なアドバイス生成を依頼
+      final finalPrompt = '''
+これまでの会話を踏まえて、最終的なセッティングアドバイスを以下の形式で提供してください：
+
+## 総合評価
+[セッティング全体の評価を5段階で示し、簡潔なコメントを記載]
+
+## セッティング分析
+[ユーザーの問題点を踏まえた各セッティング項目の分析]
+
+## 改善提案
+[具体的な改善提案を優先度順に3-5個程度]
+各提案について：
+- どの項目をどう変更するか
+- その理由と期待される効果
+
+## 走行アドバイス
+[このセッティングでの走行時の注意点やドライビングのコツ]
+''';
+
+      final response = await _currentChatSession!.sendMessage(
+        Content.text(finalPrompt),
+      );
+
+      final result = response.text;
+      if (result == null || result.isEmpty) {
+        throw Exception('AIからの応答が空です');
+      }
+
+      // 会話セッションをクリア
+      final advice = _parseAdviceResponse(result);
+      _clearConversationContext();
+
+      return advice;
+    } catch (e) {
+      print('最終アドバイス生成エラー: $e');
+      rethrow;
+    }
+  }
+
+  /// 会話のコンテキストをクリア
+  void _clearConversationContext() {
+    _currentChatSession = null;
+    _contextCar = null;
+    _contextSettings = null;
+    _contextSettingDefinition = null;
+    _contextTrackInfo = null;
+    _contextWeatherInfo = null;
+  }
+
+  /// 会話用のシステムプロンプトを構築
+  String _buildConversationSystemPrompt({
+    required Car car,
+    required Map<String, dynamic> settings,
+    required CarSettingDefinition settingDefinition,
+    TrackLocation? trackInfo,
+    WeatherData? weatherInfo,
+  }) {
+    final buffer = StringBuffer();
+
+    buffer.writeln('あなたはRCカーのセッティングアドバイザーです。');
+    buffer.writeln('ユーザーが抱えている問題（例：曲がりにくい、アンダーステア、リアが滑るなど）を会話形式でヒアリングし、');
+    buffer.writeln('適切な質問をしながら詳しい状況を把握した上で、具体的なセッティングアドバイスを提供してください。');
+    buffer.writeln('');
+    buffer.writeln('以下の情報を参考に、ユーザーとの対話を進めてください：');
+    buffer.writeln('');
+
+    // 車種情報
+    buffer.writeln('【車種情報】');
+    buffer.writeln('車種: ${car.name}');
+    buffer.writeln('メーカー: ${car.manufacturer.name}');
+    buffer.writeln('カテゴリー: ${car.category}');
+    buffer.writeln('');
+
+    // セッティング情報
+    buffer.writeln('【現在のセッティング】');
+    for (final settingItem in settingDefinition.availableSettings) {
+      final value = settings[settingItem.key];
+      if (value != null && value.toString().isNotEmpty) {
+        final unit = settingItem.unit ?? '';
+        buffer.writeln('- ${settingItem.label}: $value$unit');
+      }
+    }
+    buffer.writeln('');
+
+    // トラック情報
+    if (trackInfo != null) {
+      buffer.writeln('【サーキット情報】');
+      buffer.writeln('サーキット: ${trackInfo.name}');
+      buffer.writeln('路面タイプ: ${trackInfo.surfaceType}');
+      buffer.writeln('タイプ: ${trackInfo.type}');
+      if (trackInfo.description != null && trackInfo.description!.isNotEmpty) {
+        buffer.writeln('詳細: ${trackInfo.description}');
+      }
+      buffer.writeln('');
+    }
+
+    // 天気情報
+    if (weatherInfo != null) {
+      buffer.writeln('【天候情報】');
+      buffer.writeln('天気: ${weatherInfo.description}');
+      buffer.writeln('気温: ${weatherInfo.temperature}°C');
+      buffer.writeln('湿度: ${weatherInfo.humidity}%');
+      buffer.writeln('風速: ${weatherInfo.windSpeed}m/s');
+      buffer.writeln('');
+    }
+
+    buffer.writeln('【会話のガイドライン】');
+    buffer.writeln('1. ユーザーの問題を具体的に理解するために適切な質問をする');
+    buffer.writeln('2. 問題の原因を特定するために、走行状況やコース特性について尋ねる');
+    buffer.writeln('3. 必要に応じて、現在のセッティング値についての確認をする');
+    buffer.writeln('4. 十分な情報が集まったら、具体的な改善提案を行う');
+    buffer.writeln('5. 専門用語は必要に応じて説明を加え、分かりやすく対話する');
+
+    return buffer.toString();
+  }
+
+  /// セッティングを分析してアドバイスを生成（従来の一括分析機能も残す）
   Future<SettingAdvice> analyzeSettings({
     required Car car,
     required Map<String, dynamic> settings,
