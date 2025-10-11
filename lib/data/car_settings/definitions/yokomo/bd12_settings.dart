@@ -10,6 +10,7 @@ final List<SettingItem> bd12SpecificSettings = [
     category: 'front',
     label: 'Cハブ',
     options: ['グラファイト', 'スタンダード'],
+    defaultValue: 'グラファイト',
   ),
   SettingItem(
     key: 'frontBellCrankPost',
@@ -18,6 +19,7 @@ final List<SettingItem> bd12SpecificSettings = [
     label: 'ベルクランクポストスペーサー',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'frontWheelHub',
@@ -25,6 +27,7 @@ final List<SettingItem> bd12SpecificSettings = [
     category: 'front',
     label: 'ホイールハブ',
     options: ['4.0mm', '4.5mm', '5.0mm'],
+    defaultValue: '4.0mm',
   ),
   SettingItem(
     key: 'frontBellCrank',
@@ -32,6 +35,7 @@ final List<SettingItem> bd12SpecificSettings = [
     category: 'front',
     label: 'ベルクランク',
     options: ['18.5mm', '20.0mm'],
+    defaultValue: '18.5mm',
   ),
   SettingItem(
     key: 'frontCamHeight',
@@ -39,6 +43,7 @@ final List<SettingItem> bd12SpecificSettings = [
     category: 'front',
     label: 'カム',
     options: ['高', '低'],
+    defaultValue: '高',
   ),
   SettingItem(
     key: 'frontSteeringBlock',
@@ -46,6 +51,7 @@ final List<SettingItem> bd12SpecificSettings = [
     category: 'front',
     label: 'ステアリングナックル',
     options: ['グラファイト', 'スタンダード'],
+    defaultValue: 'グラファイト',
   ),
   SettingItem(
     key: 'frontSpacerFF',
@@ -54,6 +60,7 @@ final List<SettingItem> bd12SpecificSettings = [
     label: 'スペーサー FF',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'frontSpacerFR',
@@ -62,6 +69,7 @@ final List<SettingItem> bd12SpecificSettings = [
     label: 'スペーサー FR',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
 
   // リア設定
@@ -71,6 +79,7 @@ final List<SettingItem> bd12SpecificSettings = [
     category: 'rear',
     label: 'ホイールハブ',
     options: ['4.0mm', '4.5mm', '5.0mm'],
+    defaultValue: '4.0mm',
   ),
   SettingItem(
     key: 'rearGear',
@@ -78,6 +87,7 @@ final List<SettingItem> bd12SpecificSettings = [
     category: 'rear',
     label: 'ギア',
     unit: '#',
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'rearCamHeight',
@@ -85,6 +95,7 @@ final List<SettingItem> bd12SpecificSettings = [
     category: 'rear',
     label: 'カム',
     options: ['高', '低'],
+    defaultValue: '高',
   ),
   SettingItem(
     key: 'rearSpacerRF',
@@ -93,6 +104,7 @@ final List<SettingItem> bd12SpecificSettings = [
     label: 'スペーサー RF',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'rearSpacerRR',
@@ -101,6 +113,7 @@ final List<SettingItem> bd12SpecificSettings = [
     label: 'スペーサー RR',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
 
   // シャーシ設定
@@ -110,6 +123,7 @@ final List<SettingItem> bd12SpecificSettings = [
     category: 'chassis',
     label: 'メインシャーシ',
     options: ['カーボン', 'アルミ'],
+    defaultValue: 'カーボン',
   ),
   SettingItem(
     key: 'upperDeck',
@@ -117,48 +131,56 @@ final List<SettingItem> bd12SpecificSettings = [
     category: 'chassis',
     label: 'アッパーデッキ',
     options: ['標準タイプ', '薄型'],
+    defaultValue: '標準タイプ',
   ),
   SettingItem(
     key: 'motor',
     type: 'text',
     category: 'chassis',
     label: 'モーター',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'spurGear',
     type: 'text',
     category: 'chassis',
     label: 'スパーギア',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'pinionGear',
     type: 'text',
     category: 'chassis',
     label: 'ピニオンギア',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'battery',
     type: 'text',
     category: 'chassis',
     label: 'バッテリー',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'esc',
     type: 'text',
     category: 'chassis',
     label: 'アンプ',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'body',
     type: 'text',
     category: 'chassis',
     label: 'ボディ',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'wing',
     type: 'text',
     category: 'chassis',
     label: 'ウイング',
+    defaultValue: '',
   ),
 
   // サスペンション設定
@@ -169,6 +191,7 @@ final List<SettingItem> bd12SpecificSettings = [
     label: '車高 フロント',
     unit: 'mm',
     constraints: {'min': 3, 'max': 10, 'step': 0.1},
+    defaultValue: '3',
   ),
   SettingItem(
     key: 'rearRideHeight',
@@ -177,6 +200,7 @@ final List<SettingItem> bd12SpecificSettings = [
     label: '車高 リア',
     unit: 'mm',
     constraints: {'min': 3, 'max': 10, 'step': 0.1},
+    defaultValue: '3',
   ),
   SettingItem(
     key: 'frontCamber',
@@ -185,6 +209,7 @@ final List<SettingItem> bd12SpecificSettings = [
     label: 'キャンバー フロント',
     unit: '°',
     constraints: {'min': -5, 'max': 5, 'step': 0.5},
+    defaultValue: '-5',
   ),
   SettingItem(
     key: 'rearCamber',
@@ -193,6 +218,7 @@ final List<SettingItem> bd12SpecificSettings = [
     label: 'キャンバー リア',
     unit: '°',
     constraints: {'min': -5, 'max': 5, 'step': 0.5},
+    defaultValue: '-5',
   ),
   SettingItem(
     key: 'frontSwayBar',
@@ -200,6 +226,7 @@ final List<SettingItem> bd12SpecificSettings = [
     category: 'suspension',
     label: 'スタビ フロント',
     options: ['1.1', '1.2', '1.3', '1.4'],
+    defaultValue: '1.1',
   ),
   SettingItem(
     key: 'rearSwayBar',
@@ -207,6 +234,7 @@ final List<SettingItem> bd12SpecificSettings = [
     category: 'suspension',
     label: 'スタビ リア',
     options: ['1.1', '1.2', '1.3', '1.4'],
+    defaultValue: '1.1',
   ),
   SettingItem(
     key: 'frontDroop',
@@ -215,6 +243,7 @@ final List<SettingItem> bd12SpecificSettings = [
     label: 'ドループ フロント',
     unit: 'mm',
     constraints: {'min': 0, 'max': 5, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'rearDroop',
@@ -223,6 +252,7 @@ final List<SettingItem> bd12SpecificSettings = [
     label: 'ドループ リア',
     unit: 'mm',
     constraints: {'min': 0, 'max': 5, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'frontToe',
@@ -231,6 +261,7 @@ final List<SettingItem> bd12SpecificSettings = [
     label: 'トー角 フロント',
     unit: '°',
     constraints: {'min': -5, 'max': 5, 'step': 0.5},
+    defaultValue: '-5',
   ),
   SettingItem(
     key: 'rearToe',
@@ -239,6 +270,7 @@ final List<SettingItem> bd12SpecificSettings = [
     label: 'トー角 リア',
     unit: '°',
     constraints: {'min': -5, 'max': 5, 'step': 0.5},
+    defaultValue: '-5',
   ),
 
   // ダンパー設定
@@ -247,12 +279,14 @@ final List<SettingItem> bd12SpecificSettings = [
     type: 'text',
     category: 'damper',
     label: 'オイル フロント',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'rearShockOil',
     type: 'text',
     category: 'damper',
     label: 'オイル リア',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'frontPiston',
@@ -260,6 +294,7 @@ final List<SettingItem> bd12SpecificSettings = [
     category: 'damper',
     label: 'ピストン フロント',
     options: ['4穴', '6穴', '穴'],
+    defaultValue: '4穴',
   ),
   SettingItem(
     key: 'rearPiston',
@@ -267,30 +302,35 @@ final List<SettingItem> bd12SpecificSettings = [
     category: 'damper',
     label: 'ピストン リア',
     options: ['4穴', '6穴', '穴'],
+    defaultValue: '4穴',
   ),
   SettingItem(
     key: 'frontSpring',
     type: 'text',
     category: 'damper',
     label: 'スプリング フロント',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'rearSpring',
     type: 'text',
     category: 'damper',
     label: 'スプリング リア',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'frontBladder',
     type: 'text',
     category: 'damper',
     label: 'ブラダー フロント',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'rearBladder',
     type: 'text',
     category: 'damper',
     label: 'ブラダー リア',
+    defaultValue: '',
   ),
 ];
 
@@ -298,4 +338,5 @@ final List<SettingItem> bd12SpecificSettings = [
 final bd12Settings = CarSettingDefinition(
   carId: 'yokomo/bd12',
   availableSettings: [...basicSettings, ...bd12SpecificSettings],
+  isHumanVerified: true,
 );

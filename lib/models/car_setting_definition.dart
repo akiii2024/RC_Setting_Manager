@@ -1,10 +1,12 @@
 class CarSettingDefinition {
   final String carId;
   final List<SettingItem> availableSettings;
+  final bool isHumanVerified; // 人間が確認したかどうか
 
   CarSettingDefinition({
     required this.carId,
     required this.availableSettings,
+    this.isHumanVerified = false,
   });
 
   // JSONからの変換
@@ -14,6 +16,7 @@ class CarSettingDefinition {
       availableSettings: (json['availableSettings'] as List)
           .map((item) => SettingItem.fromJson(item))
           .toList(),
+      isHumanVerified: json['isHumanVerified'] as bool? ?? false,
     );
   }
 
@@ -23,6 +26,7 @@ class CarSettingDefinition {
       'carId': carId,
       'availableSettings':
           availableSettings.map((item) => item.toJson()).toList(),
+      'isHumanVerified': isHumanVerified,
     };
   }
 }

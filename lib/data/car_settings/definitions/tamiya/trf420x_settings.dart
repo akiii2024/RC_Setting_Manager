@@ -11,6 +11,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'アッパーアームスペーサー',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'frontDamperPosition',
@@ -18,6 +19,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'front',
     label: 'ダンパーポジション',
     options: ['1', '2', '3'],
+    defaultValue: '1',
   ),
   SettingItem(
     key: 'frontWheelHub',
@@ -25,6 +27,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'front',
     label: 'ホイールハブ',
     options: ['4mm', '5mm'],
+    defaultValue: '4mm',
   ),
   SettingItem(
     key: 'frontWheelSpacer',
@@ -33,6 +36,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'ホイールスペーサー',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'frontDroop',
@@ -41,6 +45,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'ドループ',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.1},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'frontK1Position',
@@ -48,6 +53,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'front',
     label: 'K1ポジション',
     options: ['高い', '低い'],
+    defaultValue: '高い',
   ),
   SettingItem(
     key: 'frontFSusMount',
@@ -55,6 +61,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'front',
     label: 'Fサスマウント',
     options: ['XB', 'A', 'B'],
+    defaultValue: 'XB',
   ),
   SettingItem(
     key: 'frontRSusMount',
@@ -62,6 +69,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'front',
     label: 'Rサスマウント',
     options: ['XB', 'A', 'B'],
+    defaultValue: 'XB',
   ),
   SettingItem(
     key: 'frontSusMountShaftPosition',
@@ -81,6 +89,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'キャスター角',
     unit: '°',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'frontCamberAngle',
@@ -89,6 +98,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'キャンバー角',
     unit: '°',
     constraints: {'min': -10, 'max': 10, 'step': 0.5},
+    defaultValue: '-10',
   ),
   SettingItem(
     key: 'frontGroundClearance',
@@ -97,6 +107,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: '車高',
     unit: 'mm',
     constraints: {'min': 3, 'max': 10, 'step': 0.1},
+    defaultValue: '3',
   ),
   SettingItem(
     key: 'frontStabilizer',
@@ -105,12 +116,14 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'スタビライザー',
     unit: 'φ',
     constraints: {'min': 1.0, 'max': 3.0, 'step': 0.1},
+    defaultValue: '1.0',
   ),
   SettingItem(
     key: 'frontDrive',
     type: 'text',
     category: 'front',
     label: 'フロントドライブ',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'frontDiff',
@@ -118,6 +131,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'front',
     label: 'デフオイル',
     unit: '#',
+    defaultValue: '',
   ),
 
   // フロントダンパー設定
@@ -128,6 +142,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'ダンパーオフセット（ステー）',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'frontDamperOffsetArm',
@@ -136,18 +151,21 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'ダンパーオフセット（アーム）',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'frontDamperType',
     type: 'text',
     category: 'front',
     label: 'ダンパータイプ',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'frontDamperOilSeal',
     type: 'text',
     category: 'front',
     label: 'オイルシール',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'frontDamperPiston',
@@ -156,6 +174,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'ピストン',
     unit: 'φ',
     constraints: {'min': 1.0, 'max': 3.0, 'step': 0.1},
+    defaultValue: '1.0',
   ),
   SettingItem(
     key: 'frontDamperPistonHole',
@@ -163,6 +182,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'front',
     label: 'ピストン穴数',
     constraints: {'min': 1, 'max': 10, 'step': 1},
+    defaultValue: '1',
   ),
   SettingItem(
     key: 'frontDamperOil',
@@ -170,12 +190,14 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'front',
     label: 'オイル',
     unit: '#',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'frontDamperSpring',
     type: 'text',
     category: 'front',
     label: 'スプリング',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'frontDamperStroke',
@@ -184,6 +206,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'ストローク長',
     unit: 'mm',
     constraints: {'min': 0, 'max': 50, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'frontDamperAirHole',
@@ -192,6 +215,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'エア抜き穴',
     unit: 'mm',
     constraints: {'min': 0, 'max': 5, 'step': 0.1},
+    defaultValue: '0',
   ),
 
   // リア設定
@@ -202,6 +226,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'アッパーアームスペーサー',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'rearDamperPosition',
@@ -209,6 +234,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'rear',
     label: 'ダンパーポジション',
     options: ['1', '2', '3'],
+    defaultValue: '1',
   ),
   SettingItem(
     key: 'rearWheelHub',
@@ -216,6 +242,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'rear',
     label: 'ホイールハブ',
     options: ['4mm', '5mm'],
+    defaultValue: '4mm',
   ),
   SettingItem(
     key: 'rearWheelSpacer',
@@ -224,6 +251,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'ホイールスペーサー',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'rearDroop',
@@ -232,6 +260,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'ドループ',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.1},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'rearK1Position',
@@ -239,6 +268,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'rear',
     label: 'K1ポジション',
     options: ['高い', '低い'],
+    defaultValue: '高い',
   ),
   SettingItem(
     key: 'rearFSusMount',
@@ -246,6 +276,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'rear',
     label: 'Fサスマウント',
     options: ['XB', 'A', 'B'],
+    defaultValue: 'XB',
   ),
   SettingItem(
     key: 'rearRSusMount',
@@ -253,6 +284,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'rear',
     label: 'Rサスマウント',
     options: ['XB', 'A', 'B'],
+    defaultValue: 'XB',
   ),
   SettingItem(
     key: 'rearSusMountShaftPosition',
@@ -272,6 +304,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'キャスター角',
     unit: '°',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'rearCamberAngle',
@@ -280,6 +313,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'キャンバー角',
     unit: '°',
     constraints: {'min': -10, 'max': 10, 'step': 0.5},
+    defaultValue: '-10',
   ),
   SettingItem(
     key: 'rearGroundClearance',
@@ -288,6 +322,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: '車高',
     unit: 'mm',
     constraints: {'min': 3, 'max': 10, 'step': 0.1},
+    defaultValue: '3',
   ),
   SettingItem(
     key: 'rearStabilizer',
@@ -296,12 +331,14 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'スタビライザー',
     unit: 'φ',
     constraints: {'min': 1.0, 'max': 3.0, 'step': 0.1},
+    defaultValue: '1.0',
   ),
   SettingItem(
     key: 'rearDrive',
     type: 'text',
     category: 'rear',
     label: 'リアドライブ',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'rearDiff',
@@ -309,6 +346,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'rear',
     label: 'デフオイル',
     unit: '#',
+    defaultValue: '',
   ),
 
   // リアダンパー設定
@@ -319,6 +357,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'ダンパーオフセット（ステー）',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'rearDamperOffsetArm',
@@ -327,18 +366,21 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'ダンパーオフセット（アーム）',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'rearDamperType',
     type: 'text',
     category: 'rear',
     label: 'ダンパータイプ',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'rearDamperOilSeal',
     type: 'text',
     category: 'rear',
     label: 'オイルシール',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'rearDamperPiston',
@@ -347,6 +389,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'ピストン',
     unit: 'φ',
     constraints: {'min': 1.0, 'max': 3.0, 'step': 0.1},
+    defaultValue: '1.0',
   ),
   SettingItem(
     key: 'rearDamperPistonHole',
@@ -354,6 +397,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'rear',
     label: 'ピストン穴数',
     constraints: {'min': 1, 'max': 10, 'step': 1},
+    defaultValue: '1',
   ),
   SettingItem(
     key: 'rearDamperOil',
@@ -361,12 +405,14 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'rear',
     label: 'オイル',
     unit: '#',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'rearDamperSpring',
     type: 'text',
     category: 'rear',
     label: 'スプリング',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'rearDamperStroke',
@@ -375,6 +421,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'ストローク長',
     unit: 'mm',
     constraints: {'min': 0, 'max': 50, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'rearDamperAirHole',
@@ -383,6 +430,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'エア抜き穴',
     unit: 'mm',
     constraints: {'min': 0, 'max': 5, 'step': 0.1},
+    defaultValue: '0',
   ),
 
   // トップ設定
@@ -392,6 +440,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'top',
     label: 'ナックルアーム',
     options: ['カーボン', 'プラスチック'],
+    defaultValue: 'カーボン',
   ),
   SettingItem(
     key: 'uprightSpacer',
@@ -400,6 +449,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'アップライトスペーサー',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'steeringPivot',
@@ -407,6 +457,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'top',
     label: 'ステアリングピボット',
     options: ['8.0mm', '8.5mm'],
+    defaultValue: '8.0mm',
   ),
   SettingItem(
     key: 'steeringSpacer',
@@ -415,6 +466,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'ステアリングスペーサー',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'frontSusArmSpacer',
@@ -423,6 +475,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'Fサスアームスペーサー',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'rearSusArmSpacer',
@@ -431,6 +484,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'Rサスアームスペーサー',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'lowerDeck',
@@ -439,6 +493,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'ロアデッキ',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'lowerDeckMaterial',
@@ -446,6 +501,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'top',
     label: 'ロアデッキ材質',
     options: ['アルミ', 'カーボン'],
+    defaultValue: 'アルミ',
   ),
   SettingItem(
     key: 'bumperPost',
@@ -453,6 +509,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'top',
     label: 'バンパーポスト',
     options: ['B5', 'Op.'],
+    defaultValue: 'B5',
   ),
   SettingItem(
     key: 'ballastWeight',
@@ -461,6 +518,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'バランスウェイト',
     unit: 'g',
     constraints: {'min': 0, 'max': 100, 'step': 0.5},
+    defaultValue: '0',
   ),
 
   // その他の設定
@@ -469,6 +527,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     type: 'text',
     category: 'other',
     label: 'モーター',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'spurGear',
@@ -477,6 +536,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'スパーギア',
     unit: 'T',
     constraints: {'min': 60, 'max': 120, 'step': 1},
+    defaultValue: '60',
   ),
   SettingItem(
     key: 'pinionGear',
@@ -485,18 +545,21 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'ピニオンギア',
     unit: 'T',
     constraints: {'min': 20, 'max': 50, 'step': 1},
+    defaultValue: '20',
   ),
   SettingItem(
     key: 'battery',
     type: 'text',
     category: 'other',
     label: 'バッテリー',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'body',
     type: 'text',
     category: 'other',
     label: 'ボディ',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'bodyWeight',
@@ -505,6 +568,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'ボディ重量',
     unit: 'g',
     constraints: {'min': 0, 'max': 500, 'step': 1},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'bodyMountFront',
@@ -513,6 +577,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'ボディマウント前',
     unit: 'mm',
     constraints: {'min': 0, 'max': 50, 'step': 1},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'bodyMountRear',
@@ -521,36 +586,42 @@ final List<SettingItem> trf420xSpecificSettings = [
     label: 'ボディマウント後',
     unit: 'mm',
     constraints: {'min': 0, 'max': 50, 'step': 1},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'wing',
     type: 'text',
     category: 'other',
     label: 'ウイング',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'tire',
     type: 'text',
     category: 'other',
     label: 'タイヤ',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'wheel',
     type: 'text',
     category: 'other',
     label: 'ホイール',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'tireInner',
     type: 'text',
     category: 'other',
     label: 'インナー',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'seatLap',
     type: 'text',
     category: 'other',
     label: 'シートラップ',
+    defaultValue: '',
   ),
 ];
 
@@ -558,4 +629,5 @@ final List<SettingItem> trf420xSpecificSettings = [
 final trf420xSettings = CarSettingDefinition(
   carId: 'tamiya/trf420x',
   availableSettings: [...basicSettings, ...trf420xSpecificSettings],
+  isHumanVerified: true,
 );

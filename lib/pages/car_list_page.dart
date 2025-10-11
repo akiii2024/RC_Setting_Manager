@@ -5,6 +5,7 @@ import 'car_setting_page.dart';
 import '../models/manufacturer.dart';
 import '../models/car.dart';
 import '../models/visibility_settings.dart';
+import '../data/car_settings_definitions.dart';
 
 // ユーティリティクラス - 車種ごとの設定を管理
 class CarSettingsUtil {
@@ -58,7 +59,7 @@ class _CarListPageState extends State<CarListPage> {
           final manufacturerCars = settingsProvider.cars
               .where((car) => car.manufacturer.id == widget.manufacturer.id)
               .toList();
-              
+
           return ListView.builder(
             itemCount: manufacturerCars.length,
             itemBuilder: (context, index) {
@@ -68,8 +69,8 @@ class _CarListPageState extends State<CarListPage> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => CarSettingPage(
-                          originalCar: manufacturerCars[index]),
+                      builder: (context) =>
+                          CarSettingPage(originalCar: manufacturerCars[index]),
                     ),
                   );
                 },
@@ -491,6 +492,10 @@ class CarListItem extends StatelessWidget {
     final settingsProvider = Provider.of<SettingsProvider>(context);
     final isEnglish = settingsProvider.isEnglish;
 
+    // 車種の設定定義を取得
+    final carDefinition = getCarSettingDefinition(car.id);
+    final isVerified = carDefinition?.isHumanVerified ?? false;
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: InkWell(
@@ -514,12 +519,39 @@ class CarListItem extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      car.name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            car.name,
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        if (isVerified) ...[
+                          const SizedBox(width: 8),
+                          Tooltip(
+                            message: isEnglish ? 'Human Verified' : '人間確認済み',
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.blue,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Icon(
+                                Icons.verified,
+                                size: 16,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(

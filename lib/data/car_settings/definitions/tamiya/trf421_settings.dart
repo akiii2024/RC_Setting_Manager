@@ -11,6 +11,7 @@ final List<SettingItem> trf421SpecificSettings = [
     label: 'アッパーアームスペーサー',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'frontDamperMountSpacer',
@@ -19,6 +20,7 @@ final List<SettingItem> trf421SpecificSettings = [
     label: 'ダンパーマウントスペーサー',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'frontWheelHub',
@@ -26,6 +28,7 @@ final List<SettingItem> trf421SpecificSettings = [
     category: 'front',
     label: 'ホイールハブ',
     options: ['4mm', '5mm'],
+    defaultValue: '4mm',
   ),
   SettingItem(
     key: 'frontWheelSpacer',
@@ -34,6 +37,7 @@ final List<SettingItem> trf421SpecificSettings = [
     label: 'ホイールスペーサー',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'frontDroop',
@@ -42,6 +46,7 @@ final List<SettingItem> trf421SpecificSettings = [
     label: 'ドループ',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'frontDiffPosition',
@@ -49,6 +54,7 @@ final List<SettingItem> trf421SpecificSettings = [
     category: 'front',
     label: 'デフポジション',
     options: ['Hi', 'Lo'],
+    defaultValue: 'Hi',
   ),
   SettingItem(
     key: 'frontCamber',
@@ -57,6 +63,7 @@ final List<SettingItem> trf421SpecificSettings = [
     label: 'キャンバー角',
     unit: '°',
     constraints: {'min': -10, 'max': 10, 'step': 0.5},
+    defaultValue: '-10',
   ),
   SettingItem(
     key: 'frontCaster',
@@ -65,6 +72,7 @@ final List<SettingItem> trf421SpecificSettings = [
     label: 'キャスター角',
     unit: '°',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'frontGroundClearance',
@@ -73,12 +81,14 @@ final List<SettingItem> trf421SpecificSettings = [
     label: '車高',
     unit: 'mm',
     constraints: {'min': 3, 'max': 15, 'step': 0.5},
+    defaultValue: '3',
   ),
   SettingItem(
     key: 'frontStabilizer',
     type: 'text',
     category: 'front',
     label: 'スタビライザー',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'frontDiffOil',
@@ -86,8 +96,9 @@ final List<SettingItem> trf421SpecificSettings = [
     category: 'front',
     label: 'デフオイル',
     unit: '#',
+    defaultValue: '0',
   ),
-  
+
   // リア設定
   SettingItem(
     key: 'rearUpperArmSpacer',
@@ -96,6 +107,7 @@ final List<SettingItem> trf421SpecificSettings = [
     label: 'アッパーアームスペーサー',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'rearDamperMountSpacer',
@@ -104,6 +116,7 @@ final List<SettingItem> trf421SpecificSettings = [
     label: 'ダンパーマウントスペーサー',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'rearWheelHub',
@@ -111,6 +124,7 @@ final List<SettingItem> trf421SpecificSettings = [
     category: 'rear',
     label: 'ホイールハブ',
     options: ['4mm', '5mm'],
+    defaultValue: '4mm',
   ),
   SettingItem(
     key: 'rearWheelSpacer',
@@ -119,6 +133,7 @@ final List<SettingItem> trf421SpecificSettings = [
     label: 'ホイールスペーサー',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'rearDroop',
@@ -127,6 +142,7 @@ final List<SettingItem> trf421SpecificSettings = [
     label: 'ドループ',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'rearDiffPosition',
@@ -134,6 +150,7 @@ final List<SettingItem> trf421SpecificSettings = [
     category: 'rear',
     label: 'デフポジション',
     options: ['Hi', 'Lo'],
+    defaultValue: 'Hi',
   ),
   SettingItem(
     key: 'rearCamber',
@@ -142,6 +159,7 @@ final List<SettingItem> trf421SpecificSettings = [
     label: 'キャンバー角',
     unit: '°',
     constraints: {'min': -10, 'max': 10, 'step': 0.5},
+    defaultValue: '-10',
   ),
   SettingItem(
     key: 'rearGroundClearance',
@@ -150,12 +168,14 @@ final List<SettingItem> trf421SpecificSettings = [
     label: '車高',
     unit: 'mm',
     constraints: {'min': 3, 'max': 15, 'step': 0.5},
+    defaultValue: '3',
   ),
   SettingItem(
     key: 'rearStabilizer',
     type: 'text',
     category: 'rear',
     label: 'スタビライザー',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'rearDiffOil',
@@ -163,6 +183,7 @@ final List<SettingItem> trf421SpecificSettings = [
     category: 'rear',
     label: 'デフオイル',
     unit: '#',
+    defaultValue: '0',
   ),
 
   // トップデッキ設定
@@ -173,6 +194,7 @@ final List<SettingItem> trf421SpecificSettings = [
     label: 'アップライトスペーサー（前）',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'uprightSpacerRear',
@@ -181,6 +203,7 @@ final List<SettingItem> trf421SpecificSettings = [
     label: 'アップライトスペーサー（後）',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'toeAngle',
@@ -188,6 +211,7 @@ final List<SettingItem> trf421SpecificSettings = [
     category: 'top',
     label: 'トー角',
     options: ['In', 'Out'],
+    defaultValue: 'In',
   ),
   SettingItem(
     key: 'steeringPivot',
@@ -195,6 +219,7 @@ final List<SettingItem> trf421SpecificSettings = [
     category: 'top',
     label: 'ステアリングピボット',
     options: ['8.0mm', '8.5mm'],
+    defaultValue: '8.0mm',
   ),
   SettingItem(
     key: 'bumperPost',
@@ -202,6 +227,7 @@ final List<SettingItem> trf421SpecificSettings = [
     category: 'top',
     label: 'バンパーポスト',
     options: ['BS', 'Op.'],
+    defaultValue: 'BS',
   ),
   SettingItem(
     key: 'lowerDeckMaterial',
@@ -209,6 +235,7 @@ final List<SettingItem> trf421SpecificSettings = [
     category: 'top',
     label: 'ロアデッキ',
     options: ['アルミ', 'カーボン'],
+    defaultValue: 'アルミ',
   ),
   SettingItem(
     key: 'upperDeck',
@@ -216,6 +243,7 @@ final List<SettingItem> trf421SpecificSettings = [
     category: 'top',
     label: 'アッパーデッキ',
     options: ['1pcs', '2pcs'],
+    defaultValue: '1pcs',
   ),
   SettingItem(
     key: 'ballastWeight',
@@ -223,6 +251,7 @@ final List<SettingItem> trf421SpecificSettings = [
     category: 'top',
     label: 'バランスウェイト',
     unit: 'g',
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'batteryWeight',
@@ -230,6 +259,7 @@ final List<SettingItem> trf421SpecificSettings = [
     category: 'top',
     label: 'バッテリーウェイト',
     unit: 'g',
+    defaultValue: '0',
   ),
 
   // 全般設定
@@ -238,6 +268,7 @@ final List<SettingItem> trf421SpecificSettings = [
     type: 'text',
     category: 'general',
     label: 'モーター',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'spurGear',
@@ -245,6 +276,7 @@ final List<SettingItem> trf421SpecificSettings = [
     category: 'general',
     label: 'スパーギア',
     unit: 'T',
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'pinionGear',
@@ -252,12 +284,14 @@ final List<SettingItem> trf421SpecificSettings = [
     category: 'general',
     label: 'ピニオンギア',
     unit: 'T',
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'battery',
     type: 'text',
     category: 'general',
     label: 'バッテリー',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'bodyWeight',
@@ -265,6 +299,7 @@ final List<SettingItem> trf421SpecificSettings = [
     category: 'general',
     label: 'ボディ重量',
     unit: 'g',
+    defaultValue: '0',
   ),
   SettingItem(
     key: 'bodyMountPosition',
@@ -272,36 +307,42 @@ final List<SettingItem> trf421SpecificSettings = [
     category: 'general',
     label: 'ボディマウント穴位置',
     options: ['F', 'R'],
+    defaultValue: 'F',
   ),
   SettingItem(
     key: 'wing',
     type: 'text',
     category: 'general',
     label: 'ウイング',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'tire',
     type: 'text',
     category: 'general',
     label: 'タイヤ',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'wheel',
     type: 'text',
     category: 'general',
     label: 'ホイール',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'tireInsert',
     type: 'text',
     category: 'general',
     label: 'インナー',
+    defaultValue: '',
   ),
   SettingItem(
     key: 'additive',
     type: 'text',
     category: 'general',
     label: '添加物',
+    defaultValue: '',
   ),
 ];
 
@@ -309,4 +350,5 @@ final List<SettingItem> trf421SpecificSettings = [
 final trf421Settings = CarSettingDefinition(
   carId: 'tamiya/trf421',
   availableSettings: [...basicSettings, ...trf421SpecificSettings],
+  isHumanVerified: true,
 );
