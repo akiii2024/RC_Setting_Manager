@@ -20,6 +20,7 @@ migrate_working_dir/
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.
 #.vscode/
+.cursor/
 
 # Flutter/Dart/Pub related
 **/doc/api/
@@ -39,6 +40,9 @@ migrate_working_dir/
 **/GeneratedPluginRegistrant.m
 **/GeneratedPluginRegistrant.h
 
+# Flutter ephemeral directories (自動生成)
+**/ephemeral/
+
 # Symbolication related
 app.*.symbols
 
@@ -49,6 +53,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Android local properties (環境固有のSDKパス等)
+android/local.properties
 
 # Android NDK and CMake build artifacts
 /android/app/.cxx/
