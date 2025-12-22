@@ -426,6 +426,13 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
+  // オフラインモードを強制的に有効化
+  Future<void> setOfflineMode() async {
+    _isOnlineMode = false;
+    await _saveOnlineMode();
+    notifyListeners();
+  }
+
   // オンラインモードを切り替え
   Future<void> toggleOnlineMode() async {
     _isOnlineMode = !_isOnlineMode;

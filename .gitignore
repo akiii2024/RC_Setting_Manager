@@ -32,6 +32,13 @@ migrate_working_dir/
 .pub/
 /build/
 
+# Flutter generated plugin registrant files
+**/generated_plugin_registrant.*
+**/generated_plugins.cmake
+**/GeneratedPluginRegistrant.swift
+**/GeneratedPluginRegistrant.m
+**/GeneratedPluginRegistrant.h
+
 # Symbolication related
 app.*.symbols
 
