@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
-import 'car_setting_page.dart';
 import 'settings_page.dart';
 import '../models/car.dart';
 import '../models/manufacturer.dart';
@@ -28,115 +27,50 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
     final manufacturers = settingsProvider.getManufacturers();
 
     return Scaffold(
-      extendBodyBehindAppBar: true,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: Text(
-          isEnglish ? 'Manufacturer Selection' : 'メーカー選択',
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.5,
-          ),
-        ),
+        title: Text(isEnglish ? 'Manufacturer Selection' : 'メーカー選択'),
         actions: [
-          Container(
-            margin: const EdgeInsets.only(right: 8),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Material(
-                  color: Colors.white.withOpacity(0.08),
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const SettingsPage(),
-                        ),
-                      );
-                    },
-                    child: const Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Icon(Icons.settings, size: 22),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          // 背景グラデーション + デコ
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Color(0xFF0f2027),
-                  Color(0xFF203A43),
-                  Color(0xFF2C5364),
-                ],
-              ),
-            ),
-          ),
-          // 柔らかい円形グロー
-          Positioned(
-            top: -60,
-            right: -40,
-            child: _GlowCircle(color: Colors.white.withOpacity(0.08), size: 220),
-          ),
-          Positioned(
-            bottom: -80,
-            left: -40,
-            child:
-                _GlowCircle(color: Colors.cyanAccent.withOpacity(0.08), size: 300),
-          ),
-          // コンテンツ
-          SafeArea(
-            child: manufacturers.isEmpty
-                ? Center(
-                    child: _EmptyState(isEnglish: isEnglish),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.only(top: 12, bottom: 96),
-                    itemCount: manufacturers.length,
-                    itemBuilder: (context, index) {
-                      return ManufacturerListItem(
-                        manufacturer: manufacturers[index],
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => CarListPage(
-                                  manufacturer: manufacturers[index]),
-                            ),
-                          );
-                        },
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-      floatingActionButton: ClipRRect(
-        borderRadius: BorderRadius.circular(16),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: FloatingActionButton.extended(
+          IconButton(
             onPressed: () {
-              _showAddManufacturerDialog();
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsPage(),
+                ),
+              );
             },
-            backgroundColor: Colors.white.withOpacity(0.14),
-            elevation: 0,
-            icon: const Icon(Icons.add),
-            label: Text(isEnglish ? 'Add' : '追加'),
+            icon: const Icon(Icons.settings),
           ),
-        ),
+        ],
+      ),
+      body: manufacturers.isEmpty
+          ? Center(
+              child: _EmptyState(isEnglish: isEnglish),
+            )
+          : ListView.builder(
+              padding: const EdgeInsets.only(top: 8, bottom: 96),
+              itemCount: manufacturers.length,
+              itemBuilder: (context, index) {
+                return ManufacturerListItem(
+                  manufacturer: manufacturers[index],
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            CarListPage(manufacturer: manufacturers[index]),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _showAddManufacturerDialog();
+        },
+        tooltip: isEnglish ? 'Add Manufacturer' : 'メーカーを追加',
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -147,59 +81,183 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
         Provider.of<SettingsProvider>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(isEnglish ? 'Add New Manufacturer' : '新しいメーカーを追加'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  labelText: isEnglish ? 'Manufacturer Name' : 'メーカー名',
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(isEnglish
-                  ? 'Note: Default image will be used for now.'
-                  : '注: 現在はデフォルト画像が使用されます'),
-            ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+            left: 16,
+            right: 16,
+            top: 16,
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.98),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.08),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () {
-                final name = nameController.text.trim();
-                if (name.isNotEmpty) {
-                  // 新しいメーカーの車種を追加（サンプル車種として）
-                  final newManufacturer = Manufacturer(
-                    id: name.toLowerCase().replaceAll(' ', '_'),
-                    name: name,
-                    logoPath: 'assets/images/default_manufacturer.png',
-                  );
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4CAF50).withOpacity(0.12),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.factory, color: Color(0xFF4CAF50)),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              isEnglish
+                                  ? 'Add Manufacturer'
+                                  : 'メーカーを追加',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleMedium
+                                  ?.copyWith(fontWeight: FontWeight.w700),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              isEnglish
+                                  ? 'Default icon will be applied. You can edit later.'
+                                  : 'デフォルトのアイコンが適用されます。後から編集できます。',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: Colors.grey[600]),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: nameController,
+                    decoration: InputDecoration(
+                      labelText: isEnglish ? 'Manufacturer Name' : 'メーカー名',
+                      prefixIcon: const Icon(Icons.badge_outlined),
+                      filled: true,
+                      fillColor: Colors.grey[100],
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.08),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.info, color: Colors.orange),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            isEnglish
+                                ? 'A default image will be used. You can replace it later from settings.'
+                                : 'デフォルト画像を使用します。後から設定画面で変更できます。',
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodySmall
+                                ?.copyWith(color: Colors.orange[800]),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            final name = nameController.text.trim();
+                            if (name.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(isEnglish
+                                      ? 'Please enter a manufacturer name.'
+                                      : 'メーカー名を入力してください。'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return;
+                            }
 
-                  final sampleCar = Car(
-                    id: '${newManufacturer.id}/sample_car',
-                    name: 'Sample Car',
-                    imageUrl: 'assets/images/default_car.png',
-                    manufacturer: newManufacturer,
-                    category: 'Custom',
-                  );
+                            final newManufacturer = Manufacturer(
+                              id: name.toLowerCase().replaceAll(' ', '_'),
+                              name: name,
+                              logoPath: 'assets/images/default_manufacturer.png',
+                            );
 
-                  settingsProvider.addCar(sampleCar);
-                  Navigator.pop(context);
-                }
-              },
-              child: Text(isEnglish ? 'Add' : '追加'),
+                            final sampleCar = Car(
+                              id: '${newManufacturer.id}/sample_car',
+                              name: 'Sample Car',
+                              imageUrl: 'assets/images/default_car.png',
+                              manufacturer: newManufacturer,
+                              category: 'Custom',
+                            );
+
+                            settingsProvider.addCar(sampleCar);
+                            Navigator.of(ctx).pop();
+                          },
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(isEnglish ? 'Add' : '追加'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ],
+          ),
         );
       },
     );
@@ -232,122 +290,63 @@ class _ManufacturerListItemState extends State<ManufacturerListItem> {
       scale: _isPressed ? 0.98 : 1.0,
       duration: const Duration(milliseconds: 120),
       curve: Curves.easeOut,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        child: GestureDetector(
+      child: Card(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
           onTap: widget.onTap,
           onTapDown: (_) => setState(() => _isPressed = true),
           onTapCancel: () => setState(() => _isPressed = false),
           onTapUp: (_) => setState(() => _isPressed = false),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(16),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white.withOpacity(0.12),
-                      Colors.white.withOpacity(0.06),
-                    ],
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[200],
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.2),
-                    width: 1,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.25),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+                  child: const Icon(Icons.business, size: 36),
                 ),
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.08),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.18),
-                          width: 1,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.manufacturer.name,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      child: const Icon(Icons.business, size: 36, color: Colors.white70),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            widget.manufacturer.name,
+                      const SizedBox(height: 4),
+                      Consumer<SettingsProvider>(
+                        builder: (context, settingsProvider, child) {
+                          final carCount = settingsProvider.cars
+                              .where((car) =>
+                                  car.manufacturer.id == widget.manufacturer.id)
+                              .length;
+                          return Text(
+                            isEnglish ? '$carCount models' : '$carCount 車種',
                             style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.3,
-                              color: Colors.white,
+                              fontSize: 14,
+                              color: Colors.grey,
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Consumer<SettingsProvider>(
-                            builder: (context, settingsProvider, child) {
-                              final carCount = settingsProvider.cars
-                                  .where((car) =>
-                                      car.manufacturer.id == widget.manufacturer.id)
-                                  .length;
-                              return Text(
-                                isEnglish ? '$carCount models' : '$carCount 車種',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.white.withOpacity(0.8),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
+                          );
+                        },
                       ),
-                    ),
-                    Icon(Icons.arrow_forward_ios, size: 16, color: Colors.white.withOpacity(0.9)),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+                const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+              ],
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _GlowCircle extends StatelessWidget {
-  final Color color;
-  final double size;
-
-  const _GlowCircle({required this.color, required this.size});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: color,
-        boxShadow: [
-          BoxShadow(
-            color: color,
-            blurRadius: size * 0.6,
-            spreadRadius: size * 0.1,
-          ),
-        ],
       ),
     );
   }

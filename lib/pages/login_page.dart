@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../providers/settings_provider.dart';
+import '../providers/app_mode_provider.dart';
 import '../data/car_settings_definitions.dart';
 import '../models/car_setting_definition.dart';
 import '../models/car.dart';
@@ -24,12 +25,140 @@ class _LoginPageState extends State<LoginPage> {
   int _welcomeTapCount = 0;
   DateTime? _lastWelcomeTap;
   bool _isStartingDemo = false;
+  bool _isModeOperation = false;
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  Future<void> _selectOfflineMode() async {
+    if (_isModeOperation) return;
+    setState(() {
+      _isModeOperation = true;
+      _isLoading = true;
+    });
+
+    try {
+      final settingsProvider =
+          Provider.of<SettingsProvider>(context, listen: false);
+      final modeProvider = Provider.of<AppModeProvider>(context, listen: false);
+
+      await modeProvider.setOffline();
+      await settingsProvider.setOfflineMode();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(settingsProvider.isEnglish
+                ? 'Offline mode enabled.'
+                : 'オフラインモードを有効にしました。'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const HomePage()),
+          (route) => false,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              Provider.of<SettingsProvider>(context, listen: false).isEnglish
+                  ? 'Failed to enable offline mode: $e'
+                  : 'オフラインモードの有効化に失敗しました: $e',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isModeOperation = false;
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _selectOnlineMode() async {
+    if (_isModeOperation) return;
+
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
+
+    final confirmed = await _showBetaWarningDialog(isEnglish);
+    if (confirmed != true) return;
+
+    setState(() {
+      _isModeOperation = true;
+      _isLoading = true;
+    });
+
+    try {
+      final modeProvider = Provider.of<AppModeProvider>(context, listen: false);
+
+      await modeProvider.setOnlineAndInit();
+      await settingsProvider.setOnlineMode();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isEnglish
+                ? 'Online mode (Beta) enabled.'
+                : 'オンラインモード（ベータ）を有効にしました。'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pushReplacementNamed('/');
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isEnglish
+                ? 'Failed to enable online mode: $e'
+                : 'オンラインモードの有効化に失敗しました: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isModeOperation = false;
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<bool?> _showBetaWarningDialog(bool isEnglish) {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isEnglish ? 'Online mode (Beta)' : 'オンラインモード（ベータ）'),
+        content: Text(isEnglish
+            ? 'Online mode is in beta and may be unstable. Continue?'
+            : 'オンラインモードはベータ版のため動作が不安定な可能性があります。続行しますか？'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: Text(isEnglish ? 'Continue' : '続行'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _submitForm() async {
@@ -40,7 +169,16 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
+      final modeProvider =
+          Provider.of<AppModeProvider>(context, listen: false);
+      if (modeProvider.preferredOnline != true || !modeProvider.isFirebaseReady) {
+        throw Exception('オンラインモード（ベータ）を有効にしてください。');
+      }
+
+      final authService = Provider.of<AuthService?>(context, listen: false);
+      if (authService == null) {
+        throw Exception('Firebase認証がまだ利用できません。');
+      }
 
       if (_isSignUp) {
         await authService.signUpWithEmailAndPassword(
@@ -157,7 +295,16 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
+      final modeProvider =
+          Provider.of<AppModeProvider>(context, listen: false);
+      if (modeProvider.preferredOnline != true || !modeProvider.isFirebaseReady) {
+        throw Exception('オンラインモード（ベータ）を有効にしてください。');
+      }
+
+      final authService = Provider.of<AuthService?>(context, listen: false);
+      if (authService == null) {
+        throw Exception('Firebase認証がまだ利用できません。');
+      }
       await authService.sendPasswordResetEmail(_emailController.text.trim());
 
       if (mounted) {
@@ -190,7 +337,16 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
+      final modeProvider =
+          Provider.of<AppModeProvider>(context, listen: false);
+      if (modeProvider.preferredOnline != true || !modeProvider.isFirebaseReady) {
+        throw Exception('オンラインモード（ベータ）を有効にしてください。');
+      }
+
+      final authService = Provider.of<AuthService?>(context, listen: false);
+      if (authService == null) {
+        throw Exception('Firebase認証がまだ利用できません。');
+      }
       await authService.signInAnonymously();
 
       if (mounted) {
@@ -232,7 +388,16 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final authService = Provider.of<AuthService>(context, listen: false);
+      final modeProvider =
+          Provider.of<AppModeProvider>(context, listen: false);
+      if (modeProvider.preferredOnline != true || !modeProvider.isFirebaseReady) {
+        throw Exception('オンラインモード（ベータ）を有効にしてください。');
+      }
+
+      final authService = Provider.of<AuthService?>(context, listen: false);
+      if (authService == null) {
+        throw Exception('Firebase認証がまだ利用できません。');
+      }
       await authService.convertGuestToAccount(
         _emailController.text.trim(),
         _passwordController.text,
@@ -443,10 +608,98 @@ class _LoginPageState extends State<LoginPage> {
     return 0.0;
   }
 
+  Widget _buildModeSelector(
+      AppModeProvider modeProvider, SettingsProvider settingsProvider) {
+    final isEnglish = settingsProvider.isEnglish;
+    final mode = modeProvider.preferredOnline;
+    final busy = _isModeOperation || modeProvider.isInitializingFirebase;
+
+    String statusText;
+    if (mode == true && modeProvider.isFirebaseReady) {
+      statusText =
+          isEnglish ? 'Online mode (Beta) is active.' : 'オンラインモード（ベータ）が有効です。';
+    } else if (mode == false) {
+      statusText =
+          isEnglish ? 'Offline mode is active.' : 'オフラインモードが有効です。';
+    } else {
+      statusText =
+          isEnglish ? 'Please select a mode.' : 'モードを選択してください。';
+    }
+
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 24),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.cloud_sync, color: Colors.blue),
+                const SizedBox(width: 8),
+                Text(
+                  isEnglish ? 'Connection mode' : '接続モード',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              isEnglish
+                  ? 'Online mode is Beta and may be unstable.'
+                  : 'オンラインモードはベータ版のため動作が不安定な可能性があります。',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: Colors.orange[700]),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              statusText,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: busy ? null : _selectOfflineMode,
+                  icon: const Icon(Icons.offline_pin),
+                  label:
+                      Text(isEnglish ? 'Use offline' : 'オフラインで使う'),
+                ),
+                ElevatedButton.icon(
+                  onPressed: busy ? null : _selectOnlineMode,
+                  icon: const Icon(Icons.cloud_queue),
+                  label: Text(
+                    isEnglish
+                        ? 'Use online (Beta)'
+                        : 'オンラインで使う（ベータ）',
+                  ),
+                ),
+                if (busy) ...[
+                  const SizedBox(width: 8),
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settingsProvider = Provider.of<SettingsProvider>(context);
     final isEnglish = settingsProvider.isEnglish;
+    final modeProvider = Provider.of<AppModeProvider>(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -496,6 +749,8 @@ class _LoginPageState extends State<LoginPage> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 32),
+              _buildModeSelector(modeProvider, settingsProvider),
+              const SizedBox(height: 8),
               TextFormField(
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,

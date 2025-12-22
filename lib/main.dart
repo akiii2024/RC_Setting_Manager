@@ -12,6 +12,7 @@ import 'pages/settings_page.dart';
 import 'pages/login_page.dart';
 import 'providers/theme_provider.dart';
 import 'providers/settings_provider.dart';
+import 'providers/app_mode_provider.dart';
 import 'services/auth_service.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -38,30 +39,68 @@ void main() async {
     // 環境変数が読み込めなくてもアプリは続行
   }
 
-  // Firebase初期化をより安全に行う
+  // 事前のモード設定を取得し、オンライン指定時のみFirebaseを初期化
+  final storedMode = await AppModeProvider.loadStoredPreference();
+  bool firebaseInitialized = false;
+
+  if (storedMode == true) {
+    firebaseInitialized = await _initializeFirebaseWithLogging();
+  }
+
+  final appModeProvider = AppModeProvider(
+    preferredOnline: storedMode,
+    isFirebaseReady: firebaseInitialized,
+  );
+
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider<AppModeProvider>.value(value: appModeProvider),
+        ChangeNotifierProvider(
+          create: (_) => ThemeProvider(),
+          lazy: false,
+        ),
+        ChangeNotifierProvider(
+          create: (_) => SettingsProvider(),
+          lazy: false,
+        ),
+      ],
+      child: Consumer<AppModeProvider>(
+        builder: (context, mode, child) {
+          if (mode.isFirebaseReady) {
+            return ChangeNotifierProvider(
+              create: (_) => AuthService(),
+              lazy: false,
+              child: child,
+            );
+          }
+          // Firebase未使用時はAuthServiceを提供しない（オフライン/未選択）
+          return Provider<AuthService?>.value(
+            value: null,
+            child: child,
+          );
+        },
+        child: const MyApp(),
+      ),
+    ),
+  );
+}
+
+Future<bool> _initializeFirebaseWithLogging() async {
   bool firebaseInitialized = false;
   try {
-    // Firebase設定の診断
     print('=== Firebase Configuration Check ===');
     print('Platform: ${kIsWeb ? 'Web' : 'Mobile'}');
 
-    // 既に初期化されているかチェック
     if (Firebase.apps.isEmpty) {
       print('No Firebase apps found, initializing...');
 
-      FirebaseOptions options;
-      if (kIsWeb) {
-        options = DefaultFirebaseOptions.web;
-        print('Using Web Firebase options');
-      } else {
-        options = DefaultFirebaseOptions.currentPlatform;
-        print('Using Mobile Firebase options');
-      }
+      final options =
+          kIsWeb ? DefaultFirebaseOptions.web : DefaultFirebaseOptions.currentPlatform;
 
-      // Firebase設定の詳細をログ出力
       print('Project ID: ${options.projectId}');
       print('App ID: ${options.appId}');
-      print('API Key: ${options.apiKey?.substring(0, 10)}...');
+      print('API Key: ${options.apiKey.substring(0, 10)}...');
 
       await Firebase.initializeApp(options: options);
       print('Firebase initialized successfully');
@@ -69,7 +108,6 @@ void main() async {
       print('Firebase already initialized (${Firebase.apps.length} apps)');
     }
 
-    // Firebase Auth のテスト
     try {
       final auth = FirebaseAuth.instance;
       print('Firebase Auth instance created successfully');
@@ -78,9 +116,8 @@ void main() async {
       print('Firebase Auth test failed: $e');
     }
 
-    // Firestore のテスト
     try {
-      final firestore = FirebaseFirestore.instance;
+      FirebaseFirestore.instance;
       print('Firebase Firestore instance created successfully');
     } catch (e) {
       print('Firebase Firestore test failed: $e');
@@ -95,41 +132,9 @@ void main() async {
       print('Firebase Error Code: ${e.code}');
       print('Firebase Error Message: ${e.message}');
     }
-    // Firebaseが初期化できなくてもアプリは続行
     firebaseInitialized = false;
   }
-  runApp(
-    MyAppWrapper(firebaseInitialized: firebaseInitialized),
-  );
-}
-
-class MyAppWrapper extends StatelessWidget {
-  final bool firebaseInitialized;
-
-  const MyAppWrapper({super.key, required this.firebaseInitialized});
-
-  @override
-  Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(
-          create: (_) => ThemeProvider(),
-          lazy: false,
-        ),
-        ChangeNotifierProvider(
-          create: (_) => SettingsProvider(),
-          lazy: false,
-        ),
-        // Firebaseが初期化できた場合のみAuthServiceを提供
-        if (firebaseInitialized)
-          ChangeNotifierProvider(
-            create: (_) => AuthService(),
-            lazy: false,
-          ),
-      ],
-      child: const MyApp(),
-    );
-  }
+  return firebaseInitialized;
 }
 
 class AuthWrapper extends StatelessWidget {
@@ -137,9 +142,33 @@ class AuthWrapper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AuthService?>(
-      builder: (context, authService, child) {
-        // Firebaseが初期化されていない場合はログインページを表示
+    return Consumer2<AppModeProvider, AuthService?>(
+      builder: (context, mode, authService, child) {
+        // オフラインモード明示時はHomeを表示（Firebase不要）
+        if (mode.preferredOnline == false) {
+          return const HomePage();
+        }
+
+        // オンライン希望だがFirebaseがまだ用意できていない場合
+        if (mode.preferredOnline == true && !mode.isFirebaseReady) {
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const CircularProgressIndicator(),
+                  const SizedBox(height: 16),
+                  Text(
+                    'オンラインモード（ベータ）を準備中です...',
+                    style: Theme.of(context).textTheme.bodyMedium,
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // モード未選択、またはAuthServiceなしの場合はログイン/選択画面へ
         if (authService == null) {
           return const LoginPage();
         }

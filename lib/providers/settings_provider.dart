@@ -38,12 +38,15 @@ class SettingsProvider extends ChangeNotifier {
   // 非同期初期化を安全に実行
   Future<void> _initializeAsync() async {
     try {
-      // FirestoreServiceを安全に初期化
-      try {
-        _firestoreService = FirestoreService();
-      } catch (e) {
-        print('FirestoreService initialization failed: $e');
-        _firestoreService = null;
+      // まずオンライン設定を読み込み、オンライン指定時のみFirebase依存の初期化を試行
+      await _loadOnlineMode();
+      if (_isOnlineMode) {
+        try {
+          _firestoreService = FirestoreService();
+        } catch (e) {
+          print('FirestoreService initialization failed: $e');
+          _firestoreService = null;
+        }
       }
 
       // 各設定を順次読み込み（並行処理を避ける）
@@ -51,7 +54,6 @@ class SettingsProvider extends ChangeNotifier {
       await _loadSettings();
       await _loadVisibilitySettings();
       await _loadLanguageSettings();
-      await _loadOnlineMode();
 
       // Firebase認証状態をチェックしてオンラインモードを自動設定
       await _checkAuthStateAndSetOnlineMode();
@@ -429,6 +431,24 @@ class SettingsProvider extends ChangeNotifier {
   // オフラインモードを強制的に有効化
   Future<void> setOfflineMode() async {
     _isOnlineMode = false;
+    await _saveOnlineMode();
+    notifyListeners();
+  }
+
+  // オンラインモードを明示的に有効化
+  Future<void> setOnlineMode() async {
+    _isOnlineMode = true;
+
+    // オンライン切り替え時にFirestoreServiceが未生成ならここで試行
+    if (_firestoreService == null) {
+      try {
+        _firestoreService = FirestoreService();
+      } catch (e) {
+        print('FirestoreService initialization failed on setOnlineMode: $e');
+        _firestoreService = null;
+      }
+    }
+
     await _saveOnlineMode();
     notifyListeners();
   }
