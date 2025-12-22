@@ -1,150 +1,119 @@
-# RC Setting Manager
+# RC Setting Manager - ラジコンセッティング記録アプリ
 
-ラジコンのセッティングをスマホアプリで記録することを目的としたものです。
+ラジコンのセッティングをスマホアプリで記録・管理するアプリです。
+セッティングを記録するだけではなく、AIによる分析や画像からの自動読み取りも可能です。
 
-## 🌐 Web版（PWA対応）
+<div align="left">
+  <img src="images/home_screen.png" alt="ホーム画面" width="250" style="margin-right: 20px;">
+  <img src="images/edit_screen.png" alt="セッティング画面" width="250">
+</div>
 
-このアプリはPWA（Progressive Web App）としても動作し、ブラウザから直接アクセスできます：
+## できること
 
-**🌍 ライブデモ**: https://akiii2024.github.io/settingsheet_manager/
+- ラジコンカーのセッティング情報を記録・管理
+- 画像からセッティング値を自動読み取り（OCR機能）
+- AIによるセッティングの分析とアドバイス
+- 天気情報の自動取得と記録
+- トラック情報の管理と路面タイプの記録
+- 複数の車種に対応
+- セッティング履歴の管理
+- データのインポート・エクスポート
+- クラウド同期でデバイス間でデータ共有
 
-### PWA機能
-- 📱 ホーム画面に追加可能
-- 🔄 オフライン対応
-- 📲 ネイティブアプリのような体験
-- 🔔 プッシュ通知対応（将来実装予定）
+## 提供方式
 
-### インストール方法
-1. ブラウザで上記URLにアクセス
+| プラットフォーム|配布方法| 備考|
+|---------------|---------------|---------------|
+|Android|APK or PWA             |将来的にGoogle Playに公開予定 |
+|iOS|PWA（https://akiii2024.github.io/settingsheet_manager/） |ipa配布予定、将来的にApp Storeに公開予定|
+|Web|PWA（https://akiii2024.github.io/settingsheet_manager/） |オフライン動作対応|
+
+## インストール方法
+
+### Web版（PWA）
+
+1. ブラウザで https://akiii2024.github.io/RC_setting_manager/ にアクセス
 2. アドレスバーの「インストール」ボタンをクリック
 3. または、メニューから「ホーム画面に追加」を選択
 
-## 機能
+### APK版
 
-- RCカーのセッティング情報の記録・管理
-- 複数の車種に対応
+1. [release](https://github.com/akiii2024/RC_Setting_Manager/releases)からapkをダウンロード
+2. インストール
+
+
+
+## アプリの使い方
+
+1. 車種を選択
+
+ホーム画面から使用するラジコンカーの車種を選択します。
+
+2. セッティングを記録
+
+各セッティング項目（キャンバー、トー、ロールセンターなど）の値を入力して保存します。
+
+3. OCR機能で自動読み取り
+
+セッティングシートの画像を撮影またはアップロードすると、AIが自動で値を読み取って入力します。
+
+4. AIアドバイスを活用
+
+現在のセッティングや天気・トラック情報を基に、AIが最適なセッティングを提案します。
+
+5. 履歴を確認
+
+過去のセッティング履歴を確認し、比較・分析することができます。
+
+## 主な機能
+
+- セッティング管理（複数の車種に対応）
+- OCR機能（画像からセッティング値を自動読み取り）
+- AIアドバイザー（セッティングの分析と提案）
+- 天気情報の自動取得（気温・湿度を自動記録）
+- トラック情報管理（路面タイプの記録）
+- データのインポート・エクスポート（バックアップと復元）
+- クラウド同期（Firebase認証とデータ同期）
+- セッティング履歴（過去の記録を確認・比較）
+- 計算ツール（ギヤレシオ計算など）
 - ダークモード対応
 - 日本語・英語対応
-- **Firebase認証とクラウド同期機能**
-- デバイス間でのデータ同期
 
-## Firebase セットアップ
+## システム要件
 
-このアプリはFirebaseを使用してユーザー認証とデータの同期を行います。以下の手順でFirebaseプロジェクトを設定してください。
+### 対応デバイス・OS
 
-### 1. Firebaseプロジェクトの作成
+#### Android
+- **OSバージョン**: Android 5.0（API 21）以上
+- **インストール方法**: APKファイルまたはPWA（プログレッシブウェブアプリ）
 
-1. [Firebase Console](https://console.firebase.google.com/)にアクセス
-2. 「プロジェクトを追加」をクリック
-3. プロジェクト名を入力（例：rc-setting-manager）
-4. Google Analyticsの設定（オプション）
-5. プロジェクトを作成
+#### iOS
+- **インストール方法**: PWA（プログレッシブウェブアプリ）
+- **アクセスURL**: https://akiii2024.github.io/RC_setting_manager/
+- **備考**: 将来的にApp Storeでの配布を予定
 
-### 2. 認証の設定
+#### Web（PC・タブレット）
+- **対応ブラウザ**: Chrome、Safari、Firefox、Edge等の主要ブラウザ
+- **アクセスURL**: https://akiii2024.github.io/RC_setting_manager/
+- **PWA対応**: ブラウザからホーム画面にインストール可能
 
-1. Firebase Consoleで「Authentication」を選択
-2. 「始める」をクリック
-3. 「Sign-in method」タブで「メール/パスワード」を有効にする
+### 必要な機能・権限
 
-### 3. Firestoreの設定
+- **カメラ**: OCR機能でセッティングシートの画像を撮影する場合に必要
+- **ストレージ**: セッティングデータの保存に必要
+- **インターネット接続**: 
+  - 基本的な機能（セッティング記録・編集）はオフラインでも利用可能
+  - クラウド同期・AI機能・OCR機能・Firebase認証にはインターネット接続が必要
 
-1. Firebase Consoleで「Firestore Database」を選択
-2. 「データベースの作成」をクリック
-3. セキュリティルールで「テストモードで開始」を選択（後で本番用ルールに変更）
-4. ロケーションを選択（asia-northeast1推奨）
+### 推奨環境
 
-### 4. Android設定
+- **ストレージ容量**: セッティングデータの保存に応じた空き容量が必要（目安：数十MB以上）
+- **メモリ**: スムーズな動作のため、十分な空きメモリを推奨
+- **画面サイズ**: スマートフォン・タブレット・PCの各種画面サイズに対応
 
-1. Firebase Consoleでプロジェクトの設定を開く
-2. 「アプリを追加」→「Android」を選択
-3. パッケージ名：`com.example.settingsheet_manager`
-4. `google-services.json`をダウンロード
-5. `android/app/google-services.json`に配置
+### 動作確認環境
 
-### 5. iOS設定
-
-1. Firebase Consoleでプロジェクトの設定を開く
-2. 「アプリを追加」→「iOS」を選択
-3. バンドルID：`com.example.settingssheetManager`
-4. `GoogleService-Info.plist`をダウンロード
-5. `ios/Runner/GoogleService-Info.plist`に配置
-
-### 6. セキュリティルール（本番環境用）
-
-Firestoreのセキュリティルールを以下のように設定してください：
-
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // ユーザーは自分のデータのみアクセス可能
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
-```
-
-## インストール
-
-### モバイルアプリ版
-
-1. リポジトリをクローン
-```bash
-git clone <repository-url>
-cd settingsheet_manager
-```
-
-2. 依存関係をインストール
-```bash
-flutter pub get
-```
-
-3. Firebase設定ファイルを配置
-   - `android/app/google-services.json`
-   - `ios/Runner/GoogleService-Info.plist`
-
-4. アプリを実行
-```bash
-flutter run
-```
-
-### Web版（開発環境）
-
-1. 依存関係をインストール
-```bash
-flutter pub get
-```
-
-2. Web版をビルド
-```bash
-flutter build web --release --base-href "/settingsheet_manager/"
-```
-
-3. ローカルでテスト
-```bash
-flutter run -d chrome --web-port 8080
-```
-
-## 使用方法
-
-### オフラインモード
-- アプリをインストール後、すぐにローカルでセッティングデータを管理できます
-- データはデバイスのローカルストレージに保存されます
-
-### オンラインモード
-1. 設定画面で「サインイン / サインアップ」を選択
-2. メールアドレスとパスワードでアカウントを作成またはサインイン
-3. 「オンライン同期」をオンにする
-4. データが自動的にクラウドに同期されます
-
-### データ同期
-- オンラインモードでは、設定の変更が自動的にFirestoreに保存されます
-- 「今すぐ同期」で手動同期も可能
-- 「クラウドから読み込み」で他のデバイスのデータを取得
-
-## 注意事項
-
-- Firebase設定ファイルが正しく配置されていない場合、アプリがクラッシュする可能性があります
-- 初回起動時はオフラインモードで動作し、ログイン後にオンライン機能が利用可能になります
-- セキュリティルールは本番環境では必ず適切に設定してください
+以下の環境でテストを行っています。
+- Samsung Galaxy S24 - Android 16 One UI 8.0
+- Google Pixel 10 Pro - Android 16
+- iPhone 15 Pro Max - iOS 17.5.1
