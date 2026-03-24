@@ -3,6 +3,7 @@ import 'package:share_plus/share_plus.dart';
 import '../models/saved_setting.dart';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
+import 'statistics_page.dart';
 
 class ToolsPage extends StatelessWidget {
   const ToolsPage({super.key});
@@ -72,7 +73,7 @@ class ToolsPage extends StatelessWidget {
                   isEnglish ? 'View your setting trends' : 'あなたのセッティング傾向を確認',
               icon: Icons.bar_chart_rounded,
               color: Colors.purple,
-              onTap: () => _showComingSoonDialog(context),
+              onTap: () => _openStatistics(context),
             ),
           ],
         ),
@@ -364,6 +365,15 @@ class ToolsPage extends StatelessWidget {
             child: Text(isEnglish ? 'OK' : '了解'),
           ),
         ],
+      ),
+    );
+  }
+
+  void _openStatistics(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const StatisticsPage(),
       ),
     );
   }
