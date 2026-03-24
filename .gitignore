@@ -78,7 +78,6 @@ GoogleService-Info.plist
 firebase-debug.log
 firebase-debug.*.log
 firebase-adminsdk-*.json
-lib/firebase_options.dart
 
 # API Keys and sensitive configuration
 .secrets/
