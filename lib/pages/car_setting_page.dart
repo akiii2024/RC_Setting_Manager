@@ -15,6 +15,38 @@ import '../services/track_location_service.dart';
 import './ocr_import_page.dart';
 import '../services/ai_advisor_service.dart';
 
+BoxConstraints _responsiveDialogConstraints(
+  BuildContext context, {
+  double maxWidth = 720,
+  double heightFactor = 0.85,
+}) {
+  final size = MediaQuery.sizeOf(context);
+  return BoxConstraints(
+    maxWidth: maxWidth,
+    maxHeight: size.height * heightFactor,
+  );
+}
+
+Dialog _buildResponsiveDialog({
+  required BuildContext context,
+  required Widget child,
+  double maxWidth = 720,
+  double heightFactor = 0.85,
+}) {
+  return Dialog(
+    insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+    clipBehavior: Clip.antiAlias,
+    child: ConstrainedBox(
+      constraints: _responsiveDialogConstraints(
+        context,
+        maxWidth: maxWidth,
+        heightFactor: heightFactor,
+      ),
+      child: child,
+    ),
+  );
+}
+
 class CarSettingPage extends StatefulWidget {
   final Car originalCar;
   final Map<String, dynamic>? savedSettings;
@@ -59,8 +91,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
     if (widget.savedSettings != null) {
       settings = Map<String, dynamic>.from(widget.savedSettings!);
       _isEditing = widget.savedSettingId != null;
-      if (widget.settingName != null) {
+      if (widget.settingName != null && widget.settingName!.trim().isNotEmpty) {
         _settingNameController.text = widget.settingName!;
+      } else {
+        _settingNameController.text = _buildDefaultSettingName();
       }
     } else {
       // デフォルト設定を作成
@@ -71,10 +105,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
         }
       }
       // セッティング名の初期値を日付-車種名に設定
-      final now = DateTime.now();
-      final formattedDate =
-          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-      _settingNameController.text = '$formattedDate-$carName';
+      _settingNameController.text = _buildDefaultSettingName();
     }
 
     _initializeSettings();
@@ -92,6 +123,13 @@ class _CarSettingPageState extends State<CarSettingPage> {
     _settingNameController.dispose();
     _trackNameController.dispose();
     super.dispose();
+  }
+
+  String _buildDefaultSettingName() {
+    final now = DateTime.now();
+    final formattedDate =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    return '$formattedDate-$carName';
   }
 
   // 設定項目の型に応じたデフォルト値を返す
@@ -519,98 +557,94 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
-          child: Column(
-            children: [
-              // ヘッダー
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(4),
-                    topRight: Radius.circular(4),
-                  ),
+      builder: (dialogContext) => _buildResponsiveDialog(
+        context: dialogContext,
+        child: Column(
+          children: [
+            // ヘッダー
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(4),
+                  topRight: Radius.circular(4),
                 ),
-                child: Row(
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.psychology,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      isEnglish ? 'AI Setting Advice' : 'AIセッティングアドバイス',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+
+            // コンテンツ
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.psychology,
-                      color: Theme.of(context).colorScheme.primary,
-                      size: 28,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        isEnglish ? 'AI Setting Advice' : 'AIセッティングアドバイス',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onPrimaryContainer,
-                              fontWeight: FontWeight.bold,
+                    // 総合評価カード
+                    _buildScoreCard(advice, isEnglish),
+                    const SizedBox(height: 16),
+
+                    // タブビュー
+                    DefaultTabController(
+                      length: 3,
+                      child: Column(
+                        children: [
+                          TabBar(
+                            isScrollable: true,
+                            labelColor: Theme.of(context).colorScheme.primary,
+                            tabs: [
+                              Tab(text: isEnglish ? 'Analysis' : '分析結果'),
+                              Tab(text: isEnglish ? 'Recommendations' : '改善提案'),
+                              Tab(text: isEnglish ? 'Driving Tips' : '走行アドバイス'),
+                            ],
+                          ),
+                          SizedBox(
+                            height:
+                                MediaQuery.sizeOf(dialogContext).height * 0.35,
+                            child: TabBarView(
+                              children: [
+                                // 分析結果タブ
+                                _buildAnalysisTab(advice),
+                                // 改善提案タブ
+                                _buildRecommendationsTab(advice),
+                                // 走行アドバイスタブ
+                                _buildDrivingTipsTab(advice),
+                              ],
                             ),
+                          ),
+                        ],
                       ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.of(context).pop(),
                     ),
                   ],
                 ),
               ),
-
-              // コンテンツ
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 総合評価カード
-                      _buildScoreCard(advice, isEnglish),
-                      const SizedBox(height: 16),
-
-                      // タブビュー
-                      DefaultTabController(
-                        length: 3,
-                        child: Column(
-                          children: [
-                            TabBar(
-                              labelColor: Theme.of(context).colorScheme.primary,
-                              tabs: [
-                                Tab(text: isEnglish ? 'Analysis' : '分析結果'),
-                                Tab(
-                                    text:
-                                        isEnglish ? 'Recommendations' : '改善提案'),
-                                Tab(
-                                    text:
-                                        isEnglish ? 'Driving Tips' : '走行アドバイス'),
-                              ],
-                            ),
-                            SizedBox(
-                              height: 400,
-                              child: TabBarView(
-                                children: [
-                                  // 分析結果タブ
-                                  _buildAnalysisTab(advice),
-                                  // 改善提案タブ
-                                  _buildRecommendationsTab(advice),
-                                  // 走行アドバイスタブ
-                                  _buildDrivingTipsTab(advice),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -807,13 +841,6 @@ class _CarSettingPageState extends State<CarSettingPage> {
             onPressed: _importFromOCR,
             tooltip: isEnglish ? 'Import from Image' : '画像から読み込み',
           ),
-          IconButton(
-            icon: const Icon(Icons.save),
-            onPressed: _saveSetting,
-            tooltip: _isEditing
-                ? (isEnglish ? 'Update' : '更新')
-                : (isEnglish ? 'Save' : '保存'),
-          ),
         ],
       ),
       body: Padding(
@@ -902,23 +929,48 @@ class _CarSettingPageState extends State<CarSettingPage> {
           ],
         ),
       ),
-      floatingActionButton: Row(
-        mainAxisAlignment: MainAxisAlignment.end,
+      bottomNavigationBar: _buildSaveActionBar(isEnglish),
+    );
+  }
+
+  Widget _buildSaveActionBar(bool isEnglish) {
+    final primaryLabel = _isEditing
+        ? (isEnglish ? 'Update Setting' : '設定を更新')
+        : (isEnglish ? 'Save Setting' : '設定を保存');
+
+    if (!_isEditing) {
+      return SafeArea(
+        minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            onPressed: _saveSetting,
+            icon: const Icon(Icons.save),
+            label: Text(primaryLabel),
+          ),
+        ),
+      );
+    }
+
+    return SafeArea(
+      minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+      child: Row(
         children: [
-          Padding(
-            padding: const EdgeInsets.only(right: 8.0),
-            child: FloatingActionButton(
-              heroTag: 'saveButton',
+          Expanded(
+            child: OutlinedButton.icon(
               onPressed: _saveAsNewSetting,
-              tooltip: isEnglish ? 'Save as New' : '新規保存',
-              child: const Icon(Icons.save_as),
+              icon: const Icon(Icons.copy_rounded),
+              label: Text(isEnglish ? 'Save as New' : '新規保存'),
             ),
           ),
-          FloatingActionButton(
-            heroTag: 'updateButton',
-            onPressed: _updateSetting,
-            tooltip: isEnglish ? 'Update' : '更新',
-            child: const Icon(Icons.update),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 2,
+            child: FilledButton.icon(
+              onPressed: _updateSetting,
+              icon: const Icon(Icons.save),
+              label: Text(primaryLabel),
+            ),
           ),
         ],
       ),
@@ -1020,6 +1072,17 @@ class _CarSettingPageState extends State<CarSettingPage> {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
+
+    if (_settingNameController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+              isEnglish ? 'Please enter a setting name' : 'セッティング名を入力してください'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
 
     if (_isEditing && widget.savedSettingId != null) {
       // Update existing setting
@@ -2544,129 +2607,139 @@ class _TrackSearchDialogState extends State<_TrackSearchDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final dialogHeight = MediaQuery.sizeOf(context).height * 0.65;
+
     return AlertDialog(
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       title: Text(widget.isEnglish ? 'Search Track' : 'トラック検索'),
       content: SizedBox(
         width: double.maxFinite,
-        height: 400,
-        child: Column(
-          children: [
-            // 検索フィールド
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                labelText: widget.isEnglish ? 'Track Name' : 'トラック名',
-                hintText: widget.isEnglish ? 'Enter track name' : 'トラック名を入力',
-                prefixIcon: const Icon(Icons.search),
-                border: const OutlineInputBorder(),
-              ),
-              onChanged: (value) => _performSearch(),
-            ),
-            const SizedBox(height: 16),
-
-            // 都道府県フィルター
-            DropdownButtonFormField<String>(
-              value: _selectedPrefecture,
-              decoration: InputDecoration(
-                labelText: widget.isEnglish ? 'Prefecture' : '都道府県',
-                border: const OutlineInputBorder(),
-              ),
-              items: [
-                DropdownMenuItem<String>(
-                  value: null,
-                  child: Text(widget.isEnglish ? 'All Prefectures' : '全ての都道府県'),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: dialogHeight),
+          child: Column(
+            children: [
+              // 検索フィールド
+              TextField(
+                controller: _searchController,
+                decoration: InputDecoration(
+                  labelText: widget.isEnglish ? 'Track Name' : 'トラック名',
+                  hintText: widget.isEnglish ? 'Enter track name' : 'トラック名を入力',
+                  prefixIcon: const Icon(Icons.search),
+                  border: const OutlineInputBorder(),
                 ),
-                ...(_allTracks.map((track) => track.prefecture).toSet().toList()
-                      ..sort())
-                    .map(
-                  (prefecture) => DropdownMenuItem<String>(
-                    value: prefecture,
-                    child: Text(prefecture),
+                onChanged: (value) => _performSearch(),
+              ),
+              const SizedBox(height: 16),
+
+              // 都道府県フィルター
+              DropdownButtonFormField<String>(
+                initialValue: _selectedPrefecture,
+                decoration: InputDecoration(
+                  labelText: widget.isEnglish ? 'Prefecture' : '都道府県',
+                  border: const OutlineInputBorder(),
+                ),
+                items: [
+                  DropdownMenuItem<String>(
+                    value: null,
+                    child:
+                        Text(widget.isEnglish ? 'All Prefectures' : '全ての都道府県'),
                   ),
-                ),
-              ],
-              onChanged: (value) {
-                setState(() {
-                  _selectedPrefecture = value;
-                });
-                _performSearch();
-              },
-            ),
-            const SizedBox(height: 16),
+                  ...(_allTracks
+                          .map((track) => track.prefecture)
+                          .toSet()
+                          .toList()
+                        ..sort())
+                      .map(
+                    (prefecture) => DropdownMenuItem<String>(
+                      value: prefecture,
+                      child: Text(prefecture),
+                    ),
+                  ),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _selectedPrefecture = value;
+                  });
+                  _performSearch();
+                },
+              ),
+              const SizedBox(height: 16),
 
-            // 検索結果リスト
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _searchResults.isEmpty
-                      ? Center(
-                          child: Text(
-                            widget.isEnglish
-                                ? 'No tracks found'
-                                : 'トラックが見つかりません',
-                          ),
-                        )
-                      : ListView.builder(
-                          itemCount: _searchResults.length,
-                          itemBuilder: (context, index) {
-                            final track = _searchResults[index];
-                            final surfaceText = track.surfaceType == 'carpet'
-                                ? (widget.isEnglish ? 'Carpet' : 'カーペット')
-                                : (widget.isEnglish ? 'Asphalt' : 'アスファルト');
-                            final typeText = track.type == 'indoor'
-                                ? (widget.isEnglish ? 'Indoor' : '屋内')
-                                : (widget.isEnglish ? 'Outdoor' : '屋外');
+              // 検索結果リスト
+              Expanded(
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator())
+                    : _searchResults.isEmpty
+                        ? Center(
+                            child: Text(
+                              widget.isEnglish
+                                  ? 'No tracks found'
+                                  : 'トラックが見つかりません',
+                            ),
+                          )
+                        : ListView.builder(
+                            itemCount: _searchResults.length,
+                            itemBuilder: (context, index) {
+                              final track = _searchResults[index];
+                              final surfaceText = track.surfaceType == 'carpet'
+                                  ? (widget.isEnglish ? 'Carpet' : 'カーペット')
+                                  : (widget.isEnglish ? 'Asphalt' : 'アスファルト');
+                              final typeText = track.type == 'indoor'
+                                  ? (widget.isEnglish ? 'Indoor' : '屋内')
+                                  : (widget.isEnglish ? 'Outdoor' : '屋外');
 
-                            return ListTile(
-                              title: Text(track.name),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                      '${track.prefecture} - ${track.address}'),
-                                  Text(
-                                    '$typeText • $surfaceText',
-                                    style: TextStyle(
-                                      fontSize: 12,
+                              return ListTile(
+                                title: Text(track.name),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                        '${track.prefecture} - ${track.address}'),
+                                    Text(
+                                      '$typeText • $surfaceText',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      track.surfaceType == 'carpet'
+                                          ? Icons.texture
+                                          : Icons.straighten,
+                                      size: 16,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withOpacity(0.7),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      track.type == 'indoor'
+                                          ? Icons.home
+                                          : Icons.landscape,
                                       color:
                                           Theme.of(context).colorScheme.primary,
-                                      fontWeight: FontWeight.w500,
                                     ),
-                                  ),
-                                ],
-                              ),
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    track.surfaceType == 'carpet'
-                                        ? Icons.texture
-                                        : Icons.straighten,
-                                    size: 16,
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withOpacity(0.7),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Icon(
-                                    track.type == 'indoor'
-                                        ? Icons.home
-                                        : Icons.landscape,
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                  ),
-                                ],
-                              ),
-                              onTap: () {
-                                widget.onTrackSelected(track);
-                                Navigator.of(context).pop();
-                              },
-                            );
-                          },
-                        ),
-            ),
-          ],
+                                  ],
+                                ),
+                                onTap: () {
+                                  widget.onTrackSelected(track);
+                                  Navigator.of(context).pop();
+                                },
+                              );
+                            },
+                          ),
+              ),
+            ],
+          ),
         ),
       ),
       actions: [
@@ -2871,107 +2944,101 @@ class _ConversationDialogState extends State<_ConversationDialog> {
   void _showAdviceDialog(SettingAdvice advice) {
     showDialog(
       context: context,
-      builder: (context) => Dialog(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
-          child: Column(
-            children: [
-              // ヘッダー
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.primaryContainer,
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(4),
-                    topRight: Radius.circular(4),
-                  ),
+      builder: (dialogContext) => _buildResponsiveDialog(
+        context: dialogContext,
+        child: Column(
+          children: [
+            // ヘッダー
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(4),
+                  topRight: Radius.circular(4),
                 ),
-                child: Row(
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.psychology,
+                    color: Theme.of(context).colorScheme.primary,
+                    size: 28,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      widget.isEnglish ? 'Final AI Advice' : '最終AIアドバイス',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onPrimaryContainer,
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+            ),
+
+            // コンテンツ
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
-                      Icons.psychology,
-                      color: Theme.of(context).colorScheme.primary,
-                      size: 28,
+                    // 総合評価
+                    Text(
+                      widget.isEnglish ? 'Overall Rating' : '総合評価',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        widget.isEnglish ? 'Final AI Advice' : '最終AIアドバイス',
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onPrimaryContainer,
-                              fontWeight: FontWeight.bold,
-                            ),
-                      ),
+                    const SizedBox(height: 8),
+                    Text(advice.overallComment),
+                    const Divider(height: 32),
+
+                    // 分析結果
+                    Text(
+                      widget.isEnglish ? 'Analysis' : '分析結果',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.of(context).pop(),
+                    const SizedBox(height: 8),
+                    Text(advice.detailedAnalysis),
+                    const Divider(height: 32),
+
+                    // 改善提案
+                    Text(
+                      widget.isEnglish ? 'Recommendations' : '改善提案',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
                     ),
+                    const SizedBox(height: 8),
+                    Text(advice.recommendations),
+                    const Divider(height: 32),
+
+                    // 走行アドバイス
+                    Text(
+                      widget.isEnglish ? 'Driving Tips' : '走行アドバイス',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(advice.drivingTips),
                   ],
                 ),
               ),
-
-              // コンテンツ
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 総合評価
-                      Text(
-                        widget.isEnglish ? 'Overall Rating' : '総合評価',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(advice.overallComment),
-                      const Divider(height: 32),
-
-                      // 分析結果
-                      Text(
-                        widget.isEnglish ? 'Analysis' : '分析結果',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(advice.detailedAnalysis),
-                      const Divider(height: 32),
-
-                      // 改善提案
-                      Text(
-                        widget.isEnglish ? 'Recommendations' : '改善提案',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(advice.recommendations),
-                      const Divider(height: 32),
-
-                      // 走行アドバイス
-                      Text(
-                        widget.isEnglish ? 'Driving Tips' : '走行アドバイス',
-                        style:
-                            Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(advice.drivingTips),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -2991,151 +3058,147 @@ class _ConversationDialogState extends State<_ConversationDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog(
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 600, maxHeight: 700),
-        child: Column(
-          children: [
-            // ヘッダー
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.primaryContainer,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(4),
-                  topRight: Radius.circular(4),
-                ),
+    return _buildResponsiveDialog(
+      context: context,
+      child: Column(
+        children: [
+          // ヘッダー
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(4),
+                topRight: Radius.circular(4),
               ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.chat,
+                  color: Theme.of(context).colorScheme.primary,
+                  size: 28,
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.isEnglish ? 'AI Conversation' : 'AI会話モード',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ],
+            ),
+          ),
+
+          // メッセージリスト
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              padding: const EdgeInsets.all(16),
+              itemCount: _messages.length,
+              itemBuilder: (context, index) {
+                final message = _messages[index];
+                return _ChatBubble(
+                  message: message,
+                  isEnglish: widget.isEnglish,
+                );
+              },
+            ),
+          ),
+
+          // ローディングインジケーター
+          if (_isLoading)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  Icon(
-                    Icons.chat,
-                    color: Theme.of(context).colorScheme.primary,
-                    size: 28,
+                  const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      widget.isEnglish ? 'AI Conversation' : 'AI会話モード',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onPrimaryContainer,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  const SizedBox(width: 8),
+                  Text(
+                    widget.isEnglish ? 'AI is thinking...' : 'AIが考え中...',
+                    style: TextStyle(
+                      color: Theme.of(context)
+                          .colorScheme
+                          .onSurface
+                          .withValues(alpha: 0.6),
+                      fontSize: 12,
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
             ),
 
-            // メッセージリスト
-            Expanded(
-              child: ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(16),
-                itemCount: _messages.length,
-                itemBuilder: (context, index) {
-                  final message = _messages[index];
-                  return _ChatBubble(
-                    message: message,
-                    isEnglish: widget.isEnglish,
-                  );
-                },
-              ),
-            ),
+          const Divider(height: 1),
 
-            // ローディングインジケーター
-            if (_isLoading)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
+          // 入力エリア
+          Container(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Row(
                   children: [
-                    const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+                    Expanded(
+                      child: TextField(
+                        controller: _messageController,
+                        decoration: InputDecoration(
+                          hintText: widget.isEnglish
+                              ? 'Type your message... (e.g. "hard to turn")'
+                              : 'メッセージを入力... (例：「曲がりにくい」)',
+                          border: const OutlineInputBorder(),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                        ),
+                        maxLines: null,
+                        textInputAction: TextInputAction.send,
+                        onSubmitted: (_) => _sendMessage(),
+                        enabled: _isSessionStarted && !_isLoading,
+                      ),
                     ),
                     const SizedBox(width: 8),
-                    Text(
-                      widget.isEnglish ? 'AI is thinking...' : 'AIが考え中...',
-                      style: TextStyle(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .onSurface
-                            .withOpacity(0.6),
-                        fontSize: 12,
-                      ),
+                    IconButton(
+                      icon: const Icon(Icons.send),
+                      onPressed: _isSessionStarted && !_isLoading
+                          ? _sendMessage
+                          : null,
+                      tooltip: widget.isEnglish ? 'Send' : '送信',
                     ),
                   ],
                 ),
-              ),
-
-            const Divider(height: 1),
-
-            // 入力エリア
-            Container(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _messageController,
-                          decoration: InputDecoration(
-                            hintText: widget.isEnglish
-                                ? 'Type your message... (e.g. "hard to turn")'
-                                : 'メッセージを入力... (例：「曲がりにくい」)',
-                            border: const OutlineInputBorder(),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 12,
-                            ),
-                          ),
-                          maxLines: null,
-                          textInputAction: TextInputAction.send,
-                          onSubmitted: (_) => _sendMessage(),
-                          enabled: _isSessionStarted && !_isLoading,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        icon: const Icon(Icons.send),
-                        onPressed: _isSessionStarted && !_isLoading
-                            ? _sendMessage
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed:
+                        _isSessionStarted && !_isLoading && _messages.length > 1
+                            ? _generateFinalAdvice
                             : null,
-                        tooltip: widget.isEnglish ? 'Send' : '送信',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _isSessionStarted &&
-                              !_isLoading &&
-                              _messages.length > 1
-                          ? _generateFinalAdvice
-                          : null,
-                      icon: const Icon(Icons.check_circle),
-                      label: Text(widget.isEnglish
-                          ? 'Generate Final Advice'
-                          : '最終アドバイスを生成'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
+                    icon: const Icon(Icons.check_circle),
+                    label: Text(widget.isEnglish
+                        ? 'Generate Final Advice'
+                        : '最終アドバイスを生成'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

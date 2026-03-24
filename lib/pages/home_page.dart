@@ -1,13 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
-import '../services/auth_service.dart';
 import '../models/saved_setting.dart';
 import 'car_selection_page.dart';
 import 'car_setting_page.dart';
 import 'history_page.dart';
 import 'tools_page.dart';
-import 'login_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,11 +17,24 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  final List<Widget> _pages = [
-    const _HomeTab(),
-    const HistoryPage(),
-    const ToolsPage(),
-  ];
+  void _openHistoryTab() {
+    setState(() {
+      _selectedIndex = 1;
+    });
+  }
+
+  Widget _buildCurrentPage() {
+    switch (_selectedIndex) {
+      case 0:
+        return _HomeTab(onOpenHistory: _openHistoryTab);
+      case 1:
+        return const HistoryPage();
+      case 2:
+        return const ToolsPage();
+      default:
+        return const SizedBox.shrink();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +60,7 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      body: _pages[_selectedIndex],
+      body: _buildCurrentPage(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) {
@@ -95,7 +106,12 @@ class _HomePageState extends State<HomePage> {
 }
 
 class _HomeTab extends StatelessWidget {
-  const _HomeTab({super.key});
+  final VoidCallback onOpenHistory;
+
+  const _HomeTab({
+    super.key,
+    required this.onOpenHistory,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -179,7 +195,7 @@ class _HomeTab extends StatelessWidget {
         // 車種別にグループ化してカウント
         final carCount = <String, int>{};
         for (final setting in savedSettings) {
-          carCount[setting.car.name] = (carCount[setting.car.name] ?? 0) + 1;
+          carCount[setting.car.id] = (carCount[setting.car.id] ?? 0) + 1;
         }
 
         // よく使う車（上位3件）
@@ -227,13 +243,15 @@ class _HomeTab extends StatelessWidget {
                   itemCount: topCars.length,
                   itemBuilder: (context, index) {
                     final carEntry = topCars[index];
-                    final carName = carEntry.key;
+                    final carId = carEntry.key;
                     final count = carEntry.value;
 
                     // この車の最新の設定を取得
                     final latestSetting = savedSettings.firstWhere(
-                      (s) => s.car.name == carName,
+                      (s) => s.car.id == carId,
                     );
+
+                    final carName = latestSetting.car.name;
 
                     return Padding(
                       padding: const EdgeInsets.only(right: 12),
@@ -244,8 +262,8 @@ class _HomeTab extends StatelessWidget {
                             MaterialPageRoute(
                               builder: (context) => CarSettingPage(
                                 originalCar: latestSetting.car,
-                                savedSettings: {},
-                                settingName: '',
+                                savedSettings: latestSetting.settings,
+                                settingName: null,
                               ),
                             ),
                           );
@@ -324,14 +342,7 @@ class _HomeTab extends StatelessWidget {
                   ),
                   if (savedSettings.length > 3)
                     TextButton(
-                      onPressed: () {
-                        // 履歴タブに切り替え
-                        final homePageState =
-                            context.findAncestorStateOfType<_HomePageState>();
-                        homePageState?.setState(() {
-                          homePageState._selectedIndex = 1;
-                        });
-                      },
+                      onPressed: onOpenHistory,
                       child: Text(isEnglish ? 'View All' : 'すべて表示'),
                     ),
                 ],
@@ -339,24 +350,18 @@ class _HomeTab extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             ...recentSettings.map((setting) => SettingCard(setting: setting)),
-
-            // すべての設定セクション
-            if (savedSettings.length > 3) ...[
-              const SizedBox(height: 24),
+            if (savedSettings.length > recentSettings.length) ...[
+              const SizedBox(height: 16),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Text(
-                  isEnglish ? 'All Settings' : 'すべての設定',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                child: OutlinedButton.icon(
+                  onPressed: onOpenHistory,
+                  icon: const Icon(Icons.history_rounded),
+                  label: Text(
+                    isEnglish ? 'Open Full History' : '履歴をすべて見る',
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
-              ...savedSettings
-                  .skip(3)
-                  .map((setting) => SettingCard(setting: setting)),
             ],
           ],
         );

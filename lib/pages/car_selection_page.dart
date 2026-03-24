@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
 import 'settings_page.dart';
@@ -86,175 +85,175 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (ctx) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
-            left: 16,
-            right: 16,
-            top: 16,
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.98),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
-                  blurRadius: 24,
-                  offset: const Offset(0, 12),
-                ),
-              ],
+        final theme = Theme.of(ctx);
+        final colorScheme = theme.colorScheme;
+
+        return SafeArea(
+          top: false,
+          child: Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(ctx).viewInsets.bottom + 16,
+              left: 16,
+              right: 16,
+              top: 16,
             ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF4CAF50).withOpacity(0.12),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.factory, color: Color(0xFF4CAF50)),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              isEnglish
-                                  ? 'Add Manufacturer'
-                                  : 'メーカーを追加',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .titleMedium
-                                  ?.copyWith(fontWeight: FontWeight.w700),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              isEnglish
-                                  ? 'Default icon will be applied. You can edit later.'
-                                  : 'デフォルトのアイコンが適用されます。後から編集できます。',
-                              style: Theme.of(context)
-                                  .textTheme
-                                  .bodySmall
-                                  ?.copyWith(color: Colors.grey[600]),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Navigator.of(ctx).pop(),
-                        icon: const Icon(Icons.close),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  TextField(
-                    controller: nameController,
-                    decoration: InputDecoration(
-                      labelText: isEnglish ? 'Manufacturer Name' : 'メーカー名',
-                      prefixIcon: const Icon(Icons.badge_outlined),
-                      filled: true,
-                      fillColor: Colors.grey[100],
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.orange.withOpacity(0.08),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+            child: Material(
+              color: colorScheme.surface,
+              elevation: 12,
+              shadowColor: theme.shadowColor.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(20),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        const Icon(Icons.info, color: Colors.orange),
-                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primaryContainer,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.factory,
+                            color: colorScheme.primary,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
                         Expanded(
-                          child: Text(
-                            isEnglish
-                                ? 'A default image will be used. You can replace it later from settings.'
-                                : 'デフォルト画像を使用します。後から設定画面で変更できます。',
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: Colors.orange[800]),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isEnglish ? 'Add Manufacturer' : 'メーカーを追加',
+                                style: theme.textTheme.titleMedium
+                                    ?.copyWith(fontWeight: FontWeight.w700),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                isEnglish
+                                    ? 'Default icon will be applied. You can edit later.'
+                                    : 'デフォルトのアイコンが適用されます。後から編集できます。',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          icon: const Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: nameController,
+                      decoration: InputDecoration(
+                        labelText: isEnglish ? 'Manufacturer Name' : 'メーカー名',
+                        prefixIcon: const Icon(Icons.badge_outlined),
+                        filled: true,
+                        fillColor: colorScheme.surfaceContainerHighest,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: colorScheme.secondaryContainer,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: colorScheme.onSecondaryContainer,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              isEnglish
+                                  ? 'A default image will be used. You can replace it later from settings.'
+                                  : 'デフォルト画像を使用します。後から設定画面で変更できます。',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: colorScheme.onSecondaryContainer,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.of(ctx).pop(),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              final name = nameController.text.trim();
+                              if (name.isEmpty) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(isEnglish
+                                        ? 'Please enter a manufacturer name.'
+                                        : 'メーカー名を入力してください。'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                                return;
+                              }
+
+                              final newManufacturer = Manufacturer(
+                                id: name.toLowerCase().replaceAll(' ', '_'),
+                                name: name,
+                                logoPath:
+                                    'assets/images/default_manufacturer.png',
+                              );
+
+                              final sampleCar = Car(
+                                id: '${newManufacturer.id}/sample_car',
+                                name: 'Sample Car',
+                                imageUrl: 'assets/images/default_car.png',
+                                manufacturer: newManufacturer,
+                                category: 'Custom',
+                              );
+
+                              settingsProvider.addCar(sampleCar);
+                              Navigator.of(ctx).pop();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: Text(isEnglish ? 'Add' : '追加'),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.of(ctx).pop(),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            final name = nameController.text.trim();
-                            if (name.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text(isEnglish
-                                      ? 'Please enter a manufacturer name.'
-                                      : 'メーカー名を入力してください。'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                              return;
-                            }
-
-                            final newManufacturer = Manufacturer(
-                              id: name.toLowerCase().replaceAll(' ', '_'),
-                              name: name,
-                              logoPath: 'assets/images/default_manufacturer.png',
-                            );
-
-                            final sampleCar = Car(
-                              id: '${newManufacturer.id}/sample_car',
-                              name: 'Sample Car',
-                              imageUrl: 'assets/images/default_car.png',
-                              manufacturer: newManufacturer,
-                              category: 'Custom',
-                            );
-
-                            settingsProvider.addCar(sampleCar);
-                            Navigator.of(ctx).pop();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(isEnglish ? 'Add' : '追加'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -285,6 +284,8 @@ class _ManufacturerListItemState extends State<ManufacturerListItem> {
   Widget build(BuildContext context) {
     final settingsProvider = Provider.of<SettingsProvider>(context);
     final isEnglish = settingsProvider.isEnglish;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return AnimatedScale(
       scale: _isPressed ? 0.98 : 1.0,
@@ -306,10 +307,14 @@ class _ManufacturerListItemState extends State<ManufacturerListItem> {
                   width: 60,
                   height: 60,
                   decoration: BoxDecoration(
-                    color: Colors.grey[200],
+                    color: colorScheme.surfaceContainerHighest,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.business, size: 36),
+                  child: Icon(
+                    Icons.business,
+                    size: 36,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -332,9 +337,9 @@ class _ManufacturerListItemState extends State<ManufacturerListItem> {
                               .length;
                           return Text(
                             isEnglish ? '$carCount models' : '$carCount 車種',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 14,
-                              color: Colors.grey,
+                              color: colorScheme.onSurfaceVariant,
                             ),
                           );
                         },
@@ -342,7 +347,11 @@ class _ManufacturerListItemState extends State<ManufacturerListItem> {
                     ],
                   ),
                 ),
-                const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 16,
+                  color: colorScheme.primary,
+                ),
               ],
             ),
           ),
@@ -359,61 +368,69 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white.withOpacity(0.14),
-                    Colors.white.withOpacity(0.06),
-                  ],
-                ),
-                border: Border.all(color: Colors.white.withOpacity(0.2)),
-              ),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.directions_car_filled_rounded,
-                    size: 72,
-                    color: Colors.white.withOpacity(0.9),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    isEnglish ? 'No manufacturers yet' : 'メーカーがまだありません',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.2,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    isEnglish
-                        ? 'Tap the Add button to create one'
-                        : '右下の追加ボタンから作成してください',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.85),
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
-              ),
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 360),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            colorScheme.primaryContainer,
+            colorScheme.surfaceContainerHighest,
+          ],
+        ),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: theme.shadowColor.withValues(alpha: 0.12),
+            blurRadius: 24,
+            offset: const Offset(0, 12),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: colorScheme.surface.withValues(alpha: 0.55),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.directions_car_filled_rounded,
+              size: 56,
+              color: colorScheme.primary,
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 18),
+          Text(
+            isEnglish ? 'No manufacturers yet' : 'メーカーがまだありません',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: colorScheme.onSurface,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isEnglish
+                ? 'Tap the Add button to create one'
+                : '右下の追加ボタンから作成してください',
+            textAlign: TextAlign.center,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

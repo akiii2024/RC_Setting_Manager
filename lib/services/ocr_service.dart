@@ -2,9 +2,9 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:image_picker/image_picker.dart';
+import '../config/app_secrets.dart';
 import '../models/car_setting_definition.dart';
 
 class OCRService {
@@ -13,8 +13,8 @@ class OCRService {
 
   OCRService() {
     // 環境変数からGemini APIキーを取得
-    final apiKey = dotenv.env['GEMINI_API_KEY'];
-    if (apiKey == null || apiKey.isEmpty) {
+    final apiKey = AppSecrets.geminiApiKey;
+    if (apiKey.isEmpty) {
       throw Exception('GEMINI_API_KEY が環境変数に設定されていません');
     }
 

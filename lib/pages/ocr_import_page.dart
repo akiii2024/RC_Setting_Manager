@@ -22,19 +22,52 @@ class OCRImportPage extends StatefulWidget {
 }
 
 class _OCRImportPageState extends State<OCRImportPage> {
-  final OCRService _ocrService = OCRService();
+  OCRService? _ocrService;
   dynamic _selectedImage;
   String? _recognizedText;
   Map<String, String>? _extractedSettings;
   bool _isProcessing = false;
+  String? _serviceInitError;
+
+  @override
+  void initState() {
+    super.initState();
+    try {
+      _ocrService = OCRService();
+    } catch (e) {
+      _serviceInitError = e.toString();
+    }
+  }
 
   @override
   void dispose() {
-    _ocrService.dispose();
+    _ocrService?.dispose();
     super.dispose();
   }
 
+  bool _ensureServiceReady() {
+    if (_ocrService != null) {
+      return true;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          _serviceInitError ?? 'OCR service is not available.',
+        ),
+        duration: const Duration(seconds: 5),
+      ),
+    );
+    return false;
+  }
+
   Future<void> _pickImage(ImageSource source) async {
+    if (!_ensureServiceReady()) {
+      return;
+    }
+
+    final ocrService = _ocrService!;
+
     // カメラの場合は権限を確認（Web環境では権限チェックをスキップ）
     if (source == ImageSource.camera && !kIsWeb) {
       final cameraStatus = await Permission.camera.status;
@@ -61,7 +94,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
       dynamic imageFile;
       if (source == ImageSource.camera) {
         try {
-          imageFile = await _ocrService.pickImageFromCamera();
+          imageFile = await ocrService.pickImageFromCamera();
         } catch (e) {
           // Web環境でカメラが利用できない場合のエラーハンドリング
           if (kIsWeb && e is UnsupportedError) {
@@ -75,7 +108,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
           rethrow;
         }
       } else {
-        imageFile = await _ocrService.pickImageFromGallery();
+        imageFile = await ocrService.pickImageFromGallery();
       }
 
       if (imageFile != null) {
@@ -109,6 +142,10 @@ class _OCRImportPageState extends State<OCRImportPage> {
   }
 
   Future<void> _processImage(dynamic imageFile) async {
+    if (_ocrService == null) {
+      return;
+    }
+
     try {
       if (kIsWeb) {
         print('Processing image (Web): ${imageFile.name}');
@@ -120,7 +157,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
       }
 
       final recognizedText =
-          await _ocrService.recognizeTextFromImage(imageFile);
+          await _ocrService!.recognizeTextFromImage(imageFile);
 
       if (recognizedText != null) {
         print('Text recognized successfully');
@@ -133,7 +170,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
 
         if (carDefinition != null) {
           // テキストからセッティングを抽出
-          final extractedSettings = _ocrService.extractSettingsFromText(
+          final extractedSettings = _ocrService!.extractSettingsFromText(
             recognizedText,
             carDefinition.availableSettings,
           );
@@ -162,7 +199,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
               );
             }
 
-            final mappedSettings = await _ocrService.aiMappingForSettings(
+            final mappedSettings = await _ocrService!.aiMappingForSettings(
               extractedSettings,
               carDefinition.availableSettings,
             );
@@ -239,6 +276,56 @@ class _OCRImportPageState extends State<OCRImportPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            if (_serviceInitError != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange[200]!),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.warning_amber_rounded,
+                        color: Colors.orange[700]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _serviceInitError!,
+                        style: TextStyle(color: Colors.orange[800]),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            if (_serviceInitError != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange[200]!),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.warning_amber_rounded,
+                        color: Colors.orange[700]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _serviceInitError!,
+                        style: TextStyle(color: Colors.orange[800]),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             Text('${_extractedSettings!.length}個のセッティングが認識されました。'),
             const SizedBox(height: 8),
             const Text('現在のセッティングに上書きしますか？'),
@@ -314,6 +401,31 @@ class _OCRImportPageState extends State<OCRImportPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            if (_serviceInitError != null) ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.orange[200]!),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.warning_amber_rounded,
+                        color: Colors.orange[700]),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _serviceInitError!,
+                        style: TextStyle(color: Colors.orange[800]),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             // Web環境での注意事項を表示
             if (kIsWeb) ...[
               Container(
@@ -344,7 +456,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _isProcessing
+                    onPressed: _isProcessing || _ocrService == null
                         ? null
                         : () => _pickImage(ImageSource.camera),
                     icon: const Icon(Icons.camera_alt),
@@ -354,7 +466,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _isProcessing
+                    onPressed: _isProcessing || _ocrService == null
                         ? null
                         : () => _pickImage(ImageSource.gallery),
                     icon: const Icon(Icons.photo_library),

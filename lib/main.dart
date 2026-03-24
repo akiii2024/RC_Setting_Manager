@@ -4,7 +4,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'pages/car_selection_page.dart';
 import 'pages/home_page.dart';
@@ -32,10 +31,7 @@ void main() async {
 
   // 環境変数の読み込み
   try {
-    await dotenv.load(fileName: ".env");
-    print('Environment variables loaded successfully');
   } catch (e) {
-    print('Environment variables loading error: $e');
     // 環境変数が読み込めなくてもアプリは続行
   }
 

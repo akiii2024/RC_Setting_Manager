@@ -1,5 +1,5 @@
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
+import '../config/app_secrets.dart';
 import '../models/car.dart';
 import '../models/car_setting_definition.dart';
 import '../models/track_location.dart';
@@ -18,8 +18,8 @@ class AIAdvisorService {
 
   AIAdvisorService() {
     // 環境変数からGemini APIキーを取得
-    final apiKey = dotenv.env['GEMINI_API_KEY'];
-    if (apiKey == null || apiKey.isEmpty) {
+    final apiKey = AppSecrets.geminiApiKey;
+    if (apiKey.isEmpty) {
       throw Exception('GEMINI_API_KEY が環境変数に設定されていません');
     }
 

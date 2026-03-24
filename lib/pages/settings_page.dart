@@ -27,18 +27,16 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _loadCars(SettingsProvider settingsProvider) {
-    // Get car list from saved settings
-    final savedSettings = settingsProvider.savedSettings;
-    final Map<String, Car> uniqueCars = {};
-
-    for (var setting in savedSettings) {
-      uniqueCars[setting.car.id] = setting.car;
-    }
+    final cars = List<Car>.from(settingsProvider.cars);
 
     setState(() {
-      _cars = uniqueCars.values.toList();
-      // Select first car if exists
-      if (_cars.isNotEmpty && _selectedCar == null) {
+      _cars = cars;
+      _canDisplaySetting = _cars.isNotEmpty;
+
+      if (_cars.isEmpty) {
+        _selectedCar = null;
+      } else if (_selectedCar == null ||
+          !_cars.any((car) => car.id == _selectedCar!.id)) {
         _selectedCar = _cars.first;
       }
     });
@@ -364,7 +362,7 @@ class _SettingsPageState extends State<SettingsPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
             content: Text(isEnglish
-                ? 'This feature is not available yet'
+                ? 'Please register a car first to configure display settings'
                 : 'この機能はまだ準備中です。')),
       );
       return;

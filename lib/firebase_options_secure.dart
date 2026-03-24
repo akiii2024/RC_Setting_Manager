@@ -2,12 +2,40 @@
 // ignore_for_file: type=lint
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kIsWeb, TargetPlatform;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 
 /// Secure [FirebaseOptions] for use with your Firebase apps.
-/// This version uses environment variables for sensitive data.
+/// This variant expects values to be passed with `--dart-define`.
 class SecureFirebaseOptions {
+  const SecureFirebaseOptions._();
+
+  static const String _webApiKey =
+      String.fromEnvironment('FIREBASE_WEB_API_KEY');
+  static const String _webAppId = String.fromEnvironment('FIREBASE_WEB_APP_ID');
+  static const String _windowsAppId =
+      String.fromEnvironment('FIREBASE_WINDOWS_APP_ID');
+  static const String _androidApiKey =
+      String.fromEnvironment('FIREBASE_ANDROID_API_KEY');
+  static const String _androidAppId =
+      String.fromEnvironment('FIREBASE_ANDROID_APP_ID');
+  static const String _iosApiKey =
+      String.fromEnvironment('FIREBASE_IOS_API_KEY');
+  static const String _iosAppId = String.fromEnvironment('FIREBASE_IOS_APP_ID');
+  static const String _messagingSenderId =
+      String.fromEnvironment('FIREBASE_MESSAGING_SENDER_ID');
+  static const String _projectId =
+      String.fromEnvironment('FIREBASE_PROJECT_ID');
+  static const String _authDomain =
+      String.fromEnvironment('FIREBASE_AUTH_DOMAIN');
+  static const String _storageBucket =
+      String.fromEnvironment('FIREBASE_STORAGE_BUCKET');
+  static const String _measurementId =
+      String.fromEnvironment('FIREBASE_MEASUREMENT_ID');
+  static const String _windowsMeasurementId =
+      String.fromEnvironment('FIREBASE_WINDOWS_MEASUREMENT_ID');
+  static const String _iosBundleId =
+      String.fromEnvironment('FIREBASE_IOS_BUNDLE_ID');
+
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
       return web;
@@ -33,58 +61,49 @@ class SecureFirebaseOptions {
     }
   }
 
-  static FirebaseOptions get web => FirebaseOptions(
-        apiKey: dotenv.env['FIREBASE_WEB_API_KEY'] ?? '',
-        appId: dotenv.env['FIREBASE_WEB_APP_ID'] ?? '',
-        messagingSenderId: dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '',
-        projectId: dotenv.env['FIREBASE_PROJECT_ID'] ?? 'rc-setting-manager',
-        authDomain: dotenv.env['FIREBASE_AUTH_DOMAIN'] ??
-            'rc-setting-manager.firebaseapp.com',
-        storageBucket: dotenv.env['FIREBASE_STORAGE_BUCKET'] ??
-            'rc-setting-manager.firebasestorage.app',
-        measurementId: dotenv.env['FIREBASE_MEASUREMENT_ID'] ?? '',
-      );
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: _webApiKey,
+    appId: _webAppId,
+    messagingSenderId: _messagingSenderId,
+    projectId: _projectId,
+    authDomain: _authDomain,
+    storageBucket: _storageBucket,
+    measurementId: _measurementId,
+  );
 
-  static FirebaseOptions get android => FirebaseOptions(
-        apiKey: dotenv.env['FIREBASE_ANDROID_API_KEY'] ?? '',
-        appId: dotenv.env['FIREBASE_ANDROID_APP_ID'] ?? '',
-        messagingSenderId: dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '',
-        projectId: dotenv.env['FIREBASE_PROJECT_ID'] ?? 'rc-setting-manager',
-        storageBucket: dotenv.env['FIREBASE_STORAGE_BUCKET'] ??
-            'rc-setting-manager.firebasestorage.app',
-      );
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: _androidApiKey,
+    appId: _androidAppId,
+    messagingSenderId: _messagingSenderId,
+    projectId: _projectId,
+    storageBucket: _storageBucket,
+  );
 
-  static FirebaseOptions get ios => FirebaseOptions(
-        apiKey: dotenv.env['FIREBASE_IOS_API_KEY'] ?? '',
-        appId: dotenv.env['FIREBASE_IOS_APP_ID'] ?? '',
-        messagingSenderId: dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '',
-        projectId: dotenv.env['FIREBASE_PROJECT_ID'] ?? 'rc-setting-manager',
-        storageBucket: dotenv.env['FIREBASE_STORAGE_BUCKET'] ??
-            'rc-setting-manager.firebasestorage.app',
-        iosBundleId: dotenv.env['FIREBASE_IOS_BUNDLE_ID'] ??
-            'com.example.settingsheetManager',
-      );
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: _iosApiKey,
+    appId: _iosAppId,
+    messagingSenderId: _messagingSenderId,
+    projectId: _projectId,
+    storageBucket: _storageBucket,
+    iosBundleId: _iosBundleId,
+  );
 
-  static FirebaseOptions get macos => FirebaseOptions(
-        apiKey: dotenv.env['FIREBASE_IOS_API_KEY'] ?? '',
-        appId: dotenv.env['FIREBASE_IOS_APP_ID'] ?? '',
-        messagingSenderId: dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '',
-        projectId: dotenv.env['FIREBASE_PROJECT_ID'] ?? 'rc-setting-manager',
-        storageBucket: dotenv.env['FIREBASE_STORAGE_BUCKET'] ??
-            'rc-setting-manager.firebasestorage.app',
-        iosBundleId: dotenv.env['FIREBASE_IOS_BUNDLE_ID'] ??
-            'com.example.settingsheetManager',
-      );
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: _iosApiKey,
+    appId: _iosAppId,
+    messagingSenderId: _messagingSenderId,
+    projectId: _projectId,
+    storageBucket: _storageBucket,
+    iosBundleId: _iosBundleId,
+  );
 
-  static FirebaseOptions get windows => FirebaseOptions(
-        apiKey: dotenv.env['FIREBASE_WEB_API_KEY'] ?? '',
-        appId: dotenv.env['FIREBASE_WINDOWS_APP_ID'] ?? '',
-        messagingSenderId: dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '',
-        projectId: dotenv.env['FIREBASE_PROJECT_ID'] ?? 'rc-setting-manager',
-        authDomain: dotenv.env['FIREBASE_AUTH_DOMAIN'] ??
-            'rc-setting-manager.firebaseapp.com',
-        storageBucket: dotenv.env['FIREBASE_STORAGE_BUCKET'] ??
-            'rc-setting-manager.firebasestorage.app',
-        measurementId: dotenv.env['FIREBASE_WINDOWS_MEASUREMENT_ID'] ?? '',
-      );
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: _webApiKey,
+    appId: _windowsAppId,
+    messagingSenderId: _messagingSenderId,
+    projectId: _projectId,
+    authDomain: _authDomain,
+    storageBucket: _storageBucket,
+    measurementId: _windowsMeasurementId,
+  );
 }

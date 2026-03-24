@@ -456,6 +456,16 @@ class SettingsProvider extends ChangeNotifier {
   // オンラインモードを切り替え
   Future<void> toggleOnlineMode() async {
     _isOnlineMode = !_isOnlineMode;
+
+    if (_isOnlineMode && _firestoreService == null) {
+      try {
+        _firestoreService = FirestoreService();
+      } catch (e) {
+        print('FirestoreService initialization failed on toggleOnlineMode: $e');
+        _firestoreService = null;
+      }
+    }
+
     await _saveOnlineMode();
     notifyListeners();
 
@@ -500,6 +510,11 @@ class SettingsProvider extends ChangeNotifier {
 
       // 言語設定を読み込み
       _isEnglish = await _firestoreService!.getLanguageSettings();
+
+      await _saveSettings();
+      await _saveCars();
+      await _saveVisibilitySettings();
+      await _saveLanguageSettings();
 
       notifyListeners();
       print('Firebaseからデータを読み込みました');

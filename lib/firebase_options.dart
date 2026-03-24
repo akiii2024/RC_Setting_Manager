@@ -2,8 +2,7 @@
 // ignore_for_file: type=lint
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
-    show defaultTargetPlatform, kIsWeb, TargetPlatform;
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+    show TargetPlatform, defaultTargetPlatform, kIsWeb;
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
@@ -16,6 +15,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 /// );
 /// ```
 class DefaultFirebaseOptions {
+  const DefaultFirebaseOptions._();
+
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
       return web;
@@ -41,59 +42,49 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static FirebaseOptions get web => FirebaseOptions(
-        apiKey: dotenv.env['FIREBASE_WEB_API_KEY'] ??
-            'AIzaSyDKIP88kAdkXBcWde69ofYkH3DGOQouwIE',
-        appId: '1:375147888843:web:48d5233eb229bf1e235b4e',
-        messagingSenderId:
-            dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '375147888843',
-        projectId: dotenv.env['FIREBASE_PROJECT_ID'] ?? 'rc-setting-manager',
-        authDomain: 'rc-setting-manager.firebaseapp.com',
-        storageBucket: 'rc-setting-manager.firebasestorage.app',
-        measurementId: 'G-P7JB663DCR',
-      );
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyDKIP88kAdkXBcWde69ofYkH3DGOQouwIE',
+    appId: '1:375147888843:web:48d5233eb229bf1e235b4e',
+    messagingSenderId: '375147888843',
+    projectId: 'rc-setting-manager',
+    authDomain: 'rc-setting-manager.firebaseapp.com',
+    storageBucket: 'rc-setting-manager.firebasestorage.app',
+    measurementId: 'G-P7JB663DCR',
+  );
 
-  static FirebaseOptions get android => FirebaseOptions(
-        apiKey: dotenv.env['FIREBASE_ANDROID_API_KEY'] ??
-            'AIzaSyDnQdGoO5Tbn7ZbnsiRmRp1VbuVyylCRfM',
-        appId: '1:375147888843:android:092e818accc5187c235b4e',
-        messagingSenderId:
-            dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '375147888843',
-        projectId: dotenv.env['FIREBASE_PROJECT_ID'] ?? 'rc-setting-manager',
-        storageBucket: 'rc-setting-manager.firebasestorage.app',
-      );
+  static const FirebaseOptions android = FirebaseOptions(
+    apiKey: 'AIzaSyDnQdGoO5Tbn7ZbnsiRmRp1VbuVyylCRfM',
+    appId: '1:375147888843:android:092e818accc5187c235b4e',
+    messagingSenderId: '375147888843',
+    projectId: 'rc-setting-manager',
+    storageBucket: 'rc-setting-manager.firebasestorage.app',
+  );
 
-  static FirebaseOptions get ios => FirebaseOptions(
-        apiKey: dotenv.env['FIREBASE_IOS_API_KEY'] ??
-            'AIzaSyC6KsW_0rJCbYlRNM9Z3LeQWifq1HlppLQ',
-        appId: '1:375147888843:ios:b8bdc6931e147db8235b4e',
-        messagingSenderId:
-            dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '375147888843',
-        projectId: dotenv.env['FIREBASE_PROJECT_ID'] ?? 'rc-setting-manager',
-        storageBucket: 'rc-setting-manager.firebasestorage.app',
-        iosBundleId: 'com.example.settingsheetManager',
-      );
+  static const FirebaseOptions ios = FirebaseOptions(
+    apiKey: 'AIzaSyC6KsW_0rJCbYlRNM9Z3LeQWifq1HlppLQ',
+    appId: '1:375147888843:ios:b8bdc6931e147db8235b4e',
+    messagingSenderId: '375147888843',
+    projectId: 'rc-setting-manager',
+    storageBucket: 'rc-setting-manager.firebasestorage.app',
+    iosBundleId: 'com.example.settingsheetManager',
+  );
 
-  static FirebaseOptions get macos => FirebaseOptions(
-        apiKey: dotenv.env['FIREBASE_IOS_API_KEY'] ??
-            'AIzaSyC6KsW_0rJCbYlRNM9Z3LeQWifq1HlppLQ',
-        appId: '1:375147888843:ios:b8bdc6931e147db8235b4e',
-        messagingSenderId:
-            dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '375147888843',
-        projectId: dotenv.env['FIREBASE_PROJECT_ID'] ?? 'rc-setting-manager',
-        storageBucket: 'rc-setting-manager.firebasestorage.app',
-        iosBundleId: 'com.example.settingsheetManager',
-      );
+  static const FirebaseOptions macos = FirebaseOptions(
+    apiKey: 'AIzaSyC6KsW_0rJCbYlRNM9Z3LeQWifq1HlppLQ',
+    appId: '1:375147888843:ios:b8bdc6931e147db8235b4e',
+    messagingSenderId: '375147888843',
+    projectId: 'rc-setting-manager',
+    storageBucket: 'rc-setting-manager.firebasestorage.app',
+    iosBundleId: 'com.example.settingsheetManager',
+  );
 
-  static FirebaseOptions get windows => FirebaseOptions(
-        apiKey: dotenv.env['FIREBASE_WEB_API_KEY'] ??
-            'AIzaSyDKIP88kAdkXBcWde69ofYkH3DGOQouwIE',
-        appId: '1:375147888843:web:48d5233eb229bf1e235b4e',
-        messagingSenderId:
-            dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '375147888843',
-        projectId: dotenv.env['FIREBASE_PROJECT_ID'] ?? 'rc-setting-manager',
-        authDomain: 'rc-setting-manager.firebaseapp.com',
-        storageBucket: 'rc-setting-manager.firebasestorage.app',
-        measurementId: 'G-P7JB663DCR',
-      );
+  static const FirebaseOptions windows = FirebaseOptions(
+    apiKey: 'AIzaSyDKIP88kAdkXBcWde69ofYkH3DGOQouwIE',
+    appId: '1:375147888843:web:48d5233eb229bf1e235b4e',
+    messagingSenderId: '375147888843',
+    projectId: 'rc-setting-manager',
+    authDomain: 'rc-setting-manager.firebaseapp.com',
+    storageBucket: 'rc-setting-manager.firebasestorage.app',
+    measurementId: 'G-P7JB663DCR',
+  );
 }

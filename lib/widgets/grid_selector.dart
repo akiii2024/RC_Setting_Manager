@@ -51,12 +51,14 @@ class _GridSelectorState extends State<GridSelector> {
 
     return Container(
       decoration: BoxDecoration(
-        border: Border.all(color: theme.colorScheme.primary.withOpacity(0.3)),
+        border: Border.all(
+          color: theme.colorScheme.primary.withValues(alpha: 0.3),
+        ),
         borderRadius: BorderRadius.circular(8),
         color: theme.colorScheme.surface,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -73,34 +75,40 @@ class _GridSelectorState extends State<GridSelector> {
               final isSelected = selectedPoints.contains(point);
               return Padding(
                 padding: const EdgeInsets.all(2),
-                child: InkWell(
-                  onTap: () => _handleTap(row, col),
-                  borderRadius: BorderRadius.circular(6),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(
+                child: Semantics(
+                  button: true,
+                  selected: isSelected,
+                  label: 'Grid position row ${row + 1}, column ${col + 1}',
+                  child: InkWell(
+                    onTap: () => _handleTap(row, col),
+                    borderRadius: BorderRadius.circular(8),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSelected
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.outline
+                                  .withValues(alpha: 0.3),
+                          width: isSelected ? 2 : 1,
+                        ),
                         color: isSelected
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.outline.withOpacity(0.3),
-                        width: isSelected ? 2 : 1,
+                            ? theme.colorScheme.primary.withValues(alpha: 0.15)
+                            : theme.colorScheme.surface,
                       ),
-                      color: isSelected
-                          ? theme.colorScheme.primary.withOpacity(0.15)
-                          : theme.colorScheme.surface,
+                      child: isSelected
+                          ? Center(
+                              child: Icon(
+                                Icons.check_rounded,
+                                size: 18,
+                                color: theme.colorScheme.primary,
+                              ),
+                            )
+                          : null,
                     ),
-                    child: isSelected
-                        ? Center(
-                            child: Icon(
-                              Icons.check_rounded,
-                              size: 18,
-                              color: theme.colorScheme.primary,
-                            ),
-                          )
-                        : null,
                   ),
                 ),
               );

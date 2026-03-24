@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
-import '../models/saved_setting.dart';
+
 import '../models/car.dart';
+import '../models/saved_setting.dart';
 import '../models/visibility_settings.dart';
 
 class FirestoreService {
@@ -12,20 +12,21 @@ class FirestoreService {
   String? get userId => _auth.currentUser?.uid;
   bool get isGuestUser => _auth.currentUser?.isAnonymous ?? false;
 
-  // ユーザーのコレクション参照を取得
   CollectionReference? get userCollection {
-    if (userId == null) return null;
-    // ゲストユーザーの場合は特別なコレクションを使用
+    if (userId == null) {
+      return null;
+    }
+
     if (isGuestUser) {
       return _firestore
           .collection('guest_users')
           .doc(userId)
           .collection('data');
     }
+
     return _firestore.collection('users').doc(userId).collection('data');
   }
 
-  // 保存された設定をFirestoreに保存
   Future<void> saveSetting(SavedSetting setting) async {
     print('Attempting to save setting: ${setting.id}');
     print('User ID: $userId');
@@ -34,7 +35,7 @@ class FirestoreService {
 
     if (userCollection == null) {
       print('ERROR: User collection is null - user may not be logged in');
-      throw Exception('ユーザーがログインしていません。Firebase認証を確認してください。');
+      throw Exception('User is not signed in.');
     }
 
     try {
@@ -46,39 +47,41 @@ class FirestoreService {
       await docRef.set(setting.toJson());
       print('Setting saved successfully');
     } catch (e) {
-      print('設定保存エラー: $e');
+      print('Error saving setting: $e');
       print('Error type: ${e.runtimeType}');
       if (e is FirebaseException) {
         print('Firebase Error Code: ${e.code}');
         print('Firebase Error Message: ${e.message}');
-        throw Exception('設定保存に失敗しました: ${e.code} - ${e.message}');
+        throw Exception('Failed to save setting: ${e.code} - ${e.message}');
       }
-      throw Exception('設定保存に失敗しました: $e');
+      throw Exception('Failed to save setting: $e');
     }
   }
 
-  // 保存された設定をFirestoreから取得
   Future<List<SavedSetting>> getSavedSettings() async {
-    if (userCollection == null) return [];
+    if (userCollection == null) {
+      return [];
+    }
 
     try {
-      QuerySnapshot snapshot = await userCollection!
+      final snapshot = await userCollection!
           .doc('settings')
           .collection('saved_settings')
           .get();
       return snapshot.docs.map((doc) {
-        Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+        final data = doc.data() as Map<String, dynamic>;
         return SavedSetting.fromJson(data);
       }).toList();
     } catch (e) {
-      print('設定取得エラー: $e');
+      print('Error loading settings: $e');
       return [];
     }
   }
 
-  // 設定を削除
   Future<void> deleteSetting(String settingId) async {
-    if (userCollection == null) throw Exception('ユーザーがログインしていません');
+    if (userCollection == null) {
+      throw Exception('User is not signed in.');
+    }
 
     try {
       await userCollection!
@@ -87,161 +90,166 @@ class FirestoreService {
           .doc(settingId)
           .delete();
     } catch (e) {
-      print('設定削除エラー: $e');
+      print('Error deleting setting: $e');
       rethrow;
     }
   }
 
-  // 車種リストを保存
   Future<void> saveCars(List<Car> cars) async {
-    if (userCollection == null) throw Exception('ユーザーがログインしていません');
+    if (userCollection == null) {
+      throw Exception('User is not signed in.');
+    }
 
     try {
-      List<Map<String, dynamic>> carsJson =
-          cars.map((car) => car.toJson()).toList();
+      final carsJson = cars.map((car) => car.toJson()).toList();
       await userCollection!.doc('cars').set({'cars': carsJson});
     } catch (e) {
-      print('車種保存エラー: $e');
+      print('Error saving cars: $e');
       rethrow;
     }
   }
 
-  // 車種リストを取得
   Future<List<Car>> getCars() async {
-    if (userCollection == null) return [];
+    if (userCollection == null) {
+      return [];
+    }
 
     try {
-      DocumentSnapshot snapshot = await userCollection!.doc('cars').get();
-      if (snapshot.exists) {
-        Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
-        List<dynamic> carsData = data['cars'] ?? [];
-        return carsData
-            .map((carData) => Car.fromJson(carData as Map<String, dynamic>))
-            .toList();
+      final snapshot = await userCollection!.doc('cars').get();
+      if (!snapshot.exists) {
+        return [];
       }
-      return [];
+
+      final data = snapshot.data() as Map<String, dynamic>;
+      final carsData = data['cars'] as List<dynamic>? ?? [];
+      return carsData
+          .map((carData) => Car.fromJson(carData as Map<String, dynamic>))
+          .toList();
     } catch (e) {
-      print('車種取得エラー: $e');
+      print('Error loading cars: $e');
       return [];
     }
   }
 
-  // 表示設定を保存
   Future<void> saveVisibilitySettings(
       Map<String, VisibilitySettings> visibilitySettings) async {
-    if (userCollection == null) throw Exception('ユーザーがログインしていません');
+    if (userCollection == null) {
+      throw Exception('User is not signed in.');
+    }
 
     try {
-      Map<String, dynamic> visibilityJson = {};
+      final visibilityJson = <String, dynamic>{};
       visibilitySettings.forEach((key, value) {
         visibilityJson[key] = value.toJson();
       });
       await userCollection!.doc('visibility_settings').set(visibilityJson);
     } catch (e) {
-      print('表示設定保存エラー: $e');
+      print('Error saving visibility settings: $e');
       rethrow;
     }
   }
 
-  // 表示設定を取得
   Future<Map<String, VisibilitySettings>> getVisibilitySettings() async {
-    if (userCollection == null) return {};
+    if (userCollection == null) {
+      return {};
+    }
 
     try {
-      DocumentSnapshot snapshot =
-          await userCollection!.doc('visibility_settings').get();
-      if (snapshot.exists) {
-        Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
-        Map<String, VisibilitySettings> visibilitySettings = {};
-        data.forEach((key, value) {
-          visibilitySettings[key] =
-              VisibilitySettings.fromJson(value as Map<String, dynamic>);
-        });
-        return visibilitySettings;
+      final snapshot = await userCollection!.doc('visibility_settings').get();
+      if (!snapshot.exists) {
+        return {};
       }
-      return {};
+
+      final data = snapshot.data() as Map<String, dynamic>;
+      final visibilitySettings = <String, VisibilitySettings>{};
+      data.forEach((key, value) {
+        visibilitySettings[key] =
+            VisibilitySettings.fromJson(value as Map<String, dynamic>);
+      });
+      return visibilitySettings;
     } catch (e) {
-      print('表示設定取得エラー: $e');
+      print('Error loading visibility settings: $e');
       return {};
     }
   }
 
-  // 言語設定を保存
   Future<void> saveLanguageSettings(bool isEnglish) async {
-    if (userCollection == null) throw Exception('ユーザーがログインしていません');
+    if (userCollection == null) {
+      throw Exception('User is not signed in.');
+    }
 
     try {
       await userCollection!
           .doc('language_settings')
           .set({'isEnglish': isEnglish});
     } catch (e) {
-      print('言語設定保存エラー: $e');
+      print('Error saving language settings: $e');
       rethrow;
     }
   }
 
-  // 言語設定を取得
   Future<bool> getLanguageSettings() async {
-    if (userCollection == null) return false;
+    if (userCollection == null) {
+      return false;
+    }
 
     try {
-      DocumentSnapshot snapshot =
-          await userCollection!.doc('language_settings').get();
-      if (snapshot.exists) {
-        Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
-        return data['isEnglish'] ?? false;
+      final snapshot = await userCollection!.doc('language_settings').get();
+      if (!snapshot.exists) {
+        return false;
       }
-      return false;
+
+      final data = snapshot.data() as Map<String, dynamic>;
+      return data['isEnglish'] as bool? ?? false;
     } catch (e) {
-      print('言語設定取得エラー: $e');
+      print('Error loading language settings: $e');
       return false;
     }
   }
 
-  // すべてのデータを同期
   Future<void> syncAllData({
     required List<SavedSetting> savedSettings,
     required List<Car> cars,
     required Map<String, VisibilitySettings> visibilitySettings,
     required bool isEnglish,
   }) async {
-    if (userCollection == null) throw Exception('ユーザーがログインしていません');
+    if (userCollection == null) {
+      throw Exception('User is not signed in.');
+    }
 
     try {
-      // バッチ書き込みを使用して一括更新
-      WriteBatch batch = _firestore.batch();
+      final settingsCollection =
+          userCollection!.doc('settings').collection('saved_settings');
+      final existingSnapshot = await settingsCollection.get();
+      final localSettingIds =
+          savedSettings.map((setting) => setting.id).toSet();
+      final batch = _firestore.batch();
 
-      // 保存された設定
-      for (SavedSetting setting in savedSettings) {
-        DocumentReference settingRef = userCollection!
-            .doc('settings')
-            .collection('saved_settings')
-            .doc(setting.id);
-        batch.set(settingRef, setting.toJson());
+      for (final doc in existingSnapshot.docs) {
+        if (!localSettingIds.contains(doc.id)) {
+          batch.delete(doc.reference);
+        }
       }
 
-      // 車種リスト
-      List<Map<String, dynamic>> carsJson =
-          cars.map((car) => car.toJson()).toList();
-      DocumentReference carsRef = userCollection!.doc('cars');
-      batch.set(carsRef, {'cars': carsJson});
+      for (final setting in savedSettings) {
+        batch.set(settingsCollection.doc(setting.id), setting.toJson());
+      }
 
-      // 表示設定
-      Map<String, dynamic> visibilityJson = {};
+      final carsJson = cars.map((car) => car.toJson()).toList();
+      batch.set(userCollection!.doc('cars'), {'cars': carsJson});
+
+      final visibilityJson = <String, dynamic>{};
       visibilitySettings.forEach((key, value) {
         visibilityJson[key] = value.toJson();
       });
-      DocumentReference visibilityRef =
-          userCollection!.doc('visibility_settings');
-      batch.set(visibilityRef, visibilityJson);
+      batch.set(userCollection!.doc('visibility_settings'), visibilityJson);
 
-      // 言語設定
-      DocumentReference languageRef = userCollection!.doc('language_settings');
-      batch.set(languageRef, {'isEnglish': isEnglish});
+      batch.set(
+          userCollection!.doc('language_settings'), {'isEnglish': isEnglish});
 
       await batch.commit();
     } catch (e) {
-      print('データ同期エラー: $e');
+      print('Error syncing data: $e');
       rethrow;
     }
   }
