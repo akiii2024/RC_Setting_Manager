@@ -14,7 +14,7 @@
 GitHubリポジトリの「Settings」→「Secrets and variables」→「Actions」で以下を設定：
 
 ```
-FIREBASE_WEB_API_KEY=AIzaSyDKIP88kAdkXBcWde69ofYkH3DGOQouwIE
+FIREBASE_WEB_API_KEY=your_web_api_key_here
 FIREBASE_PROJECT_ID=rc-setting-manager
 FIREBASE_MESSAGING_SENDER_ID=375147888843
 OPENWEATHER_API_KEY=your_openweather_api_key
