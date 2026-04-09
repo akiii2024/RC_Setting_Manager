@@ -89,12 +89,12 @@
 
 #### iOS
 - **インストール方法**: PWA（プログレッシブウェブアプリ）
-- **アクセスURL**: https://akiii2024.github.io/RC_setting_manager/
+- **アクセスURL**: <https://akiii2024.github.io/RC_Setting_Manager/>
 - **備考**: 将来的にApp Storeでの配布を予定
 
 #### Web（PC・タブレット）
 - **対応ブラウザ**: Chrome、Safari、Firefox、Edge等の主要ブラウザ
-- **アクセスURL**: https://akiii2024.github.io/RC_setting_manager/
+- **アクセスURL**: <https://akiii2024.github.io/RC_Setting_Manager/>
 - **PWA対応**: ブラウザからホーム画面にインストール可能
 
 ### 必要な機能・権限
