@@ -7,6 +7,7 @@ import '../providers/settings_provider.dart';
 import 'car_selection_page.dart';
 import 'car_setting_page.dart';
 import 'history_page.dart';
+import 'my_garage_page.dart';
 import 'tools_page.dart';
 
 const _blueShiftGradient = LinearGradient(
@@ -32,7 +33,7 @@ class _HomePageState extends State<HomePage> {
 
   void _openHistoryTab() {
     setState(() {
-      _selectedIndex = 1;
+      _selectedIndex = 2;
     });
   }
 
@@ -41,8 +42,10 @@ class _HomePageState extends State<HomePage> {
       case 0:
         return _HomeTab(onOpenHistory: _openHistoryTab);
       case 1:
-        return const HistoryPage();
+        return const MyGaragePage(embedded: true);
       case 2:
+        return const HistoryPage();
+      case 3:
         return const ToolsPage();
       default:
         return const SizedBox.shrink();
@@ -50,6 +53,16 @@ class _HomePageState extends State<HomePage> {
   }
 
   String _pageTitle(bool isEnglish) {
+    if (_selectedIndex == 1) {
+      return _t(isEnglish, 'My Garage', 'マイガレージ');
+    }
+    if (_selectedIndex == 2) {
+      return _t(isEnglish, 'Setting History', '設定履歴');
+    }
+    if (_selectedIndex == 3) {
+      return _t(isEnglish, 'Tools', 'ツール');
+    }
+
     switch (_selectedIndex) {
       case 0:
         return 'ENGINEERING PRECISION';
@@ -110,6 +123,11 @@ class _HomePageState extends State<HomePage> {
             label: _t(isEnglish, 'Fleet', 'ホーム'),
           ),
           NavigationDestination(
+            icon: const Icon(Icons.garage_outlined),
+            selectedIcon: const Icon(Icons.garage_rounded),
+            label: _t(isEnglish, 'My Garage', 'マイガレージ'),
+          ),
+          NavigationDestination(
             icon: const Icon(Icons.history_rounded),
             selectedIcon: const Icon(Icons.history_toggle_off_rounded),
             label: _t(isEnglish, 'Logs', '履歴'),
@@ -121,16 +139,11 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
-      floatingActionButton: _selectedIndex == 0
+      floatingActionButton: _selectedIndex == 0 || _selectedIndex == 1
           ? _GradientFab(
               tooltip: _t(isEnglish, 'New calibration', '新規設定'),
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const CarSelectionPage(),
-                  ),
-                );
+                Navigator.pushNamed(context, '/car-selection');
               },
             )
           : null,

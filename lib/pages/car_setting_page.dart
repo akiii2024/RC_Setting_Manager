@@ -47,6 +47,12 @@ Dialog _buildResponsiveDialog({
   );
 }
 
+enum _GaragePromptAction {
+  add,
+  notNow,
+  suppress,
+}
+
 class CarSettingPage extends StatefulWidget {
   final Car originalCar;
   final Map<String, dynamic>? savedSettings;
@@ -2310,6 +2316,85 @@ class _CarSettingPageState extends State<CarSettingPage> {
     );
   }
 
+  Future<_GaragePromptAction?> _showGaragePromptIfNeeded(
+    SettingsProvider settingsProvider,
+  ) async {
+    final currentCar = settingsProvider.getCarById(widget.originalCar.id);
+    if (currentCar == null ||
+        currentCar.isInGarage ||
+        currentCar.suppressGaragePrompt) {
+      return null;
+    }
+
+    final isEnglish = settingsProvider.isEnglish;
+    final action = await showDialog<_GaragePromptAction>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: Text(
+            isEnglish ? 'Add to My Garage?' : 'マイガレージに追加しますか？',
+          ),
+          content: Text(
+            isEnglish
+                ? 'You saved a setting for ${currentCar.name}. Add this model to My Garage for quicker access next time?'
+                : '${currentCar.name} の設定を保存しました。次回から見つけやすいように、マイガレージへ追加しますか？',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(_GaragePromptAction.notNow);
+              },
+              child: Text(isEnglish ? 'Not now' : '今はしない'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(_GaragePromptAction.suppress);
+              },
+              child: Text(
+                isEnglish ? "Don't show again" : '今後は表示しない',
+              ),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.of(dialogContext).pop(_GaragePromptAction.add);
+              },
+              child: Text(
+                isEnglish ? 'Add to My Garage' : 'マイガレージに追加',
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (action == _GaragePromptAction.add) {
+      await settingsProvider.setGarageMembership(currentCar.id, true);
+    } else if (action == _GaragePromptAction.suppress) {
+      await settingsProvider.setGaragePromptSuppressed(currentCar.id, true);
+    }
+
+    return action;
+  }
+
+  String _savedSnackBarMessage(
+    bool isEnglish,
+    _GaragePromptAction? action,
+  ) {
+    switch (action) {
+      case _GaragePromptAction.add:
+        return isEnglish
+            ? 'Setting saved and added to My Garage'
+            : '設定を保存し、マイガレージに追加しました';
+      case _GaragePromptAction.suppress:
+        return isEnglish
+            ? 'Setting saved. Future garage prompts disabled for this model'
+            : '設定を保存しました。この車種では今後ガレージ確認を表示しません';
+      case _GaragePromptAction.notNow:
+      case null:
+        return isEnglish ? 'Setting saved' : '設定を保存しました';
+    }
+  }
+
   void _saveSetting() async {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
@@ -2350,6 +2435,18 @@ class _CarSettingPageState extends State<CarSettingPage> {
         widget.originalCar,
         settings,
       );
+      final promptAction = await _showGaragePromptIfNeeded(settingsProvider);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _savedSnackBarMessage(isEnglish, promptAction),
+            ),
+          ),
+        );
+        Navigator.pop(context);
+        return;
+      }
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(isEnglish ? 'Setting saved' : '設定を保存しました')),
@@ -2393,6 +2490,18 @@ class _CarSettingPageState extends State<CarSettingPage> {
       widget.originalCar,
       settings,
     );
+    final promptAction = await _showGaragePromptIfNeeded(settingsProvider);
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _savedSnackBarMessage(isEnglish, promptAction),
+          ),
+        ),
+      );
+      Navigator.pop(context);
+      return;
+    }
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(isEnglish ? 'Setting saved' : '設定を保存しました')),

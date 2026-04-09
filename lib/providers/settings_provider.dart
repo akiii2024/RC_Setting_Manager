@@ -30,6 +30,8 @@ class SettingsProvider extends ChangeNotifier {
   Map<String, VisibilitySettings> get visibilitySettings => _visibilitySettings;
   bool get isEnglish => _isEnglish;
   List<Car> get cars => _cars;
+  List<Car> get garageCars =>
+      _cars.where((car) => car.isInGarage).toList(growable: false);
   bool get isOnlineMode => _isOnlineMode;
   bool get usePaperStyleEditor => _usePaperStyleEditor;
   bool get isInitialized => _isInitialized;
@@ -168,13 +170,27 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> _persistCars() async {
+    await _saveCars();
+
+    if (_isOnlineMode && _firestoreService != null) {
+      try {
+        await _firestoreService!.saveCars(_cars);
+      } catch (e) {
+        print('Firebase菫晏ｭ倥お繝ｩ繝ｼ: $e');
+      }
+    }
+
+    notifyListeners();
+  }
+
   // 車種を更新
   Future<void> updateCar(Car updatedCar) async {
     try {
       final index = _cars.indexWhere((car) => car.id == updatedCar.id);
       if (index != -1) {
         _cars[index] = updatedCar;
-        await _saveCars();
+        await _persistCars();
 
         // オンラインモードの場合はFirebaseにも保存
         if (_isOnlineMode && _firestoreService != null) {
@@ -195,7 +211,7 @@ class SettingsProvider extends ChangeNotifier {
   // 車種を追加
   Future<void> addCar(Car newCar) async {
     _cars.add(newCar);
-    await _saveCars();
+    await _persistCars();
 
     // オンラインモードの場合はFirebaseにも保存
     if (_isOnlineMode && _firestoreService != null) {
@@ -212,7 +228,7 @@ class SettingsProvider extends ChangeNotifier {
   // 車種を削除
   Future<void> deleteCar(String carId) async {
     _cars.removeWhere((car) => car.id == carId);
-    await _saveCars();
+    await _persistCars();
 
     // オンラインモードの場合はFirebaseにも保存
     if (_isOnlineMode && _firestoreService != null) {
@@ -232,7 +248,31 @@ class SettingsProvider extends ChangeNotifier {
     for (final car in _cars) {
       manufacturers[car.manufacturer.id] = car.manufacturer;
     }
-    return manufacturers.values.toList();
+    final values = manufacturers.values.toList();
+    values.sort((a, b) => a.name.compareTo(b.name));
+    return values;
+  }
+
+  Map<Manufacturer, List<Car>> getGarageCarsByManufacturer() {
+    final groupedCars = <String, List<Car>>{};
+    final manufacturers = <String, Manufacturer>{};
+
+    for (final car in garageCars) {
+      manufacturers[car.manufacturer.id] = car.manufacturer;
+      groupedCars.putIfAbsent(car.manufacturer.id, () => <Car>[]).add(car);
+    }
+
+    final manufacturerIds = groupedCars.keys.toList()
+      ..sort(
+          (a, b) => manufacturers[a]!.name.compareTo(manufacturers[b]!.name));
+
+    return {
+      for (final manufacturerId in manufacturerIds)
+        manufacturers[manufacturerId]!: groupedCars[manufacturerId]!
+          ..sort(
+            (a, b) => a.name.compareTo(b.name),
+          ),
+    };
   }
 
   // 特定の車種を取得
@@ -248,6 +288,24 @@ class SettingsProvider extends ChangeNotifier {
   List<String> getCarAvailableSettings(String carId) {
     final car = getCarById(carId);
     return car?.availableSettings ?? [];
+  }
+
+  Future<void> setGarageMembership(String carId, bool value) async {
+    final car = getCarById(carId);
+    if (car == null || car.isInGarage == value) {
+      return;
+    }
+
+    await updateCar(car.copyWith(isInGarage: value));
+  }
+
+  Future<void> setGaragePromptSuppressed(String carId, bool value) async {
+    final car = getCarById(carId);
+    if (car == null || car.suppressGaragePrompt == value) {
+      return;
+    }
+
+    await updateCar(car.copyWith(suppressGaragePrompt: value));
   }
 
   // 設定読み込み関数を安全に変更
