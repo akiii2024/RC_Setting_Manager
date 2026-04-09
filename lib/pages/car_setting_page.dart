@@ -4075,7 +4075,7 @@ class _TrackSearchDialogState extends State<_TrackSearchDialog> {
 
               // 都道府県フィルター
               DropdownButtonFormField<String>(
-                initialValue: _selectedPrefecture,
+                value: _selectedPrefecture,
                 decoration: InputDecoration(
                   labelText: widget.isEnglish ? 'Prefecture' : '都道府県',
                   border: const OutlineInputBorder(),
