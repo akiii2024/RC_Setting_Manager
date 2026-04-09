@@ -23,8 +23,8 @@ void main() {
 
     await tester.pumpAndSettle();
 
-    expect(find.byType(BottomNavigationBar), findsOneWidget);
-    expect(find.byType(FloatingActionButton), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
+    expect(find.byTooltip('新規設定'), findsOneWidget);
     expect(find.byType(HomePage), findsOneWidget);
   });
 }

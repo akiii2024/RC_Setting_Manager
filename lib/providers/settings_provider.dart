@@ -12,6 +12,7 @@ class SettingsProvider extends ChangeNotifier {
   List<SavedSetting> _savedSettings = [];
   Map<String, VisibilitySettings> _visibilitySettings = {};
   bool _isEnglish = false;
+  bool _usePaperStyleEditor = false;
   List<Car> _cars = []; // 車種リストを保持
   bool _isOnlineMode = false; // オンラインモードかどうか
   bool _isInitialized = false; // 初期化完了フラグ
@@ -21,6 +22,7 @@ class SettingsProvider extends ChangeNotifier {
   final String _languageKey = 'language_settings';
   final String _carsKey = 'cars_settings';
   final String _onlineModeKey = 'online_mode';
+  final String _editorLayoutKey = 'editor_layout_paper';
 
   FirestoreService? _firestoreService;
 
@@ -29,6 +31,7 @@ class SettingsProvider extends ChangeNotifier {
   bool get isEnglish => _isEnglish;
   List<Car> get cars => _cars;
   bool get isOnlineMode => _isOnlineMode;
+  bool get usePaperStyleEditor => _usePaperStyleEditor;
   bool get isInitialized => _isInitialized;
 
   SettingsProvider() {
@@ -54,6 +57,7 @@ class SettingsProvider extends ChangeNotifier {
       await _loadSettings();
       await _loadVisibilitySettings();
       await _loadLanguageSettings();
+      await _loadEditorLayoutSettings();
 
       // Firebase認証状態をチェックしてオンラインモードを自動設定
       await _checkAuthStateAndSetOnlineMode();
@@ -302,6 +306,16 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> _loadEditorLayoutSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _usePaperStyleEditor = prefs.getBool(_editorLayoutKey) ?? false;
+    } catch (e) {
+      print('Error loading editor layout settings: $e');
+      _usePaperStyleEditor = false;
+    }
+  }
+
   Future<void> _saveSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -329,6 +343,15 @@ class SettingsProvider extends ChangeNotifier {
       await prefs.setBool(_languageKey, _isEnglish);
     } catch (e) {
       print('Error saving language settings: $e');
+    }
+  }
+
+  Future<void> _saveEditorLayoutSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_editorLayoutKey, _usePaperStyleEditor);
+    } catch (e) {
+      print('Error saving editor layout settings: $e');
     }
   }
 
@@ -585,6 +608,16 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   // 表示設定更新時にFirebaseにも保存
+  Future<void> setPaperStyleEditor(bool value) async {
+    if (_usePaperStyleEditor == value) {
+      return;
+    }
+
+    _usePaperStyleEditor = value;
+    await _saveEditorLayoutSettings();
+    notifyListeners();
+  }
+
   Future<void> updateVisibilitySettings(VisibilitySettings settings) async {
     _visibilitySettings[settings.carId] = settings;
     await _saveVisibilitySettings();
