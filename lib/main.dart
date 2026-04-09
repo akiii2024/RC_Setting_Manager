@@ -1,23 +1,25 @@
-import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+// ignore_for_file: avoid_print
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+
 import 'firebase_options.dart';
 import 'pages/car_selection_page.dart';
 import 'pages/home_page.dart';
-import 'pages/settings_page.dart';
 import 'pages/login_page.dart';
-import 'providers/theme_provider.dart';
-import 'providers/settings_provider.dart';
+import 'pages/settings_page.dart';
 import 'providers/app_mode_provider.dart';
+import 'providers/settings_provider.dart';
+import 'providers/theme_provider.dart';
 import 'services/auth_service.dart';
-import 'package:provider/provider.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 void main() async {
-  // エラーハンドリングを最初に設定
   FlutterError.onError = (FlutterErrorDetails details) {
     print('Flutter Error: ${details.exception}');
     print('Stack trace: ${details.stack}');
@@ -29,15 +31,8 @@ void main() async {
     print('WidgetsFlutterBinding initialization error: $e');
   }
 
-  // 環境変数の読み込み
-  try {
-  } catch (e) {
-    // 環境変数が読み込めなくてもアプリは続行
-  }
-
-  // 事前のモード設定を取得し、オンライン指定時のみFirebaseを初期化
   final storedMode = await AppModeProvider.loadStoredPreference();
-  bool firebaseInitialized = false;
+  var firebaseInitialized = false;
 
   if (storedMode == true) {
     firebaseInitialized = await _initializeFirebaseWithLogging();
@@ -70,7 +65,7 @@ void main() async {
               child: child,
             );
           }
-          // Firebase未使用時はAuthServiceを提供しない（オフライン/未選択）
+
           return Provider<AuthService?>.value(
             value: null,
             child: child,
@@ -83,7 +78,8 @@ void main() async {
 }
 
 Future<bool> _initializeFirebaseWithLogging() async {
-  bool firebaseInitialized = false;
+  var firebaseInitialized = false;
+
   try {
     print('=== Firebase Configuration Check ===');
     print('Platform: ${kIsWeb ? 'Web' : 'Mobile'}');
@@ -91,8 +87,9 @@ Future<bool> _initializeFirebaseWithLogging() async {
     if (Firebase.apps.isEmpty) {
       print('No Firebase apps found, initializing...');
 
-      final options =
-          kIsWeb ? DefaultFirebaseOptions.web : DefaultFirebaseOptions.currentPlatform;
+      final options = kIsWeb
+          ? DefaultFirebaseOptions.web
+          : DefaultFirebaseOptions.currentPlatform;
 
       print('Project ID: ${options.projectId}');
       print('App ID: ${options.appId}');
@@ -130,6 +127,7 @@ Future<bool> _initializeFirebaseWithLogging() async {
     }
     firebaseInitialized = false;
   }
+
   return firebaseInitialized;
 }
 
@@ -140,12 +138,10 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer2<AppModeProvider, AuthService?>(
       builder: (context, mode, authService, child) {
-        // オフラインモード明示時はHomeを表示（Firebase不要）
         if (mode.preferredOnline == false) {
           return const HomePage();
         }
 
-        // オンライン希望だがFirebaseがまだ用意できていない場合
         if (mode.preferredOnline == true && !mode.isFirebaseReady) {
           return Scaffold(
             body: Center(
@@ -155,7 +151,7 @@ class AuthWrapper extends StatelessWidget {
                   const CircularProgressIndicator(),
                   const SizedBox(height: 16),
                   Text(
-                    'オンラインモード（ベータ）を準備中です...',
+                    'Loading online mode...',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
@@ -164,16 +160,13 @@ class AuthWrapper extends StatelessWidget {
           );
         }
 
-        // モード未選択、またはAuthServiceなしの場合はログイン/選択画面へ
         if (authService == null) {
           return const LoginPage();
         }
 
-        // 認証状態を監視
         return StreamBuilder<User?>(
           stream: authService.firebaseAuth?.authStateChanges(),
           builder: (context, snapshot) {
-            // ローディング中
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Scaffold(
                 body: Center(
@@ -182,12 +175,10 @@ class AuthWrapper extends StatelessWidget {
               );
             }
 
-            // ユーザーがログインしていない場合はログインページを表示
             if (snapshot.data == null) {
               return const LoginPage();
             }
 
-            // ログイン済みの場合はホームページを表示
             return const HomePage();
           },
         );
@@ -201,16 +192,15 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // エラーが発生した場合のフォールバック
     try {
       return Consumer<SettingsProvider>(
         builder: (context, settingsProvider, child) {
           return Consumer<ThemeProvider>(
             builder: (context, themeProvider, child) {
               return MaterialApp(
-                title: 'RC Car Setting App',
-                theme: _buildLightTheme(context),
-                darkTheme: _buildDarkTheme(context),
+                title: 'Engineering Precision',
+                theme: _buildLightTheme(),
+                darkTheme: _buildDarkTheme(),
                 themeMode:
                     themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
                 localizationsDelegates: const [
@@ -219,12 +209,12 @@ class MyApp extends StatelessWidget {
                   GlobalCupertinoLocalizations.delegate,
                 ],
                 supportedLocales: const [
-                  Locale("ja", "JP"),
-                  Locale("en", "US"),
+                  Locale('ja', 'JP'),
+                  Locale('en', 'US'),
                 ],
                 locale: settingsProvider.isEnglish
-                    ? const Locale("en", "US")
-                    : const Locale("ja", "JP"),
+                    ? const Locale('en', 'US')
+                    : const Locale('ja', 'JP'),
                 debugShowCheckedModeBanner: false,
                 initialRoute: '/',
                 routes: {
@@ -234,16 +224,13 @@ class MyApp extends StatelessWidget {
                   '/login': (context) => const LoginPage(),
                 },
                 onGenerateRoute: (settings) {
-                  // PWAからのルーティング処理
                   if (settings.name != null && settings.name!.startsWith('/')) {
-                    // ルートパスにリダイレクト
                     return MaterialPageRoute(
                       builder: (context) => const HomePage(),
                     );
                   }
                   return null;
                 },
-                // エラー時のフォールバック画面
                 builder: (context, widget) {
                   ErrorWidget.builder = (FlutterErrorDetails errorDetails) {
                     return _buildErrorWidget(errorDetails);
@@ -265,16 +252,15 @@ class MyApp extends StatelessWidget {
               children: [
                 const Icon(Icons.error, size: 64, color: Colors.red),
                 const SizedBox(height: 16),
-                const Text('アプリの初期化エラー'),
+                const Text('Application failed to start.'),
                 const SizedBox(height: 8),
                 Text('$e'),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () {
-                    // アプリを再起動
                     main();
                   },
-                  child: const Text('再試行'),
+                  child: const Text('Retry'),
                 ),
               ],
             ),
@@ -284,260 +270,358 @@ class MyApp extends StatelessWidget {
     }
   }
 
-  // エラーウィジェットの構築
   Widget _buildErrorWidget(FlutterErrorDetails errorDetails) {
     return Scaffold(
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error, size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            const Text('エラーが発生しました'),
-            const SizedBox(height: 8),
-            Text('${errorDetails.exception}'),
-            if (kDebugMode) ...[
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error, size: 64, color: Colors.red),
               const SizedBox(height: 16),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Text('${errorDetails.stack}'),
+              const Text('An unexpected UI error occurred.'),
+              const SizedBox(height: 8),
+              Text('${errorDetails.exception}'),
+              if (kDebugMode) ...[
+                const SizedBox(height: 16),
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Text('${errorDetails.stack}'),
+                  ),
                 ),
-              ),
+              ],
             ],
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ライトテーマの構築（Google Fontsのエラー対策）
-  ThemeData _buildLightTheme(BuildContext context) {
-    TextTheme textTheme;
-    try {
-      textTheme = kIsWeb
-          ? Theme.of(context).textTheme // Web環境ではデフォルトフォントを使用
-          : GoogleFonts.notoSansJpTextTheme(Theme.of(context).textTheme);
-    } catch (e) {
-      print('Google Fonts error: $e');
-      textTheme = Theme.of(context).textTheme; // エラー時はデフォルトフォント
-    }
-
-    return ThemeData(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF4CAF50),
-        brightness: Brightness.light,
-        primary: const Color(0xFF4CAF50),
-        secondary: const Color(0xFF66BB6A),
-        tertiary: const Color(0xFF81C784),
-        surface: const Color(0xFFFAFAFA),
-        background: const Color(0xFFF5F5F5),
-        error: Colors.red[700]!,
-        onPrimary: Colors.white,
-        onSecondary: Colors.white,
-        onSurface: Colors.black87,
-        onBackground: Colors.black87,
-        onError: Colors.white,
-      ),
-      useMaterial3: true,
-      textTheme: textTheme,
-      appBarTheme: AppBarTheme(
-        centerTitle: true,
-        elevation: 0,
-        backgroundColor: const Color(0xFF4CAF50),
-        foregroundColor: Colors.white,
-        titleTextStyle: _buildTitleTextStyle(),
-      ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        selectedItemColor: Color(0xFF4CAF50),
-        unselectedItemColor: Color(0xFF757575),
-        type: BottomNavigationBarType.fixed,
-        elevation: 8,
-        backgroundColor: Colors.white,
-      ),
-      cardTheme: CardThemeData(
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        clipBehavior: Clip.antiAlias,
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
-        style: ElevatedButton.styleFrom(
-          elevation: 2,
-          backgroundColor: const Color(0xFF4CAF50),
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
           ),
         ),
       ),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: Color(0xFF4CAF50),
-        foregroundColor: Colors.white,
-        elevation: 4,
-        shape: CircleBorder(),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: const Color(0xFFF5F5F5),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFE0E0E0)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 2),
-        ),
-        contentPadding: const EdgeInsets.all(16),
-        hintStyle: const TextStyle(color: Color(0xFF9E9E9E)),
-      ),
-      dividerTheme: const DividerThemeData(
-        color: Color(0xFFE0E0E0),
-        thickness: 1,
-      ),
-      iconTheme: const IconThemeData(
-        color: Color(0xFF757575),
-      ),
-      snackBarTheme: const SnackBarThemeData(
-        backgroundColor: Color(0xFF323232),
-        contentTextStyle: TextStyle(color: Colors.white),
-        actionTextColor: Color(0xFF81C784),
-      ),
     );
   }
 
-  // ダークテーマの構築（Google Fontsのエラー対策）
-  ThemeData _buildDarkTheme(BuildContext context) {
-    TextTheme textTheme;
-    try {
-      textTheme = kIsWeb
-          ? ThemeData(brightness: Brightness.dark).textTheme // Web環境ではデフォルトフォント
-          : GoogleFonts.notoSansJpTextTheme(
-              ThemeData(brightness: Brightness.dark).textTheme);
-    } catch (e) {
-      print('Google Fonts error: $e');
-      textTheme = ThemeData(brightness: Brightness.dark).textTheme;
-    }
+  ThemeData _buildLightTheme() {
+    const primaryColor = Color(0xFF005BCF);
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: primaryColor,
+      brightness: Brightness.light,
+    ).copyWith(
+      primary: primaryColor,
+      secondary: const Color(0xFF475E8C),
+      tertiary: const Color(0xFF9E4300),
+      primaryContainer: const Color(0xFF1A73E8),
+      secondaryContainer: const Color(0xFFD8E2FF),
+      tertiaryContainer: const Color(0xFFFFDBCB),
+      surface: const Color(0xFFF8F9FA),
+      surfaceContainerLowest: const Color(0xFFFFFFFF),
+      surfaceContainerLow: const Color(0xFFF3F4F5),
+      surfaceContainerHighest: const Color(0xFFE1E3E4),
+      onPrimary: Colors.white,
+      onSecondary: Colors.white,
+      onTertiary: Colors.white,
+      onSurface: const Color(0xFF191C1D),
+      onSurfaceVariant: const Color(0xFF414754),
+      outline: const Color(0xFF727785),
+      outlineVariant: const Color(0xFFC1C6D6),
+      error: const Color(0xFFBA1A1A),
+      onError: Colors.white,
+    );
 
-    return ThemeData(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF4CAF50),
-        brightness: Brightness.dark,
-        primary: const Color(0xFF81C784),
-        secondary: const Color(0xFF66BB6A),
-        tertiary: const Color(0xFFA5D6A7),
-        surface: const Color(0xFF1E1E1E),
-        background: const Color(0xFF121212),
-        error: const Color(0xFFFF5252),
-        onPrimary: Colors.black,
-        onSecondary: Colors.black,
-        onSurface: Colors.white,
-        onBackground: Colors.white,
-        onError: Colors.black,
-      ),
+    return _buildThemeData(
+      colorScheme: colorScheme,
+      brightness: Brightness.light,
+    );
+  }
+
+  ThemeData _buildDarkTheme() {
+    const primaryColor = Color(0xFFADC7FF);
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: primaryColor,
+      brightness: Brightness.dark,
+    ).copyWith(
+      primary: primaryColor,
+      secondary: const Color(0xFFB8C8E8),
+      tertiary: const Color(0xFFFFB691),
+      primaryContainer: const Color(0xFF004493),
+      secondaryContainer: const Color(0xFF2E4673),
+      tertiaryContainer: const Color(0xFF783100),
+      surface: const Color(0xFF101417),
+      surfaceContainerLowest: const Color(0xFF151A1C),
+      surfaceContainerLow: const Color(0xFF1D2327),
+      surfaceContainerHighest: const Color(0xFF2A3136),
+      onPrimary: const Color(0xFF001A41),
+      onSecondary: const Color(0xFF0F1B2D),
+      onTertiary: const Color(0xFF341100),
+      onSurface: const Color(0xFFF0F1F2),
+      onSurfaceVariant: const Color(0xFFC1C7D0),
+      outline: const Color(0xFF8A9099),
+      outlineVariant: const Color(0xFF424954),
+      error: const Color(0xFFFFB4AB),
+      onError: const Color(0xFF690005),
+    );
+
+    return _buildThemeData(
+      colorScheme: colorScheme,
+      brightness: Brightness.dark,
+    );
+  }
+
+  ThemeData _buildThemeData({
+    required ColorScheme colorScheme,
+    required Brightness brightness,
+  }) {
+    final baseTheme = ThemeData(
       useMaterial3: true,
+      brightness: brightness,
+      colorScheme: colorScheme,
+    );
+
+    final textTheme = _buildTechnicalTextTheme(
+      baseTheme.textTheme,
+      colorScheme.onSurface,
+    );
+
+    return baseTheme.copyWith(
+      scaffoldBackgroundColor: colorScheme.surface,
+      canvasColor: colorScheme.surface,
       textTheme: textTheme,
       appBarTheme: AppBarTheme(
-        centerTitle: true,
+        centerTitle: false,
         elevation: 0,
-        backgroundColor: const Color(0xFF2E7D32),
-        foregroundColor: Colors.white,
-        titleTextStyle: _buildTitleTextStyle(),
+        scrolledUnderElevation: 0,
+        backgroundColor: colorScheme.surface.withValues(alpha: 0.94),
+        foregroundColor: colorScheme.onSurface,
+        surfaceTintColor: Colors.transparent,
+        titleTextStyle: textTheme.titleMedium?.copyWith(
+          fontWeight: FontWeight.w700,
+        ),
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-        selectedItemColor: Color(0xFF81C784),
-        unselectedItemColor: Color(0xFF9E9E9E),
-        backgroundColor: Color(0xFF1E1E1E),
-        type: BottomNavigationBarType.fixed,
-        elevation: 8,
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: colorScheme.surfaceContainerLowest,
+        indicatorColor: colorScheme.primary.withValues(
+          alpha: brightness == Brightness.light ? 0.12 : 0.16,
+        ),
+        height: 72,
+        surfaceTintColor: Colors.transparent,
+        labelTextStyle: WidgetStatePropertyAll(
+          textTheme.labelSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final color = states.contains(WidgetState.selected)
+              ? colorScheme.primary
+              : colorScheme.onSurfaceVariant;
+          return IconThemeData(color: color);
+        }),
       ),
       cardTheme: CardThemeData(
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
+        color: brightness == Brightness.light
+            ? colorScheme.surfaceContainerLowest
+            : colorScheme.surfaceContainerLow,
+        elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        shadowColor: brightness == Brightness.light
+            ? colorScheme.onSurface.withValues(alpha: 0.04)
+            : Colors.black.withValues(alpha: 0.18),
+        margin: EdgeInsets.zero,
         clipBehavior: Clip.antiAlias,
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        color: const Color(0xFF2C2C2C),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          elevation: 4,
-          backgroundColor: const Color(0xFF4CAF50),
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          elevation: 0,
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          textStyle: textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
-      floatingActionButtonTheme: const FloatingActionButtonThemeData(
-        backgroundColor: Color(0xFF4CAF50),
-        foregroundColor: Colors.white,
-        elevation: 6,
-        shape: CircleBorder(),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: colorScheme.primary,
+          side: BorderSide(
+            color: colorScheme.outlineVariant.withValues(
+              alpha: brightness == Brightness.light ? 0.35 : 0.6,
+            ),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          textStyle: textTheme.labelLarge?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: 0.8,
+          ),
+        ),
+      ),
+      floatingActionButtonTheme: FloatingActionButtonThemeData(
+        backgroundColor: colorScheme.primary,
+        foregroundColor: colorScheme.onPrimary,
+        elevation: 0,
+        shape: const CircleBorder(),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF2C2C2C),
+        fillColor: colorScheme.surfaceContainerHighest,
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 16,
+        ),
+        hintStyle: textTheme.bodyMedium?.copyWith(
+          color: colorScheme.onSurfaceVariant,
+        ),
+        labelStyle: textTheme.bodyMedium?.copyWith(
+          color: colorScheme.onSurfaceVariant,
+        ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide.none,
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF424242)),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF81C784), width: 2),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: BorderSide(
+            color: colorScheme.primary,
+            width: 1,
+          ),
         ),
-        contentPadding: const EdgeInsets.all(16),
-        hintStyle: const TextStyle(color: Color(0xFF757575)),
       ),
       dividerTheme: const DividerThemeData(
-        color: Color(0xFF424242),
-        thickness: 1,
+        color: Colors.transparent,
+        thickness: 0,
+        space: 0,
       ),
-      iconTheme: const IconThemeData(
-        color: Color(0xFF9E9E9E),
+      iconTheme: IconThemeData(
+        color: colorScheme.onSurfaceVariant,
       ),
-      snackBarTheme: const SnackBarThemeData(
-        backgroundColor: Color(0xFF424242),
-        contentTextStyle: TextStyle(color: Colors.white),
-        actionTextColor: Color(0xFF81C784),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: brightness == Brightness.light
+            ? const Color(0xFF2E3132)
+            : const Color(0xFF1E2529),
+        contentTextStyle: textTheme.bodyMedium?.copyWith(
+          color: brightness == Brightness.light
+              ? Colors.white
+              : colorScheme.onSurface,
+        ),
+        actionTextColor: brightness == Brightness.light
+            ? colorScheme.primaryContainer
+            : colorScheme.primary,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
       ),
     );
   }
 
-  // タイトルテキストスタイル（安全な方法で取得）
-  TextStyle _buildTitleTextStyle() {
-    try {
-      if (kIsWeb) {
-        return const TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w500,
-          color: Colors.white,
-        );
-      } else {
-        return GoogleFonts.notoSansJp(
-          fontSize: 20,
-          fontWeight: FontWeight.w500,
-          color: Colors.white,
-        );
-      }
-    } catch (e) {
-      return const TextStyle(
-        fontSize: 20,
-        fontWeight: FontWeight.w500,
-        color: Colors.white,
+  TextTheme _buildTechnicalTextTheme(
+    TextTheme base,
+    Color textColor,
+  ) {
+    final bodyTheme = GoogleFonts.interTextTheme(base).apply(
+      bodyColor: textColor,
+      displayColor: textColor,
+    );
+
+    TextStyle bodyStyle(
+      TextStyle? style, {
+      FontWeight? fontWeight,
+      double? letterSpacing,
+      double? fontSize,
+    }) {
+      return GoogleFonts.inter(
+        textStyle: style,
+        color: textColor,
+        fontWeight: fontWeight,
+        letterSpacing: letterSpacing,
+        fontSize: fontSize,
       );
     }
+
+    TextStyle headlineStyle(
+      TextStyle? style, {
+      FontWeight? fontWeight,
+      double? letterSpacing,
+      double? fontSize,
+    }) {
+      return GoogleFonts.spaceGrotesk(
+        textStyle: style,
+        color: textColor,
+        fontWeight: fontWeight,
+        letterSpacing: letterSpacing,
+        fontSize: fontSize,
+      );
+    }
+
+    return bodyTheme.copyWith(
+      displayLarge: headlineStyle(
+        bodyTheme.displayLarge,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -1.8,
+      ),
+      displayMedium: headlineStyle(
+        bodyTheme.displayMedium,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -1.4,
+      ),
+      displaySmall: headlineStyle(
+        bodyTheme.displaySmall,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -1.0,
+      ),
+      headlineLarge: headlineStyle(
+        bodyTheme.headlineLarge,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.9,
+      ),
+      headlineMedium: headlineStyle(
+        bodyTheme.headlineMedium,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.6,
+      ),
+      titleLarge: headlineStyle(
+        bodyTheme.titleLarge,
+        fontWeight: FontWeight.w700,
+        letterSpacing: -0.3,
+      ),
+      titleMedium: bodyStyle(
+        bodyTheme.titleMedium,
+        fontWeight: FontWeight.w600,
+      ),
+      titleSmall: bodyStyle(
+        bodyTheme.titleSmall,
+        fontWeight: FontWeight.w600,
+      ),
+      bodyLarge: bodyStyle(bodyTheme.bodyLarge),
+      bodyMedium: bodyStyle(bodyTheme.bodyMedium),
+      bodySmall: bodyStyle(bodyTheme.bodySmall),
+      labelLarge: bodyStyle(
+        bodyTheme.labelLarge,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 0.4,
+      ),
+      labelMedium: bodyStyle(
+        bodyTheme.labelMedium,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.0,
+        fontSize: 12,
+      ),
+      labelSmall: bodyStyle(
+        bodyTheme.labelSmall,
+        fontWeight: FontWeight.w700,
+        letterSpacing: 1.3,
+        fontSize: 10,
+      ),
+    );
   }
 }

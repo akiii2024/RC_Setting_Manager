@@ -90,6 +90,17 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 16.0),
           ListTile(
+            title: Text(isEnglish ? 'Editor Layout' : '編集レイアウト'),
+            subtitle: Text(settingsProvider.usePaperStyleEditor
+                ? (isEnglish ? 'Paper UI' : '紙UI')
+                : (isEnglish ? 'App UI' : 'アプリUI')),
+            trailing: const Icon(Icons.arrow_forward_ios),
+            onTap: () => _showEditorLayoutDialog(context),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          ),
+          const SizedBox(height: 16.0),
+          ListTile(
             title: Text(isEnglish ? 'Auto Save' : '自動保存'),
             subtitle: Text(isEnglish
                 ? 'Automatically save setting changes (Coming Soon)'
@@ -717,6 +728,93 @@ class _SettingsPageState extends State<SettingsPage> {
         },
       );
     }
+  }
+
+  void _showEditorLayoutDialog(BuildContext context) {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
+    final usePaperStyleEditor = settingsProvider.usePaperStyleEditor;
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(isEnglish ? 'Select Editor Layout' : '編集レイアウトを選択'),
+          contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text(isEnglish ? 'App UI' : 'アプリUI'),
+                subtitle: Text(isEnglish
+                    ? 'Optimized for quick entry and tab navigation'
+                    : 'タブ中心で素早く入力する通常レイアウト'),
+                leading: Radio<bool>(
+                  value: false,
+                  groupValue: usePaperStyleEditor,
+                  onChanged: (bool? value) async {
+                    if (value != null) {
+                      await settingsProvider.setPaperStyleEditor(value);
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    }
+                  },
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                onTap: () async {
+                  await settingsProvider.setPaperStyleEditor(false);
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                  }
+                },
+              ),
+              const SizedBox(height: 8.0),
+              ListTile(
+                title: Text(isEnglish ? 'Paper UI' : '紙UI'),
+                subtitle: Text(isEnglish
+                    ? 'Closer to a real setup sheet for paper users'
+                    : '紙のセットアップシートに近い見た目'),
+                leading: Radio<bool>(
+                  value: true,
+                  groupValue: usePaperStyleEditor,
+                  onChanged: (bool? value) async {
+                    if (value != null) {
+                      await settingsProvider.setPaperStyleEditor(value);
+                      if (context.mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    }
+                  },
+                ),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                onTap: () async {
+                  await settingsProvider.setPaperStyleEditor(true);
+                  if (context.mounted) {
+                    Navigator.of(context).pop();
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0, vertical: 10.0),
+              ),
+              child: Text(isEnglish ? 'Close' : '閉じる'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   void _showLanguageDialog(BuildContext context) {

@@ -77,6 +77,11 @@ class XmlService {
               builder.element('name', nest: car.name);
               builder.element('manufacturer', nest: car.manufacturer.name);
               builder.element('category', nest: car.category);
+              builder.element('isInGarage', nest: car.isInGarage.toString());
+              builder.element(
+                'suppressGaragePrompt',
+                nest: car.suppressGaragePrompt.toString(),
+              );
               builder.element('availableSettings', nest: () {
                 for (final setting in car.availableSettings) {
                   builder.element('setting', nest: setting);
@@ -243,6 +248,18 @@ class XmlService {
             final category =
                 carElement.findElements('category').firstOrNull?.innerText ??
                     '';
+            final isInGarage = carElement
+                    .findElements('isInGarage')
+                    .firstOrNull
+                    ?.innerText
+                    .toLowerCase() ==
+                'true';
+            final suppressGaragePrompt = carElement
+                    .findElements('suppressGaragePrompt')
+                    .firstOrNull
+                    ?.innerText
+                    .toLowerCase() ==
+                'true';
 
             final availableSettings = <String>[];
             final availableSettingsElement =
@@ -268,6 +285,8 @@ class XmlService {
               manufacturer: manufacturer,
               category: category,
               availableSettings: availableSettings,
+              isInGarage: isInGarage,
+              suppressGaragePrompt: suppressGaragePrompt,
             ));
           }
         }

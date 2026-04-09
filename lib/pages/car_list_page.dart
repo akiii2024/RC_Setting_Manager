@@ -74,6 +74,9 @@ class _CarListPageState extends State<CarListPage> {
                     ),
                   );
                 },
+                onGarageToggle: () => _toggleGarageMembership(
+                  manufacturerCars[index],
+                ),
               );
             },
           );
@@ -85,6 +88,33 @@ class _CarListPageState extends State<CarListPage> {
         },
         tooltip: isEnglish ? 'Add Model' : '車種を追加',
         child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  Future<void> _toggleGarageMembership(Car car) async {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
+    final willAddToGarage = !car.isInGarage;
+
+    await settingsProvider.setGarageMembership(car.id, willAddToGarage);
+
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isEnglish
+              ? willAddToGarage
+                  ? '${car.name} added to My Garage'
+                  : '${car.name} removed from My Garage'
+              : willAddToGarage
+                  ? '${car.name} をマイガレージに追加しました'
+                  : '${car.name} をマイガレージから外しました',
+        ),
       ),
     );
   }
@@ -480,11 +510,13 @@ class _CarListPageState extends State<CarListPage> {
 class CarListItem extends StatelessWidget {
   final Car car;
   final VoidCallback onTap;
+  final VoidCallback? onGarageToggle;
 
   const CarListItem({
     super.key,
     required this.car,
     required this.onTap,
+    this.onGarageToggle,
   });
 
   @override
@@ -563,6 +595,26 @@ class CarListItem extends StatelessWidget {
                         color: Colors.grey,
                       ),
                     ),
+                    if (onGarageToggle != null) ...[
+                      const SizedBox(height: 12),
+                      FilledButton.tonalIcon(
+                        onPressed: onGarageToggle,
+                        icon: Icon(
+                          car.isInGarage
+                              ? Icons.remove_circle_outline_rounded
+                              : Icons.garage_outlined,
+                        ),
+                        label: Text(
+                          isEnglish
+                              ? car.isInGarage
+                                  ? 'Remove from My Garage'
+                                  : 'Add to My Garage'
+                              : car.isInGarage
+                                  ? 'マイガレージから外す'
+                                  : 'マイガレージに追加',
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -719,6 +771,8 @@ class CarListItem extends StatelessWidget {
                       settings: car.settings,
                       availableSettings: selectedSettings,
                       settingTypes: selectedTypes,
+                      isInGarage: car.isInGarage,
+                      suppressGaragePrompt: car.suppressGaragePrompt,
                     );
 
                     // SettingsProviderを通じて更新

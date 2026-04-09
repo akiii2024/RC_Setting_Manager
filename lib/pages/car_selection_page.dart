@@ -5,6 +5,7 @@ import 'settings_page.dart';
 import '../models/car.dart';
 import '../models/manufacturer.dart';
 import 'car_list_page.dart';
+import 'my_garage_page.dart';
 
 class CarSelectionPage extends StatefulWidget {
   const CarSelectionPage({super.key});
@@ -42,28 +43,48 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
           ),
         ],
       ),
-      body: manufacturers.isEmpty
-          ? Center(
-              child: _EmptyState(isEnglish: isEnglish),
+      body: ListView(
+        padding: const EdgeInsets.only(top: 8, bottom: 96),
+        children: [
+          _GarageShortcutCard(
+            garageCount: settingsProvider.garageCars.length,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (routeContext) => MyGaragePage(
+                    onBrowseModels: () {
+                      Navigator.of(routeContext).pop();
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+          if (manufacturers.isEmpty)
+            Padding(
+              padding: EdgeInsets.only(top: 16),
+              child: Center(
+                child: _EmptyState(isEnglish: isEnglish),
+              ),
             )
-          : ListView.builder(
-              padding: const EdgeInsets.only(top: 8, bottom: 96),
-              itemCount: manufacturers.length,
-              itemBuilder: (context, index) {
-                return ManufacturerListItem(
-                  manufacturer: manufacturers[index],
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) =>
-                            CarListPage(manufacturer: manufacturers[index]),
-                      ),
-                    );
-                  },
-                );
-              },
+          else
+            ...manufacturers.map(
+              (manufacturer) => ManufacturerListItem(
+                manufacturer: manufacturer,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          CarListPage(manufacturer: manufacturer),
+                    ),
+                  );
+                },
+              ),
             ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           _showAddManufacturerDialog();
@@ -259,6 +280,99 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
           ),
         );
       },
+    );
+  }
+}
+
+class _GarageShortcutCard extends StatelessWidget {
+  final int garageCount;
+  final VoidCallback onTap;
+
+  const _GarageShortcutCard({
+    required this.garageCount,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final isEnglish = settingsProvider.isEnglish;
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.all(18),
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF005BCF),
+                Color(0xFF1A73E8),
+              ],
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.garage_rounded,
+                  color: Colors.white,
+                  size: 34,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isEnglish ? 'MY GARAGE' : 'マイガレージ',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      isEnglish ? 'Owned Models' : '保有している車種',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      isEnglish
+                          ? '$garageCount model${garageCount == 1 ? '' : 's'} registered'
+                          : '$garageCount 台を登録中',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.88),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: colorScheme.onPrimary,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

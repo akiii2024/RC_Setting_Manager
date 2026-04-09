@@ -12,6 +12,7 @@ class SettingsProvider extends ChangeNotifier {
   List<SavedSetting> _savedSettings = [];
   Map<String, VisibilitySettings> _visibilitySettings = {};
   bool _isEnglish = false;
+  bool _usePaperStyleEditor = false;
   List<Car> _cars = []; // 車種リストを保持
   bool _isOnlineMode = false; // オンラインモードかどうか
   bool _isInitialized = false; // 初期化完了フラグ
@@ -21,6 +22,7 @@ class SettingsProvider extends ChangeNotifier {
   final String _languageKey = 'language_settings';
   final String _carsKey = 'cars_settings';
   final String _onlineModeKey = 'online_mode';
+  final String _editorLayoutKey = 'editor_layout_paper';
 
   FirestoreService? _firestoreService;
 
@@ -28,7 +30,10 @@ class SettingsProvider extends ChangeNotifier {
   Map<String, VisibilitySettings> get visibilitySettings => _visibilitySettings;
   bool get isEnglish => _isEnglish;
   List<Car> get cars => _cars;
+  List<Car> get garageCars =>
+      _cars.where((car) => car.isInGarage).toList(growable: false);
   bool get isOnlineMode => _isOnlineMode;
+  bool get usePaperStyleEditor => _usePaperStyleEditor;
   bool get isInitialized => _isInitialized;
 
   SettingsProvider() {
@@ -54,6 +59,7 @@ class SettingsProvider extends ChangeNotifier {
       await _loadSettings();
       await _loadVisibilitySettings();
       await _loadLanguageSettings();
+      await _loadEditorLayoutSettings();
 
       // Firebase認証状態をチェックしてオンラインモードを自動設定
       await _checkAuthStateAndSetOnlineMode();
@@ -164,13 +170,27 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> _persistCars() async {
+    await _saveCars();
+
+    if (_isOnlineMode && _firestoreService != null) {
+      try {
+        await _firestoreService!.saveCars(_cars);
+      } catch (e) {
+        print('Firebase菫晏ｭ倥お繝ｩ繝ｼ: $e');
+      }
+    }
+
+    notifyListeners();
+  }
+
   // 車種を更新
   Future<void> updateCar(Car updatedCar) async {
     try {
       final index = _cars.indexWhere((car) => car.id == updatedCar.id);
       if (index != -1) {
         _cars[index] = updatedCar;
-        await _saveCars();
+        await _persistCars();
 
         // オンラインモードの場合はFirebaseにも保存
         if (_isOnlineMode && _firestoreService != null) {
@@ -191,7 +211,7 @@ class SettingsProvider extends ChangeNotifier {
   // 車種を追加
   Future<void> addCar(Car newCar) async {
     _cars.add(newCar);
-    await _saveCars();
+    await _persistCars();
 
     // オンラインモードの場合はFirebaseにも保存
     if (_isOnlineMode && _firestoreService != null) {
@@ -208,7 +228,7 @@ class SettingsProvider extends ChangeNotifier {
   // 車種を削除
   Future<void> deleteCar(String carId) async {
     _cars.removeWhere((car) => car.id == carId);
-    await _saveCars();
+    await _persistCars();
 
     // オンラインモードの場合はFirebaseにも保存
     if (_isOnlineMode && _firestoreService != null) {
@@ -228,7 +248,31 @@ class SettingsProvider extends ChangeNotifier {
     for (final car in _cars) {
       manufacturers[car.manufacturer.id] = car.manufacturer;
     }
-    return manufacturers.values.toList();
+    final values = manufacturers.values.toList();
+    values.sort((a, b) => a.name.compareTo(b.name));
+    return values;
+  }
+
+  Map<Manufacturer, List<Car>> getGarageCarsByManufacturer() {
+    final groupedCars = <String, List<Car>>{};
+    final manufacturers = <String, Manufacturer>{};
+
+    for (final car in garageCars) {
+      manufacturers[car.manufacturer.id] = car.manufacturer;
+      groupedCars.putIfAbsent(car.manufacturer.id, () => <Car>[]).add(car);
+    }
+
+    final manufacturerIds = groupedCars.keys.toList()
+      ..sort(
+          (a, b) => manufacturers[a]!.name.compareTo(manufacturers[b]!.name));
+
+    return {
+      for (final manufacturerId in manufacturerIds)
+        manufacturers[manufacturerId]!: groupedCars[manufacturerId]!
+          ..sort(
+            (a, b) => a.name.compareTo(b.name),
+          ),
+    };
   }
 
   // 特定の車種を取得
@@ -244,6 +288,24 @@ class SettingsProvider extends ChangeNotifier {
   List<String> getCarAvailableSettings(String carId) {
     final car = getCarById(carId);
     return car?.availableSettings ?? [];
+  }
+
+  Future<void> setGarageMembership(String carId, bool value) async {
+    final car = getCarById(carId);
+    if (car == null || car.isInGarage == value) {
+      return;
+    }
+
+    await updateCar(car.copyWith(isInGarage: value));
+  }
+
+  Future<void> setGaragePromptSuppressed(String carId, bool value) async {
+    final car = getCarById(carId);
+    if (car == null || car.suppressGaragePrompt == value) {
+      return;
+    }
+
+    await updateCar(car.copyWith(suppressGaragePrompt: value));
   }
 
   // 設定読み込み関数を安全に変更
@@ -302,6 +364,16 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> _loadEditorLayoutSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _usePaperStyleEditor = prefs.getBool(_editorLayoutKey) ?? false;
+    } catch (e) {
+      print('Error loading editor layout settings: $e');
+      _usePaperStyleEditor = false;
+    }
+  }
+
   Future<void> _saveSettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -329,6 +401,15 @@ class SettingsProvider extends ChangeNotifier {
       await prefs.setBool(_languageKey, _isEnglish);
     } catch (e) {
       print('Error saving language settings: $e');
+    }
+  }
+
+  Future<void> _saveEditorLayoutSettings() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_editorLayoutKey, _usePaperStyleEditor);
+    } catch (e) {
+      print('Error saving editor layout settings: $e');
     }
   }
 
@@ -585,6 +666,16 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   // 表示設定更新時にFirebaseにも保存
+  Future<void> setPaperStyleEditor(bool value) async {
+    if (_usePaperStyleEditor == value) {
+      return;
+    }
+
+    _usePaperStyleEditor = value;
+    await _saveEditorLayoutSettings();
+    notifyListeners();
+  }
+
   Future<void> updateVisibilitySettings(VisibilitySettings settings) async {
     _visibilitySettings[settings.carId] = settings;
     await _saveVisibilitySettings();
