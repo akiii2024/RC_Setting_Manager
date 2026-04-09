@@ -25,8 +25,8 @@
 | プラットフォーム|配布方法| 備考|
 |---------------|---------------|---------------|
 |Android|APK or PWA             |将来的にGoogle Playに公開予定 |
-|iOS|PWA（https://akiii2024.github.io/RC_Setting_Manager/） |ipa配布予定、将来的にApp Storeに公開予定|
-|Web|PWA（https://akiii2024.github.io/RC_Setting_Manager/） |オフライン動作対応|
+|iOS|PWA（<https://akiii2024.github.io/RC_Setting_Manager/>） |ipa配布予定、将来的にApp Storeに公開予定|
+|Web|PWA（<https://akiii2024.github.io/RC_Setting_Manager/>） |オフライン動作対応|
 
 ## インストール方法
 
