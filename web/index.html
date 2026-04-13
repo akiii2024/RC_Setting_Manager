@@ -18,50 +18,44 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="RC Car Setting Manager - A Flutter project.">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#4CAF50">
+  <meta name="description" content="RC Car Setting Manager">
 
-  <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="settingsheet_manager">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>RC Car Setting Manager</title>
-  <link rel="manifest" href="manifest.json">
-  
-  <!-- PWA Meta Tags -->
-  <meta name="theme-color" content="#4CAF50">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="RC Car Setting Manager - ラジコンカーのセッティングを管理するアプリ">
-  
-  <!-- PWA Icons -->
+  <link rel="icon" type="image/png" href="favicon.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/Icon-192.png">
   <link rel="icon" type="image/png" sizes="512x512" href="icons/Icon-512.png">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="manifest" href="manifest.json">
+
+  <title>RC Car Setting Manager</title>
 
   <style>
     body {
       margin: 0;
       padding: 0;
-      background-color: #4CAF50;
-      color: white;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 100vh;
+      flex-direction: column;
+      background-color: #4CAF50;
+      color: white;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
+
     .loading {
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 20px;
     }
+
     .spinner {
       width: 50px;
       height: 50px;
@@ -70,92 +64,79 @@
       border-radius: 50%;
       animation: spin 1s linear infinite;
     }
+
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
-    }
-    .loaded {
-      display: none;
     }
   </style>
 </head>
 <body>
   <div id="loading" class="loading">
     <div class="spinner"></div>
-    <div>RC Car Setting Manager を読み込み中...</div>
+    <div>Loading RC Car Setting Manager...</div>
   </div>
 
   <script src="flutter_bootstrap.js" async></script>
-  
   <script>
-    // Service Workerの登録
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        // ベースパスを動的に取得
-        const basePath = document.querySelector('base').getAttribute('href');
-        const swPath = basePath + 'sw.js';
-        
-        navigator.serviceWorker.register(swPath)
-          .then(function(registration) {
-            console.log('ServiceWorker registration successful with scope: ', registration.scope);
-          })
-          .catch(function(err) {
-            console.log('ServiceWorker registration failed: ', err);
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", function () {
+        navigator.serviceWorker.getRegistrations().then(function (registrations) {
+          registrations.forEach(function (registration) {
+            const scriptUrl = registration.active?.scriptURL
+              || registration.waiting?.scriptURL
+              || registration.installing?.scriptURL
+              || "";
+
+            if (scriptUrl.endsWith("/sw.js")) {
+              registration.unregister();
+            }
           });
+        });
       });
     }
 
-    // PWA起動時のルーティング処理を改善
-    window.addEventListener('load', function() {
-      // ベースパスを取得
-      const basePath = document.querySelector('base').getAttribute('href');
-      const basePathWithoutSlash = basePath.slice(0, -1); // 末尾のスラッシュを削除
-      
-      // PWAとして起動されたかチェック
-      const isPWA = window.matchMedia('(display-mode: standalone)').matches 
-                    || window.navigator.standalone === true
-                    || document.referrer.includes('android-app://');
+    window.addEventListener("load", function () {
+      const basePath = document.querySelector("base").getAttribute("href");
+      const basePathWithoutSlash = basePath.endsWith("/") ? basePath.slice(0, -1) : basePath;
+      const isPWA = window.matchMedia("(display-mode: standalone)").matches
+        || window.navigator.standalone === true
+        || document.referrer.includes("android-app://");
 
       if (isPWA) {
-        console.log('PWA mode detected');
-        // PWAとして起動された場合、ベースパスに強制的に遷移
-        if (window.location.pathname !== basePath && window.location.pathname !== basePath + 'index.html') {
-          console.log('Redirecting to base path from PWA');
-          window.history.replaceState({}, '', basePath);
+        if (window.location.pathname !== basePath && window.location.pathname !== basePath + "index.html") {
+          window.history.replaceState({}, "", basePath);
         }
+        return;
       }
 
-      // 通常のルーティング処理
-      var path = window.location.pathname;
-      var search = window.location.search;
-      var hash = window.location.hash;
-      
-      // ベースパス以外の場合、クエリパラメータとしてFlutterアプリに渡す
-      if (path !== basePath && path !== basePath + 'index.html' && !isPWA) {
-        var url = new URL(window.location);
-        // ベースパスを除いた相対パスを取得
-        var relativePath = path.startsWith(basePathWithoutSlash) ? 
-                          path.substring(basePathWithoutSlash.length) : path;
-        url.searchParams.set('route', relativePath);
+      const path = window.location.pathname;
+      const hash = window.location.hash;
+
+      if (path !== basePath && path !== basePath + "index.html") {
+        const url = new URL(window.location.href);
+        const relativePath = path.startsWith(basePathWithoutSlash)
+          ? path.substring(basePathWithoutSlash.length)
+          : path;
+
+        url.searchParams.set("route", relativePath);
         if (hash) {
-          url.searchParams.set('hash', hash.substring(1));
+          url.searchParams.set("hash", hash.substring(1));
         }
-        window.history.replaceState({}, '', url);
-      } else if (hash && !isPWA) {
-        // ハッシュがある場合もクエリパラメータとして渡す
-        var url = new URL(window.location);
-        url.searchParams.set('route', hash.substring(1));
-        window.history.replaceState({}, '', url);
+        window.history.replaceState({}, "", url);
+      } else if (hash) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("route", hash.substring(1));
+        window.history.replaceState({}, "", url);
       }
     });
-    
-    // Hide loading screen when Flutter app loads
-    window.addEventListener('flutter-first-frame', function () {
-      const loading = document.querySelector('#loading');
+
+    window.addEventListener("flutter-first-frame", function () {
+      const loading = document.querySelector("#loading");
       if (loading) {
-        loading.style.display = 'none';
+        loading.style.display = "none";
       }
-      document.body.style.background = 'transparent';
+      document.body.style.background = "transparent";
     });
   </script>
 </body>
