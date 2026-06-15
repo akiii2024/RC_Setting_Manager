@@ -31,7 +31,6 @@ dependencies:
   google_mlkit_text_recognition: ^0.15.0
   image_picker: ^1.1.2
   image: ^4.5.3
-  # Firebase Functions経由でGemini/OpenWeatherを呼び出す
   cloud_functions: ^5.6.2
 
 dev_dependencies:
