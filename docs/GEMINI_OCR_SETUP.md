@@ -1,5 +1,7 @@
 # Gemini OCR機能セットアップガイド
 
+> 現在の実装では Gemini API key は Flutter アプリに設定せず、Firebase Functions の Secret Manager に保存します。設定は `firebase functions:secrets:set GEMINI_API_KEY` を使用してください。
+
 ## 概要
 
 このプロジェクトではGoogle Gemini AIを使用したOCR（光学文字認識）機能を実装しています。

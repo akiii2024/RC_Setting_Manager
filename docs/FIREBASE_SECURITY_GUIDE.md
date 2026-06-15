@@ -1,11 +1,13 @@
 # Firebase セキュリティ設定ガイド
 
+> 現在、Gemini API key と OpenWeather API key は Firebase Functions の Secret Manager で管理します。Flutter の `--dart-define` や GitHub Actions secrets でアプリへ埋め込まないでください。
+
 ## 🔒 現在のセキュリティ状況
 
 ### ⚠️ 注意事項
-- APIキーがソースコードに直接記述されています
-- GitHubに公開されているため、セキュリティリスクがあります
-- 本番環境では必ず環境変数を使用してください
+- Gemini API key と OpenWeather API key は Firebase Functions secrets で管理します
+- Firebase クライアント SDK の API key はアプリ設定として残ります
+- Firebase クライアント API key は Google Cloud / Firebase Console で利用制限を設定してください
 
 ## 🛡️ セキュリティ強化手順
 

@@ -1,8 +1,4 @@
-import 'dart:convert';
-
-import 'package:http/http.dart' as http;
-
-import '../config/app_secrets.dart';
+import 'firebase_functions_service.dart';
 import 'location_service.dart';
 
 class WeatherService {
@@ -11,77 +7,59 @@ class WeatherService {
 
   WeatherService._();
 
-  static String get _apiKey => AppSecrets.openWeatherApiKey;
-
-  static const String _baseUrl =
-      'https://api.openweathermap.org/data/2.5/weather';
-
   Future<WeatherData?> getCurrentWeather() async {
     try {
+      print('[Weather Debug] getCurrentWeather: 位置情報を取得中...');
       final position = await LocationService.instance.getCurrentPosition();
       if (position == null) {
-        print('Unable to get current location for weather lookup.');
+        print('[Weather Debug] getCurrentWeather: 位置情報がnull → return null');
         return null;
       }
+      print('[Weather Debug] getCurrentWeather: 位置情報取得成功 lat=${position.latitude}, lon=${position.longitude}');
 
       return getWeatherByCoordinates(position.latitude, position.longitude);
-    } catch (e) {
-      print('Weather lookup failed: $e');
+    } catch (e, stackTrace) {
+      print('[Weather Debug] getCurrentWeather EXCEPTION: $e');
+      print('[Weather Debug] getCurrentWeather StackTrace: $stackTrace');
       return null;
     }
   }
 
   Future<WeatherData?> getWeatherByCoordinates(double lat, double lon) async {
-    if (!isApiKeyConfigured()) {
-      print('OpenWeather API key is not configured.');
-      return null;
-    }
-
     try {
-      final url = Uri.parse(
-        '$_baseUrl?lat=$lat&lon=$lon&appid=$_apiKey&units=metric&lang=ja',
+      print('[Weather Debug] getWeatherByCoordinates: Firebase Functions呼び出し中 lat=$lat, lon=$lon');
+      final data = await FirebaseFunctionsService.call(
+        'getCurrentWeather',
+        {
+          'lat': lat,
+          'lon': lon,
+        },
       );
-
-      print('Weather API request URL: $url');
-
-      final response = await http.get(url);
-      print('Weather API status: ${response.statusCode}');
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body) as Map<String, dynamic>;
-        print('Weather API city: ${data['name']}');
-        return WeatherData.fromJson(data);
-      }
-
-      if (response.statusCode == 401) {
-        print('OpenWeather API key is invalid.');
-        return null;
-      }
-
-      print('Weather API error body: ${response.body}');
-      return null;
-    } catch (e) {
-      print('Weather lookup failed: $e');
+      print('[Weather Debug] getWeatherByCoordinates: レスポンス受信 city=${data['name']}');
+      return WeatherData.fromJson(data);
+    } catch (e, stackTrace) {
+      print('[Weather Debug] getWeatherByCoordinates EXCEPTION: $e');
+      print('[Weather Debug] getWeatherByCoordinates StackTrace: $stackTrace');
       return null;
     }
   }
 
-  bool isApiKeyConfigured() => AppSecrets.hasOpenWeatherApiKey;
+  bool isApiKeyConfigured() => true;
 
   Future<bool> validateApiKey() async {
-    if (!isApiKeyConfigured()) {
-      return false;
-    }
-
     try {
-      final url = Uri.parse(
-        '$_baseUrl?lat=35.6762&lon=139.6503&appid=$_apiKey&units=metric',
+      print('[Weather Debug] validateApiKey: Firebase Functions呼び出し中...');
+      final response = await FirebaseFunctionsService.call(
+        'validateOpenWeatherApiKey',
+        const {},
       );
-
-      final response = await http.get(url);
-      return response.statusCode == 200;
-    } catch (e) {
-      print('Weather API validation failed: $e');
+      print('[Weather Debug] validateApiKey: レスポンス = $response');
+      final isValid = response['valid'] == true;
+      print('[Weather Debug] validateApiKey: isValid = $isValid');
+      return isValid;
+    } catch (e, stackTrace) {
+      print('[Weather Debug] validateApiKey EXCEPTION: $e');
+      print('[Weather Debug] validateApiKey StackTrace: $stackTrace');
       return false;
     }
   }

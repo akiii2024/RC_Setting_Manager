@@ -267,8 +267,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
       final weatherService = WeatherService.instance;
 
       // APIキーが設定されているかチェック
+      print('[Weather Debug] Step 1: isApiKeyConfigured = ${weatherService.isApiKeyConfigured()}');
       if (!weatherService.isApiKeyConfigured()) {
-        print('天気APIキーが設定されていません。モックデータを使用します。');
+        print('[Weather Debug] FAILED at Step 1: APIキーが未設定 → モックデータ');
         final mockWeather = weatherService.getMockWeatherData();
         if (mounted) {
           setState(() {
@@ -280,9 +281,11 @@ class _CarSettingPageState extends State<CarSettingPage> {
       }
 
       // APIキーの有効性をテスト
+      print('[Weather Debug] Step 2: validateApiKey() を呼び出し中...');
       final isValidApiKey = await weatherService.validateApiKey();
+      print('[Weather Debug] Step 2: validateApiKey() = $isValidApiKey');
       if (!isValidApiKey) {
-        print('APIキーが無効です。モックデータを使用します。');
+        print('[Weather Debug] FAILED at Step 2: APIキーが無効 → モックデータ');
         final mockWeather = weatherService.getMockWeatherData();
         if (mounted) {
           setState(() {
@@ -293,7 +296,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
         return;
       }
 
+      print('[Weather Debug] Step 3: getCurrentWeather() を呼び出し中...');
       final weather = await weatherService.getCurrentWeather();
+      print('[Weather Debug] Step 3: getCurrentWeather() = ${weather?.toString() ?? 'null'}');
 
       if (weather != null && mounted) {
         setState(() {
@@ -303,9 +308,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
         // 気温と湿度を自動入力
         _updateWeatherSettings(weather);
 
-        print('天気情報を取得しました: ${weather.toString()}');
+        print('[Weather Debug] SUCCESS: 天気情報を取得しました: ${weather.toString()}');
       } else {
-        print('天気情報を取得できませんでした。モックデータを使用します。');
+        print('[Weather Debug] FAILED at Step 3: weather=$weather, mounted=$mounted → モックデータ');
         final mockWeather = weatherService.getMockWeatherData();
         if (mounted) {
           setState(() {
@@ -314,9 +319,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
           _updateWeatherSettings(mockWeather);
         }
       }
-    } catch (e) {
-      print('天気情報取得エラー: $e');
-      print('モックデータを使用します。');
+    } catch (e, stackTrace) {
+      print('[Weather Debug] EXCEPTION: $e');
+      print('[Weather Debug] StackTrace: $stackTrace');
       final weatherService = WeatherService.instance;
       final mockWeather = weatherService.getMockWeatherData();
       if (mounted) {

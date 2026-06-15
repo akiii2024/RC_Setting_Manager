@@ -1,0 +1,20 @@
+{
+  "name": "rc-setting-manager-functions",
+  "description": "Cloud Functions for RC Setting Manager",
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions"
+  },
+  "dependencies": {
+    "firebase-functions": "^6.0.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.1"
+  },
+  "private": true
+}

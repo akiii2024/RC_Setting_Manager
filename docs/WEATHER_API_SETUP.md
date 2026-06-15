@@ -1,5 +1,7 @@
 # 天気API設定ガイド
 
+> 現在の実装では OpenWeatherMap API key は Flutter アプリに設定せず、Firebase Functions の Secret Manager に保存します。設定は `firebase functions:secrets:set OPENWEATHER_API_KEY` を使用してください。
+
 このアプリでは、現在地の気温と湿度を自動的に取得するためにOpenWeatherMap APIを使用しています。
 
 ## APIキーの取得方法

@@ -1,29 +1,14 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:image_picker/image_picker.dart';
-import '../config/app_secrets.dart';
 import '../models/car_setting_definition.dart';
+import 'firebase_functions_service.dart';
 
 class OCRService {
-  late final GenerativeModel _model;
   final ImagePicker _imagePicker = ImagePicker();
 
-  OCRService() {
-    // 環境変数からGemini APIキーを取得
-    final apiKey = AppSecrets.geminiApiKey;
-    if (apiKey.isEmpty) {
-      throw Exception('GEMINI_API_KEY が環境変数に設定されていません');
-    }
-
-    // Gemini Pro Visionモデルを初期化
-    _model = GenerativeModel(
-      model: 'gemini-2.5-flash',
-      apiKey: apiKey,
-    );
-  }
+  OCRService();
 
   // Web環境チェック
   bool get isWebPlatform => kIsWeb;
@@ -49,9 +34,6 @@ class OCRService {
         }
       }
 
-      // 画像データをData型に変換
-      final imagePart = DataPart('image/jpeg', imageBytes);
-
       // OCR用のプロンプトを作成
       const prompt = '''
 この画像からテキストを正確に読み取ってください。
@@ -72,22 +54,51 @@ class OCRService {
 読み取ったテキストをそのまま出力してください。
 ''';
 
-      // Gemini APIに画像とプロンプトを送信
-      final content = [
-        Content.multi([
-          TextPart(prompt),
-          imagePart,
-        ])
-      ];
+      final response = await FirebaseFunctionsService.call(
+        'generateGeminiContent',
+        {
+          'contents': [
+            {
+              'role': 'user',
+              'parts': [
+                {'text': prompt},
+                {
+                  'inlineData': {
+                    'mimeType': 'image/jpeg',
+                    'data': base64Encode(imageBytes),
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      );
 
-      final response = await _model.generateContent(content);
-      return response.text;
+      return response['text'] as String?;
     } catch (e) {
       print('Gemini OCR エラー: $e');
       print('エラータイプ: ${e.runtimeType}');
       print('スタックトレース: ${StackTrace.current}');
       return null;
     }
+  }
+
+  Future<String?> _generateTextWithAI(String prompt) async {
+    final response = await FirebaseFunctionsService.call(
+      'generateGeminiContent',
+      {
+        'contents': [
+          {
+            'role': 'user',
+            'parts': [
+              {'text': prompt},
+            ],
+          },
+        ],
+      },
+    );
+
+    return response['text'] as String?;
   }
 
   // カメラから画像を取得
@@ -319,9 +330,7 @@ ${availableOptions.map((option) => '- $option').join('\n')}
 
 回答:''';
 
-      final content = [Content.text(prompt)];
-      final response = await _model.generateContent(content);
-      final result = response.text?.trim();
+      final result = (await _generateTextWithAI(prompt))?.trim();
 
       if (result == null || result.isEmpty || result == 'NO_MATCH') {
         print('AIマッピング失敗: "$rawValue" -> オプション: $availableOptions');
@@ -363,9 +372,7 @@ ${settingDefinitions.map((setting) => '- ${setting.label} (キー: ${setting.key
 回答:''';
 
     try {
-      final content = [Content.text(prompt)];
-      final response = await _model.generateContent(content);
-      final result = response.text?.trim();
+      final result = (await _generateTextWithAI(prompt))?.trim();
 
       if (result == null || result.isEmpty || result == 'NO_MATCH') {
         print(
@@ -458,9 +465,7 @@ $availableSettings
 回答:''';
 
     try {
-      final content = [Content.text(prompt)];
-      final response = await _model.generateContent(content);
-      final result = response.text?.trim();
+      final result = (await _generateTextWithAI(prompt))?.trim();
 
       if (result != null && result.isNotEmpty) {
         // JSONパースを試行
@@ -586,9 +591,7 @@ $itemsText
 回答:''';
 
     try {
-      final content = [Content.text(prompt)];
-      final response = await _model.generateContent(content);
-      final result = response.text?.trim();
+      final result = (await _generateTextWithAI(prompt))?.trim();
 
       if (result != null && result.isNotEmpty) {
         // JSONパースを試行

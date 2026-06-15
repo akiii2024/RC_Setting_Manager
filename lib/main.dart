@@ -93,7 +93,7 @@ Future<bool> _initializeFirebaseWithLogging() async {
 
       print('Project ID: ${options.projectId}');
       print('App ID: ${options.appId}');
-      print('API Key: ${options.apiKey.substring(0, 10)}...');
+      print('Firebase options loaded.');
 
       await Firebase.initializeApp(options: options);
       print('Firebase initialized successfully');

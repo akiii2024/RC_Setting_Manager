@@ -1,13 +1,11 @@
-import 'package:google_generative_ai/google_generative_ai.dart';
-import '../config/app_secrets.dart';
 import '../models/car.dart';
 import '../models/car_setting_definition.dart';
 import '../models/track_location.dart';
+import '../services/firebase_functions_service.dart';
 import '../services/weather_service.dart';
 
 class AIAdvisorService {
-  late final GenerativeModel _model;
-  ChatSession? _currentChatSession;
+  final List<Map<String, dynamic>> _conversationContents = [];
 
   // 会話のコンテキスト情報
   Car? _contextCar;
@@ -16,22 +14,10 @@ class AIAdvisorService {
   TrackLocation? _contextTrackInfo;
   WeatherData? _contextWeatherInfo;
 
-  AIAdvisorService() {
-    // 環境変数からGemini APIキーを取得
-    final apiKey = AppSecrets.geminiApiKey;
-    if (apiKey.isEmpty) {
-      throw Exception('GEMINI_API_KEY が環境変数に設定されていません');
-    }
-
-    // Gemini Pro モデルを初期化
-    _model = GenerativeModel(
-      model: 'gemini-2.5-flash',
-      apiKey: apiKey,
-    );
-  }
+  AIAdvisorService();
 
   /// 会話セッションがアクティブかどうか
-  bool get isConversationActive => _currentChatSession != null;
+  bool get isConversationActive => _conversationContents.isNotEmpty;
 
   /// 現在の会話コンテキストの車情報を取得
   Car? get currentCar => _contextCar;
@@ -48,6 +34,31 @@ class AIAdvisorService {
 
   /// 現在の会話コンテキストの天候情報を取得
   WeatherData? get currentWeatherInfo => _contextWeatherInfo;
+
+  Map<String, dynamic> _textContent(String role, String text) {
+    return {
+      'role': role,
+      'parts': [
+        {'text': text},
+      ],
+    };
+  }
+
+  Future<String> _generateTextWithAI(
+    List<Map<String, dynamic>> contents,
+  ) async {
+    final response = await FirebaseFunctionsService.call(
+      'generateGeminiContent',
+      {'contents': contents},
+    );
+
+    final text = response['text'] as String?;
+    if (text == null || text.isEmpty) {
+      throw Exception('AIからの応答が空です');
+    }
+
+    return text;
+  }
 
   /// 会話形式でのアドバイスセッションを開始
   Future<String> startConversationSession({
@@ -75,16 +86,14 @@ class AIAdvisorService {
         weatherInfo: weatherInfo,
       );
 
-      // チャットセッションを開始
-      _currentChatSession = _model.startChat(
-        history: [
-          Content.text(systemPrompt),
-          Content.model([
-            TextPart(
-                '了解しました。RCカーのセッティングアドバイザーとして、現在のセッティング情報を確認しました。どのような問題やお悩みがありますか？')
-          ]),
-        ],
-      );
+      // Functions経由ではSDKのChatSessionを保持できないため、会話履歴を明示的に保持する
+      _conversationContents
+        ..clear()
+        ..add(_textContent('user', systemPrompt))
+        ..add(_textContent(
+          'model',
+          '了解しました。RCカーのセッティングアドバイザーとして、現在のセッティング情報を確認しました。どのような問題やお悩みがありますか？',
+        ));
 
       // ユーザーの問題が指定されている場合は、それに対する応答を返す
       if (userProblem != null && userProblem.isNotEmpty) {
@@ -100,17 +109,17 @@ class AIAdvisorService {
 
   /// 会話にメッセージを送信
   Future<String> sendMessage(String message) async {
-    if (_currentChatSession == null) {
+    if (_conversationContents.isEmpty) {
       throw Exception(
           '会話セッションが開始されていません。startConversationSessionを先に呼び出してください。');
     }
 
     try {
-      final response = await _currentChatSession!.sendMessage(
-        Content.text(message),
-      );
+      _conversationContents.add(_textContent('user', message));
+      final response = await _generateTextWithAI(_conversationContents);
+      _conversationContents.add(_textContent('model', response));
 
-      return response.text ?? 'AIからの応答を取得できませんでした';
+      return response;
     } catch (e) {
       print('メッセージ送信エラー: $e');
       rethrow;
@@ -119,13 +128,13 @@ class AIAdvisorService {
 
   /// 会話を終了し、最終的なアドバイスを生成
   Future<SettingAdvice> generateFinalAdvice() async {
-    if (_currentChatSession == null) {
+    if (_conversationContents.isEmpty) {
       throw Exception('会話セッションが開始されていません。');
     }
 
     try {
       // 最終的なアドバイス生成を依頼
-      final finalPrompt = '''
+      const finalPrompt = '''
 これまでの会話を踏まえて、最終的なセッティングアドバイスを以下の形式で提供してください：
 
 ## 総合評価
@@ -144,14 +153,9 @@ class AIAdvisorService {
 [このセッティングでの走行時の注意点やドライビングのコツ]
 ''';
 
-      final response = await _currentChatSession!.sendMessage(
-        Content.text(finalPrompt),
-      );
-
-      final result = response.text;
-      if (result == null || result.isEmpty) {
-        throw Exception('AIからの応答が空です');
-      }
+      _conversationContents.add(_textContent('user', finalPrompt));
+      final result = await _generateTextWithAI(_conversationContents);
+      _conversationContents.add(_textContent('model', result));
 
       // 会話セッションをクリア
       final advice = _parseAdviceResponse(result);
@@ -166,7 +170,7 @@ class AIAdvisorService {
 
   /// 会話のコンテキストをクリア
   void _clearConversationContext() {
-    _currentChatSession = null;
+    _conversationContents.clear();
     _contextCar = null;
     _contextSettings = null;
     _contextSettingDefinition = null;
@@ -258,13 +262,9 @@ class AIAdvisorService {
         weatherInfo: weatherInfo,
       );
 
-      final content = [Content.text(prompt)];
-      final response = await _model.generateContent(content);
-      final result = response.text;
-
-      if (result == null || result.isEmpty) {
-        throw Exception('AIからの応答が空です');
-      }
+      final result = await _generateTextWithAI([
+        _textContent('user', prompt),
+      ]);
 
       return _parseAdviceResponse(result);
     } catch (e) {
@@ -422,7 +422,7 @@ class AIAdvisorService {
 ${car.name} (${car.manufacturer.name})
 
 【対象セッティング】
-${settingLabel}: $currentValue
+$settingLabel: $currentValue
 
 ${trackInfo != null ? '''
 【サーキット情報】
@@ -430,7 +430,7 @@ ${trackInfo != null ? '''
 路面: ${trackInfo.surfaceType}
 ''' : ''}
 
-この${settingLabel}の現在値 ($currentValue) について：
+この$settingLabelの現在値 ($currentValue) について：
 1. この値は適切か、極端すぎないか
 2. この車種に対して一般的な値の範囲はどれくらいか
 3. どのような効果があるか
@@ -439,10 +439,9 @@ ${trackInfo != null ? '''
 上記について、簡潔かつ実践的なアドバイスを提供してください。
 ''';
 
-      final content = [Content.text(prompt)];
-      final response = await _model.generateContent(content);
-
-      return response.text ?? 'アドバイスを取得できませんでした';
+      return await _generateTextWithAI([
+        _textContent('user', prompt),
+      ]);
     } catch (e) {
       print('個別アドバイス取得エラー: $e');
       return 'アドバイスの取得中にエラーが発生しました: $e';

@@ -79,6 +79,18 @@
 - ダークモード対応
 - 日本語・英語対応
 
+## Firebase Functions の設定
+
+Gemini API key と OpenWeather API key は Flutter アプリには埋め込まず、Firebase Functions の Secret Manager に保存します。
+
+```bash
+firebase functions:secrets:set GEMINI_API_KEY
+firebase functions:secrets:set OPENWEATHER_API_KEY
+firebase deploy --only functions
+```
+
+Functions のリージョンは既定で `asia-northeast1` です。変更する場合は Flutter ビルド時に `--dart-define=FIREBASE_FUNCTIONS_REGION=your-region` を指定してください。
+
 ## システム要件
 
 ### 対応デバイス・OS
