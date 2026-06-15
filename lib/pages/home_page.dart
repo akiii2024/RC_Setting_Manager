@@ -87,16 +87,10 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
 
-  void _openHistoryTab() {
-    setState(() {
-      _selectedIndex = 2;
-    });
-  }
-
   Widget _buildCurrentPage() {
     switch (_selectedIndex) {
       case 0:
-        return _DashboardHomeTab(onOpenHistory: _openHistoryTab);
+        return const _DashboardHomeTab();
       case 1:
         return const MyGaragePage(embedded: true);
       case 2:
@@ -221,300 +215,524 @@ class _HomePageState extends State<HomePage> {
 }
 
 class _DashboardHomeTab extends StatelessWidget {
-  final VoidCallback onOpenHistory;
-
-  const _DashboardHomeTab({
-    required this.onOpenHistory,
-  });
+  const _DashboardHomeTab();
 
   @override
   Widget build(BuildContext context) {
     return Consumer<SettingsProvider>(
       builder: (context, settingsProvider, child) {
-        final savedSettings = settingsProvider.savedSettings;
         final cars = settingsProvider.cars;
-        final garageCars = settingsProvider.garageCars;
+        final savedSettings = List<SavedSetting>.from(
+          settingsProvider.savedSettings,
+        )..sort((a, b) => b.createdAt.compareTo(a.createdAt));
         final isEnglish = settingsProvider.isEnglish;
-        final recentBorder = DateTime.now().subtract(const Duration(days: 30));
-        final latestSetting =
-            savedSettings.isNotEmpty ? savedSettings.first : null;
-        final recentSettings = savedSettings.take(4).toList();
-        final recentCars = <Car>[];
-        final seenCarIds = <String>{};
-        for (final setting in savedSettings) {
-          if (seenCarIds.add(setting.car.id)) {
-            recentCars.add(setting.car);
-          }
-          if (recentCars.length >= 3) {
-            break;
-          }
+
+        if (cars.isEmpty) {
+          return SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 720),
+                  child: _SimpleHomeEmptyState(
+                    title: _t(isEnglish, 'No machines yet', 'マシンがまだありません'),
+                    message: _t(
+                      isEnglish,
+                      'Add your first machine to start from a simpler home screen.',
+                      '最初のマシンを追加すると、この画面からすぐ開けるようになります。',
+                    ),
+                    actionLabel: _t(isEnglish, 'Select a machine', 'マシンを選ぶ'),
+                    onCreate: () => _openCarSelection(context),
+                  ),
+                ),
+              ),
+            ),
+          );
         }
-        final settingsLast30Days = savedSettings
-            .where((setting) => setting.createdAt.isAfter(recentBorder))
-            .length;
-        final activeCars =
-            savedSettings.map((setting) => setting.car.id).toSet().length;
-        final chassisStats = _collectChassisStats(cars, savedSettings)
-            .where((stat) => stat.count > 0)
+
+        final latestSettingByCarId = <String, SavedSetting>{};
+        for (final setting in savedSettings) {
+          latestSettingByCarId.putIfAbsent(setting.car.id, () => setting);
+        }
+
+        final activities = [
+          for (var index = 0; index < cars.length; index++)
+            _HomeCarActivity(
+              car: cars[index],
+              latestSetting: latestSettingByCarId[cars[index].id],
+              originalIndex: index,
+            ),
+        ]..sort(_compareHomeCarActivity);
+
+        final recentActivities = activities
+            .where((activity) => activity.latestSetting != null)
             .take(3)
-            .toList();
+            .toList(growable: false);
 
-        return Stack(
-          children: [
-            const Positioned(
-              top: 12,
-              right: -52,
-              child: _BackgroundHalo(
-                size: 184,
-                colors: [
-                  Color(0x12005BCF),
-                  Color(0x001A73E8),
-                ],
-              ),
-            ),
-            const Positioned(
-              top: 320,
-              left: -80,
-              child: _BackgroundHalo(
-                size: 220,
-                colors: [
-                  Color(0x0E9E4300),
-                  Color(0x00C55500),
-                ],
-              ),
-            ),
-            SafeArea(
-              top: false,
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final isWide = constraints.maxWidth >= 960;
-
-                  final sidebar = Column(
-                    children: [
-                      _SectionPanel(
-                        title: _t(isEnglish, 'Overview', '概要'),
-                        tone: PanelTone.low,
-                        child: Column(
-                          children: [
-                            _MetricRow(
-                              label: _t(
-                                isEnglish,
-                                'Registered cars',
-                                '登録マシン',
-                              ),
-                              value: cars.length.toString().padLeft(2, '0'),
-                            ),
-                            const SizedBox(height: 14),
-                            _MetricRow(
-                              label: _t(
-                                isEnglish,
-                                'Saved setups',
-                                '保存済み設定',
-                              ),
-                              value: savedSettings.length
-                                  .toString()
-                                  .padLeft(2, '0'),
-                            ),
-                            const SizedBox(height: 14),
-                            _MetricRow(
-                              label: _t(
-                                isEnglish,
-                                'In garage',
-                                'ガレージ登録',
-                              ),
-                              value:
-                                  garageCars.length.toString().padLeft(2, '0'),
-                            ),
-                            const SizedBox(height: 14),
-                            _MetricRow(
-                              label: _t(
-                                isEnglish,
-                                'Last 30 days',
-                                '最近30日',
-                              ),
-                              value:
-                                  settingsLast30Days.toString().padLeft(2, '0'),
-                              highlight: true,
-                            ),
-                          ],
+        return SafeArea(
+          top: false,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(16, 24, 16, 120),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SimpleHomeSectionHeader(
+                      title: _t(isEnglish, 'Recent machines', '最近触ったマシン'),
+                      subtitle: _t(
+                        isEnglish,
+                        'Open the machines you touched most recently.',
+                        '最近触ったマシンからすぐ開けます。',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    if (recentActivities.isEmpty)
+                      _SimpleHomeEmptyState(
+                        title:
+                            _t(isEnglish, 'No recent work yet', 'まだ保存履歴がありません'),
+                        message: _t(
+                          isEnglish,
+                          'Save a setting and your latest machines will appear here.',
+                          '設定を保存すると、ここに最近触ったマシンが並びます。',
                         ),
-                      ),
-                      const SizedBox(height: 16),
-                      _SectionPanel(
-                        title: _t(isEnglish, 'Most used cars', 'よく使うマシン'),
-                        tone: PanelTone.highest,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _FilterRow(
-                              label: _t(
-                                isEnglish,
-                                'Cars with saved history',
-                                '履歴があるマシン',
+                        actionLabel: _t(isEnglish, 'Create a setting', '設定を作る'),
+                        onCreate: () => _openCarSelection(context),
+                        compact: true,
+                      )
+                    else
+                      ...recentActivities.asMap().entries.map(
+                            (entry) => Padding(
+                              padding: EdgeInsets.only(
+                                bottom: entry.key == recentActivities.length - 1
+                                    ? 0
+                                    : 12,
                               ),
-                              count: activeCars,
-                              active: true,
-                            ),
-                            const SizedBox(height: 12),
-                            if (chassisStats.isEmpty)
-                              Text(
-                                _t(
-                                  isEnglish,
-                                  'Save a setup first to see which cars you use most.',
-                                  '設定を保存すると、よく使うマシンがここに表示されます。',
-                                ),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
-                                    ),
-                              )
-                            else ...[
-                              Text(
-                                _t(
-                                  isEnglish,
-                                  'Sorted by number of saved setups.',
-                                  '保存回数が多い順に表示しています。',
-                                ),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .bodySmall
-                                    ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
-                                    ),
-                              ),
-                              const SizedBox(height: 12),
-                              ...chassisStats.map(
-                                (stat) => Padding(
-                                  padding: const EdgeInsets.only(bottom: 10),
-                                  child: _FilterRow(
-                                    label: stat.name,
-                                    count: stat.count,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-
-                  final content = Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _HomeSectionHeading(
-                        isEnglish: isEnglish,
-                        showViewAll:
-                            savedSettings.length > recentSettings.length,
-                        onViewAll: onOpenHistory,
-                      ),
-                      const SizedBox(height: 20),
-                      if (recentSettings.isEmpty)
-                        _DashboardEmptyPanel(
-                          isEnglish: isEnglish,
-                          onCreate: () => _openCarSelection(context),
-                        )
-                      else
-                        ...recentSettings.asMap().entries.map(
-                              (entry) => Padding(
-                                padding: const EdgeInsets.only(bottom: 16),
-                                child: _HomeSettingCard(
-                                  setting: entry.value,
-                                  isHighlighted: entry.key == 0,
-                                ),
+                              child: _RecentMachineCard(
+                                activity: entry.value,
+                                isEnglish: isEnglish,
+                                isPrimary: entry.key == 0,
+                                onTap: () =>
+                                    _openCarEditor(context, entry.value.car),
                               ),
                             ),
-                      if (savedSettings.length > recentSettings.length) ...[
-                        const SizedBox(height: 4),
-                        OutlinedButton.icon(
-                          onPressed: onOpenHistory,
-                          icon: const Icon(Icons.history_rounded),
-                          label: Text(
-                            _t(isEnglish, 'Open history', '履歴を開く'),
+                          ),
+                    const SizedBox(height: 28),
+                    _SimpleHomeSectionHeader(
+                      title: _t(isEnglish, 'My machines', '自分のマシン'),
+                      subtitle: _t(
+                        isEnglish,
+                        'Sorted by latest saved work.',
+                        '最後に保存した順に表示します。',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    ...activities.asMap().entries.map(
+                          (entry) => Padding(
+                            padding: EdgeInsets.only(
+                              bottom:
+                                  entry.key == activities.length - 1 ? 0 : 10,
+                            ),
+                            child: _MyMachineTile(
+                              activity: entry.value,
+                              isEnglish: isEnglish,
+                              index: entry.key + 1,
+                              onTap: () =>
+                                  _openCarEditor(context, entry.value.car),
+                            ),
                           ),
                         ),
-                      ],
-                    ],
-                  );
-
-                  return SingleChildScrollView(
-                    padding: EdgeInsets.fromLTRB(
-                      16,
-                      24,
-                      16,
-                      isWide ? 32 : 120,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _RecentCarHeroCard(
-                          isEnglish: isEnglish,
-                          latestSetting: latestSetting,
-                          recentCars: recentCars,
-                          totalCars: cars.length,
-                          garageCars: garageCars.length,
-                          settingsLast30Days: settingsLast30Days,
-                          onCreate: () => _openCarSelection(context),
-                        ),
-                        const SizedBox(height: 28),
-                        if (isWide)
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              SizedBox(width: 300, child: sidebar),
-                              const SizedBox(width: 24),
-                              Expanded(child: content),
-                            ],
-                          )
-                        else ...[
-                          sidebar,
-                          const SizedBox(height: 24),
-                          content,
-                        ],
-                      ],
-                    ),
-                  );
-                },
+                  ],
+                ),
               ),
             ),
-          ],
+          ),
         );
       },
     );
   }
+}
 
-  List<_ChassisStat> _collectChassisStats(
-    List<Car> cars,
-    List<SavedSetting> savedSettings,
-  ) {
-    final counts = <String, int>{};
+int _compareHomeCarActivity(_HomeCarActivity a, _HomeCarActivity b) {
+  final aLastUsed = a.latestSetting?.createdAt;
+  final bLastUsed = b.latestSetting?.createdAt;
 
-    for (final car in cars) {
-      counts[car.name] = 0;
+  if (aLastUsed != null && bLastUsed != null) {
+    final compare = bLastUsed.compareTo(aLastUsed);
+    if (compare != 0) {
+      return compare;
     }
+  } else if (aLastUsed != null) {
+    return -1;
+  } else if (bLastUsed != null) {
+    return 1;
+  }
 
-    for (final setting in savedSettings) {
-      counts[setting.car.name] = (counts[setting.car.name] ?? 0) + 1;
-    }
+  return a.originalIndex.compareTo(b.originalIndex);
+}
 
-    final stats = counts.entries
-        .map((entry) => _ChassisStat(name: entry.key, count: entry.value))
-        .toList()
-      ..sort((a, b) {
-        final countCompare = b.count.compareTo(a.count);
-        if (countCompare != 0) {
-          return countCompare;
-        }
-        return a.name.compareTo(b.name);
-      });
+String _latestSettingLabel(SavedSetting? setting, bool isEnglish) {
+  if (setting == null) {
+    return _t(isEnglish, 'No saved settings yet', '保存履歴なし');
+  }
 
-    return stats;
+  return _t(
+    isEnglish,
+    'Latest setting: ${setting.name}',
+    '最新設定: ${setting.name}',
+  );
+}
+
+String _lastSavedLabel(SavedSetting? setting, bool isEnglish) {
+  if (setting == null) {
+    return _t(isEnglish, 'Ready for the first save', '最初の保存待ち');
+  }
+
+  return _t(
+    isEnglish,
+    'Last saved ${_formatDate(setting.createdAt, isEnglish)}',
+    '最終保存: ${_formatDate(setting.createdAt, isEnglish)}',
+  );
+}
+
+class _HomeCarActivity {
+  final Car car;
+  final SavedSetting? latestSetting;
+  final int originalIndex;
+
+  const _HomeCarActivity({
+    required this.car,
+    required this.latestSetting,
+    required this.originalIndex,
+  });
+}
+
+class _SimpleHomeSectionHeader extends StatelessWidget {
+  final String title;
+  final String subtitle;
+
+  const _SimpleHomeSectionHeader({
+    required this.title,
+    required this.subtitle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _RecentMachineCard extends StatelessWidget {
+  final _HomeCarActivity activity;
+  final bool isEnglish;
+  final bool isPrimary;
+  final VoidCallback onTap;
+
+  const _RecentMachineCard({
+    required this.activity,
+    required this.isEnglish,
+    required this.isPrimary,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final latestSetting = activity.latestSetting!;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onTap,
+        child: Ink(
+          padding: EdgeInsets.all(isPrimary ? 20 : 16),
+          decoration: BoxDecoration(
+            color: isPrimary
+                ? colorScheme.surfaceContainerLow
+                : colorScheme.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(
+                alpha: isPrimary ? 0.45 : 0.3,
+              ),
+            ),
+          ),
+          child: Row(
+            children: [
+              _HomeMachineLeading(
+                label: isPrimary ? _t(isEnglish, 'Latest', '最新') : null,
+                emphasize: isPrimary,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      activity.car.name,
+                      style: (isPrimary
+                              ? theme.textTheme.headlineSmall
+                              : theme.textTheme.titleLarge)
+                          ?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      activity.car.manufacturer.name,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      _latestSettingLabel(latestSetting, isEnglish),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _lastSavedLabel(latestSetting, isEnglish),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MyMachineTile extends StatelessWidget {
+  final _HomeCarActivity activity;
+  final bool isEnglish;
+  final int index;
+  final VoidCallback onTap;
+
+  const _MyMachineTile({
+    required this.activity,
+    required this.isEnglish,
+    required this.index,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Row(
+            children: [
+              _HomeMachineLeading(
+                label: index.toString().padLeft(2, '0'),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      activity.car.name,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      activity.car.manufacturer.name,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      _latestSettingLabel(activity.latestSetting, isEnglish),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _lastSavedLabel(activity.latestSetting, isEnglish),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeMachineLeading extends StatelessWidget {
+  final String? label;
+  final bool emphasize;
+
+  const _HomeMachineLeading({
+    this.label,
+    this.emphasize = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      width: emphasize ? 56 : 48,
+      height: emphasize ? 56 : 48,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: emphasize
+            ? colorScheme.primary.withValues(alpha: 0.12)
+            : colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: label == null
+          ? Icon(
+              Icons.directions_car_filled_rounded,
+              color: colorScheme.primary,
+            )
+          : Text(
+              label!,
+              style: theme.textTheme.labelLarge?.copyWith(
+                color: colorScheme.primary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+    );
+  }
+}
+
+class _SimpleHomeEmptyState extends StatelessWidget {
+  final String title;
+  final String message;
+  final String actionLabel;
+  final VoidCallback onCreate;
+  final bool compact;
+
+  const _SimpleHomeEmptyState({
+    required this.title,
+    required this.message,
+    required this.actionLabel,
+    required this.onCreate,
+    this.compact = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(compact ? 18 : 24),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: compact ? 48 : 56,
+            height: compact ? 48 : 56,
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(
+              Icons.directions_car_filled_rounded,
+              color: colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            message,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: onCreate,
+            icon: const Icon(Icons.add_rounded),
+            label: Text(actionLabel),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -706,6 +924,7 @@ class _DashboardHeroCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _RecentCarHeroCard extends StatelessWidget {
   final bool isEnglish;
   final SavedSetting? latestSetting;
@@ -1044,6 +1263,7 @@ class _DashboardStatChip extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _HomeSectionHeading extends StatelessWidget {
   final bool isEnglish;
   final bool showViewAll;
@@ -1096,14 +1316,14 @@ class _HomeSectionHeading extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _HomeSettingCard extends StatelessWidget {
   final SavedSetting setting;
   final bool isHighlighted;
 
   const _HomeSettingCard({
     required this.setting,
-    this.isHighlighted = false,
-  });
+  }) : isHighlighted = false;
 
   @override
   Widget build(BuildContext context) {
@@ -1350,6 +1570,7 @@ class _HomeSettingCard extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 class _DashboardEmptyPanel extends StatelessWidget {
   final bool isEnglish;
   final VoidCallback onCreate;
