@@ -233,14 +233,14 @@
     {
       "id": "rcya_higashioumi",
       "name": "ラジコン屋東近江店",
-      "latitude": 34.5633,
-      "longitude": 135.8267,
+      "latitude": 35.071356,
+      "longitude": 136.159861,
       "radius": 10000,
       "prefecture": "滋賀県",
       "address": "滋賀県東近江市木村町22",
       "type": "outdoor",
       "surfaceType": "asphalt",
-      "description": "近江八幡市の総合ホビーショップ、RCサーキット併設",
+      "description": "東近江市の総合ホビーショップ、RCサーキット併設",
       "website": "https://ameblo.jp/rajikonyak2/",
       "phone": "050-5802-8733"
     },

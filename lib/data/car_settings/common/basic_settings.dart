@@ -12,9 +12,11 @@ final List<SettingItem> basicSettings = [
   ),
   SettingItem(
     key: 'surface',
-    type: 'text',
+    type: 'select',
     category: 'basic',
     label: '路面',
+    options: ['アスファルト', 'カーペット', 'その他'],
+    defaultValue: 'アスファルト',
   ),
   SettingItem(
     key: 'airTemp',
