@@ -147,7 +147,7 @@ final List<SettingItem> trf420xSpecificSettings = [
   SettingItem(
     key: 'frontDamperOffsetStay',
     type: 'number',
-    category: 'front',
+    category: 'frontDamper',
     label: 'ダンパーオフセット（ステー）',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
@@ -156,7 +156,7 @@ final List<SettingItem> trf420xSpecificSettings = [
   SettingItem(
     key: 'frontDamperOffsetArm',
     type: 'number',
-    category: 'front',
+    category: 'frontDamper',
     label: 'ダンパーオフセット（アーム）',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
@@ -165,21 +165,21 @@ final List<SettingItem> trf420xSpecificSettings = [
   SettingItem(
     key: 'frontDamperType',
     type: 'text',
-    category: 'front',
+    category: 'frontDamper',
     label: 'ダンパータイプ',
     defaultValue: '',
   ),
   SettingItem(
     key: 'frontDamperOilSeal',
     type: 'text',
-    category: 'front',
+    category: 'frontDamper',
     label: 'オイルシール',
     defaultValue: '',
   ),
   SettingItem(
     key: 'frontDamperPiston',
     type: 'number',
-    category: 'front',
+    category: 'frontDamper',
     label: 'ピストン',
     unit: 'φ',
     constraints: {'min': 1.0, 'max': 3.0, 'step': 0.1},
@@ -188,7 +188,7 @@ final List<SettingItem> trf420xSpecificSettings = [
   SettingItem(
     key: 'frontDamperPistonHole',
     type: 'number',
-    category: 'front',
+    category: 'frontDamper',
     label: 'ピストン穴数',
     constraints: {'min': 1, 'max': 10, 'step': 1},
     defaultValue: '1',
@@ -196,7 +196,7 @@ final List<SettingItem> trf420xSpecificSettings = [
   SettingItem(
     key: 'frontDamperOil',
     type: 'text',
-    category: 'front',
+    category: 'frontDamper',
     label: 'オイル',
     unit: '#',
     defaultValue: '',
@@ -204,14 +204,14 @@ final List<SettingItem> trf420xSpecificSettings = [
   SettingItem(
     key: 'frontDamperSpring',
     type: 'text',
-    category: 'front',
+    category: 'frontDamper',
     label: 'スプリング',
     defaultValue: '',
   ),
   SettingItem(
     key: 'frontDamperStroke',
     type: 'number',
-    category: 'front',
+    category: 'frontDamper',
     label: 'ストローク長',
     unit: 'mm',
     constraints: {'min': 0, 'max': 50, 'step': 0.5},
@@ -220,7 +220,7 @@ final List<SettingItem> trf420xSpecificSettings = [
   SettingItem(
     key: 'frontDamperAirHole',
     type: 'number',
-    category: 'front',
+    category: 'frontDamper',
     label: 'エア抜き穴',
     unit: 'mm',
     constraints: {'min': 0, 'max': 5, 'step': 0.1},
@@ -240,7 +240,7 @@ final List<SettingItem> trf420xSpecificSettings = [
   SettingItem(
     key: 'rearDamperPosition',
     type: 'select',
-    category: 'rear',
+    category: 'rearDamper',
     label: 'ダンパーポジション',
     options: ['1', '2', '3'],
     defaultValue: '1',
@@ -362,7 +362,7 @@ final List<SettingItem> trf420xSpecificSettings = [
   SettingItem(
     key: 'rearDamperOffsetStay',
     type: 'number',
-    category: 'rear',
+    category: 'rearDamper',
     label: 'ダンパーオフセット（ステー）',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
@@ -371,7 +371,7 @@ final List<SettingItem> trf420xSpecificSettings = [
   SettingItem(
     key: 'rearDamperOffsetArm',
     type: 'number',
-    category: 'rear',
+    category: 'rearDamper',
     label: 'ダンパーオフセット（アーム）',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
@@ -380,21 +380,21 @@ final List<SettingItem> trf420xSpecificSettings = [
   SettingItem(
     key: 'rearDamperType',
     type: 'text',
-    category: 'rear',
+    category: 'rearDamper',
     label: 'ダンパータイプ',
     defaultValue: '',
   ),
   SettingItem(
     key: 'rearDamperOilSeal',
     type: 'text',
-    category: 'rear',
+    category: 'rearDamper',
     label: 'オイルシール',
     defaultValue: '',
   ),
   SettingItem(
     key: 'rearDamperPiston',
     type: 'number',
-    category: 'rear',
+    category: 'rearDamper',
     label: 'ピストン',
     unit: 'φ',
     constraints: {'min': 1.0, 'max': 3.0, 'step': 0.1},
@@ -403,7 +403,7 @@ final List<SettingItem> trf420xSpecificSettings = [
   SettingItem(
     key: 'rearDamperPistonHole',
     type: 'number',
-    category: 'rear',
+    category: 'rearDamper',
     label: 'ピストン穴数',
     constraints: {'min': 1, 'max': 10, 'step': 1},
     defaultValue: '1',
@@ -411,7 +411,7 @@ final List<SettingItem> trf420xSpecificSettings = [
   SettingItem(
     key: 'rearDamperOil',
     type: 'text',
-    category: 'rear',
+    category: 'rearDamper',
     label: 'オイル',
     unit: '#',
     defaultValue: '',
@@ -419,14 +419,14 @@ final List<SettingItem> trf420xSpecificSettings = [
   SettingItem(
     key: 'rearDamperSpring',
     type: 'text',
-    category: 'rear',
+    category: 'rearDamper',
     label: 'スプリング',
     defaultValue: '',
   ),
   SettingItem(
     key: 'rearDamperStroke',
     type: 'number',
-    category: 'rear',
+    category: 'rearDamper',
     label: 'ストローク長',
     unit: 'mm',
     constraints: {'min': 0, 'max': 50, 'step': 0.5},
@@ -435,7 +435,7 @@ final List<SettingItem> trf420xSpecificSettings = [
   SettingItem(
     key: 'rearDamperAirHole',
     type: 'number',
-    category: 'rear',
+    category: 'rearDamper',
     label: 'エア抜き穴',
     unit: 'mm',
     constraints: {'min': 0, 'max': 5, 'step': 0.1},

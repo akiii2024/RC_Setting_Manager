@@ -16,7 +16,7 @@ final List<SettingItem> trf421SpecificSettings = [
   SettingItem(
     key: 'frontDamperMountSpacer',
     type: 'number',
-    category: 'front',
+    category: 'frontDamper',
     label: 'ダンパーマウントスペーサー',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},
@@ -112,7 +112,7 @@ final List<SettingItem> trf421SpecificSettings = [
   SettingItem(
     key: 'rearDamperMountSpacer',
     type: 'number',
-    category: 'rear',
+    category: 'rearDamper',
     label: 'ダンパーマウントスペーサー',
     unit: 'mm',
     constraints: {'min': 0, 'max': 10, 'step': 0.5},

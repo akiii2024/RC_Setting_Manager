@@ -1084,6 +1084,37 @@ class _CarSettingPageState extends State<CarSettingPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
+                    child: _buildPaperSectionButton(
+                      category: 'frontDamper',
+                      title: isEnglish ? 'Front Damper' : 'フロントダンパー',
+                      subtitle:
+                          _buildPaperSectionSubtitle('frontDamper', isEnglish),
+                      icon: Icons.swap_vert_rounded,
+                      tint: const Color(0xFF3949AB),
+                      height: topRowHeight,
+                      isEnglish: isEnglish,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildPaperSectionButton(
+                      category: 'rearDamper',
+                      title: isEnglish ? 'Rear Damper' : 'リアダンパー',
+                      subtitle:
+                          _buildPaperSectionSubtitle('rearDamper', isEnglish),
+                      icon: Icons.swap_vert_circle_rounded,
+                      tint: const Color(0xFF00796B),
+                      height: topRowHeight,
+                      isEnglish: isEnglish,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
                     flex: isWide ? 3 : 2,
                     child: _buildPaperSectionButton(
                       category: 'top',
@@ -1991,16 +2022,63 @@ class _CarSettingPageState extends State<CarSettingPage> {
     }
 
     return _carSettingDefinition!.availableSettings
-        .where((setting) => setting.category == category)
+        .where((setting) => _displayCategoryForSetting(setting) == category)
         .toList();
+  }
+
+  bool _isDamperSettingKey(String key) {
+    return key.contains('Damper') ||
+        key.contains('Dumper') ||
+        key.contains('Shock') ||
+        key.contains('Bladder') ||
+        key.contains('Piston') ||
+        key.endsWith('Spring');
+  }
+
+  String _displayCategoryForSetting(SettingItem setting) {
+    final key = setting.key;
+    final category = setting.category;
+
+    if (category == 'frontDamper' || category == 'rearDamper') {
+      return category;
+    }
+
+    if (category == 'damper') {
+      if (key.startsWith('front')) {
+        return 'frontDamper';
+      }
+      if (key.startsWith('rear')) {
+        return 'rearDamper';
+      }
+    }
+
+    if ((category == 'front' || key.startsWith('front')) &&
+        _isDamperSettingKey(key)) {
+      return 'frontDamper';
+    }
+
+    if ((category == 'rear' || key.startsWith('rear')) &&
+        _isDamperSettingKey(key)) {
+      return 'rearDamper';
+    }
+
+    return category;
   }
 
   String _buildPaperSectionSubtitle(String category, bool isEnglish) {
     switch (category) {
       case 'front':
         return isEnglish ? 'Upper-left area on the sheet' : '紙の左上にあるフロント周辺';
+      case 'frontDamper':
+        return isEnglish
+            ? 'Front shock and spring settings'
+            : 'フロント側のダンパーとスプリング';
       case 'rear':
         return isEnglish ? 'Upper-right area on the sheet' : '紙の右上にあるリア周辺';
+      case 'rearDamper':
+        return isEnglish
+            ? 'Rear shock and spring settings'
+            : 'リア側のダンパーとスプリング';
       case 'top':
         return isEnglish
             ? 'Lower area for top deck and chassis'
@@ -2564,7 +2642,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
       'favorites': isEnglish ? 'Favorites' : 'よく使う項目',
       'basic': isEnglish ? 'Basic' : '基本',
       'front': isEnglish ? 'Front' : 'フロント',
+      'frontDamper': isEnglish ? 'Front Damper' : 'フロントダンパー',
       'rear': isEnglish ? 'Rear' : 'リア',
+      'rearDamper': isEnglish ? 'Rear Damper' : 'リアダンパー',
       'top': isEnglish ? 'Top Deck' : 'トップデッキ',
       'other': isEnglish ? 'Other' : 'その他',
       'memo': isEnglish ? 'Memo' : 'メモ',
@@ -2589,7 +2669,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
                   );
                 }
                 // TRF420Xのフロントタブの場合、専用のビルダーを使用
-                if (category == 'front' && widget.originalCar.id == 'trf420x') {
+                if (category == 'front' &&
+                    widget.originalCar.id == 'trf420x' &&
+                    _getCategorySettings('frontDamper').isEmpty) {
                   return SingleChildScrollView(
                     padding: const EdgeInsets.all(16.0),
                     child: _buildFrontSettingsTabForTRF420X(),
@@ -2662,9 +2744,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   Widget _buildCategorySettings(String category) {
-    final categorySettings = _carSettingDefinition!.availableSettings
-        .where((setting) => setting.category == category)
-        .toList();
+    final categorySettings = _getCategorySettings(category);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,

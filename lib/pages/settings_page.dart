@@ -481,19 +481,23 @@ class _SettingsPageState extends State<SettingsPage> {
                   'Front Settings': [
                     const MapEntry('frontCamber', 'Camber Angle'),
                     const MapEntry('frontRideHeight', 'Ride Height'),
-                    const MapEntry('frontDamperPosition', 'Damper Position'),
-                    const MapEntry('frontSpring', 'Spring'),
                     const MapEntry('frontToe', 'Toe Angle'),
                     const MapEntry('frontCasterAngle', 'Caster Angle'),
                     const MapEntry('frontStabilizer', 'Stabilizer'),
                   ],
+                  'Front Damper Settings': [
+                    const MapEntry('frontDamperPosition', 'Damper Position'),
+                    const MapEntry('frontSpring', 'Spring'),
+                  ],
                   'Rear Settings': [
                     const MapEntry('rearCamber', 'Camber Angle'),
                     const MapEntry('rearRideHeight', 'Ride Height'),
-                    const MapEntry('rearDamperPosition', 'Damper Position'),
-                    const MapEntry('rearSpring', 'Spring'),
                     const MapEntry('rearToe', 'Toe Angle'),
                     const MapEntry('rearStabilizer', 'Stabilizer'),
+                  ],
+                  'Rear Damper Settings': [
+                    const MapEntry('rearDamperPosition', 'Damper Position'),
+                    const MapEntry('rearSpring', 'Spring'),
                   ],
                   'Top Settings': [
                     const MapEntry(
@@ -530,19 +534,23 @@ class _SettingsPageState extends State<SettingsPage> {
                   'フロント設定': [
                     const MapEntry('frontCamber', 'キャンバー角'),
                     const MapEntry('frontRideHeight', '車高'),
-                    const MapEntry('frontDamperPosition', 'ダンパーポジション'),
-                    const MapEntry('frontSpring', 'スプリング'),
                     const MapEntry('frontToe', 'トー角'),
                     const MapEntry('frontCasterAngle', 'キャスター角'),
                     const MapEntry('frontStabilizer', 'スタビライザー'),
                   ],
+                  'フロントダンパー設定': [
+                    const MapEntry('frontDamperPosition', 'ダンパーポジション'),
+                    const MapEntry('frontSpring', 'スプリング'),
+                  ],
                   'リア設定': [
                     const MapEntry('rearCamber', 'キャンバー角'),
                     const MapEntry('rearRideHeight', '車高'),
-                    const MapEntry('rearDamperPosition', 'ダンパーポジション'),
-                    const MapEntry('rearSpring', 'スプリング'),
                     const MapEntry('rearToe', 'トー角'),
                     const MapEntry('rearStabilizer', 'スタビライザー'),
+                  ],
+                  'リアダンパー設定': [
+                    const MapEntry('rearDamperPosition', 'ダンパーポジション'),
+                    const MapEntry('rearSpring', 'スプリング'),
                   ],
                   'トップ設定': [
                     const MapEntry(
@@ -604,20 +612,29 @@ class _SettingsPageState extends State<SettingsPage> {
     } else {
       // 車種固有の設定項目を使用して表示
       // 設定項目をカテゴリ別にグループ化するためのヘルパー関数
+      bool isDamperSettingKey(String setting) {
+        return setting.contains('Damper') ||
+            setting.contains('Dumper') ||
+            setting.contains('Shock') ||
+            setting.contains('Bladder') ||
+            setting.contains('Piston') ||
+            setting.endsWith('Spring');
+      }
+
       Map<String, List<String>> groupSettingsByCategory(List<String> settings) {
         Map<String, List<String>> groups = {};
 
         for (var setting in settings) {
-          String category = 'その他';
+          String category = isEnglish ? 'Other' : 'その他';
 
           if (setting.startsWith('front')) {
-            if (setting.contains('Damper') || setting.contains('Dumper')) {
+            if (isDamperSettingKey(setting)) {
               category = isEnglish ? 'Front Damper Settings' : 'フロントダンパー設定';
             } else {
               category = isEnglish ? 'Front Settings' : 'フロント設定';
             }
           } else if (setting.startsWith('rear')) {
-            if (setting.contains('Damper') || setting.contains('Dumper')) {
+            if (isDamperSettingKey(setting)) {
               category = isEnglish ? 'Rear Damper Settings' : 'リアダンパー設定';
             } else {
               category = isEnglish ? 'Rear Settings' : 'リア設定';

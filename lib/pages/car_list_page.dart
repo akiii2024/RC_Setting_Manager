@@ -32,6 +32,63 @@ class CarSettingsUtil {
   }
 }
 
+bool _isDamperSettingKey(String key) {
+  return key.contains('Damper') ||
+      key.contains('Dumper') ||
+      key.contains('Shock') ||
+      key.contains('Bladder') ||
+      key.contains('Piston') ||
+      key.endsWith('Spring');
+}
+
+String _getSettingCategoryLabel(String key, bool isEnglish) {
+  if (key.startsWith('front')) {
+    if (_isDamperSettingKey(key)) {
+      return isEnglish ? 'Front Damper Settings' : 'フロントダンパー設定';
+    }
+    return isEnglish ? 'Front Settings' : 'フロント設定';
+  }
+
+  if (key.startsWith('rear')) {
+    if (_isDamperSettingKey(key)) {
+      return isEnglish ? 'Rear Damper Settings' : 'リアダンパー設定';
+    }
+    return isEnglish ? 'Rear Settings' : 'リア設定';
+  }
+
+  if (key == 'date' ||
+      key == 'track' ||
+      key == 'surface' ||
+      key == 'airTemp' ||
+      key == 'humidity' ||
+      key == 'trackTemp' ||
+      key == 'condition') {
+    return isEnglish ? 'Basic Information' : '基本情報';
+  }
+
+  if (key.contains('upperDeck') || key.contains('ballast')) {
+    return isEnglish ? 'Top Settings' : 'トップ設定';
+  }
+
+  if (key.contains('knucklearm') ||
+      key.contains('steering') ||
+      key.contains('lowerDeck')) {
+    return isEnglish ? 'Top Detailed Settings' : 'トップ詳細設定';
+  }
+
+  if (key == 'motor' ||
+      key == 'spurGear' ||
+      key == 'pinionGear' ||
+      key == 'battery' ||
+      key == 'body' ||
+      key == 'tire' ||
+      key == 'wheel') {
+    return isEnglish ? 'Other Settings' : 'その他設定';
+  }
+
+  return isEnglish ? 'Other' : 'その他';
+}
+
 class CarListPage extends StatefulWidget {
   final Manufacturer manufacturer;
 
@@ -259,43 +316,7 @@ class _CarListPageState extends State<CarListPage> {
     Map<String, List<String>> groupedSettings = {};
 
     availableSettingsState.forEach((key, value) {
-      String category = 'その他';
-
-      if (key.startsWith('front')) {
-        if (key.contains('Damper') || key.contains('Dumper')) {
-          category = isEnglish ? 'Front Damper Settings' : 'フロントダンパー設定';
-        } else {
-          category = isEnglish ? 'Front Settings' : 'フロント設定';
-        }
-      } else if (key.startsWith('rear')) {
-        if (key.contains('Damper') || key.contains('Dumper')) {
-          category = isEnglish ? 'Rear Damper Settings' : 'リアダンパー設定';
-        } else {
-          category = isEnglish ? 'Rear Settings' : 'リア設定';
-        }
-      } else if (key == 'date' ||
-          key == 'track' ||
-          key == 'surface' ||
-          key == 'airTemp' ||
-          key == 'humidity' ||
-          key == 'trackTemp' ||
-          key == 'condition') {
-        category = isEnglish ? 'Basic Information' : '基本情報';
-      } else if (key.contains('upperDeck') || key.contains('ballast')) {
-        category = isEnglish ? 'Top Settings' : 'トップ設定';
-      } else if (key.contains('knucklearm') ||
-          key.contains('steering') ||
-          key.contains('lowerDeck')) {
-        category = isEnglish ? 'Top Detailed Settings' : 'トップ詳細設定';
-      } else if (key == 'motor' ||
-          key == 'spurGear' ||
-          key == 'pinionGear' ||
-          key == 'battery' ||
-          key == 'body' ||
-          key == 'tire' ||
-          key == 'wheel') {
-        category = isEnglish ? 'Other Settings' : 'その他設定';
-      }
+      final category = _getSettingCategoryLabel(key, isEnglish);
 
       if (!groupedSettings.containsKey(category)) {
         groupedSettings[category] = [];
@@ -721,43 +742,7 @@ class CarListItem extends StatelessWidget {
     Map<String, List<String>> groupedSettings = {};
 
     availableSettingsState.forEach((key, value) {
-      String category = 'その他';
-
-      if (key.startsWith('front')) {
-        if (key.contains('Damper') || key.contains('Dumper')) {
-          category = isEnglish ? 'Front Damper Settings' : 'フロントダンパー設定';
-        } else {
-          category = isEnglish ? 'Front Settings' : 'フロント設定';
-        }
-      } else if (key.startsWith('rear')) {
-        if (key.contains('Damper') || key.contains('Dumper')) {
-          category = isEnglish ? 'Rear Damper Settings' : 'リアダンパー設定';
-        } else {
-          category = isEnglish ? 'Rear Settings' : 'リア設定';
-        }
-      } else if (key == 'date' ||
-          key == 'track' ||
-          key == 'surface' ||
-          key == 'airTemp' ||
-          key == 'humidity' ||
-          key == 'trackTemp' ||
-          key == 'condition') {
-        category = isEnglish ? 'Basic Information' : '基本情報';
-      } else if (key.contains('upperDeck') || key.contains('ballast')) {
-        category = isEnglish ? 'Top Settings' : 'トップ設定';
-      } else if (key.contains('knucklearm') ||
-          key.contains('steering') ||
-          key.contains('lowerDeck')) {
-        category = isEnglish ? 'Top Detailed Settings' : 'トップ詳細設定';
-      } else if (key == 'motor' ||
-          key == 'spurGear' ||
-          key == 'pinionGear' ||
-          key == 'battery' ||
-          key == 'body' ||
-          key == 'tire' ||
-          key == 'wheel') {
-        category = isEnglish ? 'Other Settings' : 'その他設定';
-      }
+      final category = _getSettingCategoryLabel(key, isEnglish);
 
       if (!groupedSettings.containsKey(category)) {
         groupedSettings[category] = [];

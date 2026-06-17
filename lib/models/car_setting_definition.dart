@@ -36,7 +36,7 @@ class SettingItem {
   final String type; // 'number', 'text', 'slider', 'select' など
   final Map<String, dynamic> constraints; // min, max, divisions など
   final String? unit; // 単位
-  final String category; // 'basic', 'front', 'rear', 'top', 'other' など
+  final String category; // 'basic', 'front', 'frontDamper', 'rear', 'rearDamper', 'top', 'other' など
   final String label; // 表示名
   final List<String>? options; // select typeの場合の選択肢
   final String? defaultValue; // デフォルト値
