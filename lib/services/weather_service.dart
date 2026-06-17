@@ -1,3 +1,9 @@
+import 'dart:convert';
+import 'dart:math' as math;
+
+import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'firebase_functions_service.dart';
 import 'location_service.dart';
 
@@ -5,29 +11,62 @@ class WeatherService {
   static WeatherService? _instance;
   static WeatherService get instance => _instance ??= WeatherService._();
 
+  static const String _weatherCacheKey = 'weather_cache_current_v1';
+  static const String _apiKeyValidationCacheKey =
+      'weather_api_key_validation_cache_v1';
+  static const Duration _weatherCacheDuration = Duration(minutes: 30);
+  static const Duration _apiKeyValidationCacheDuration = Duration(hours: 24);
+  static const Duration _apiKeyValidationFailureCacheDuration =
+      Duration(minutes: 5);
+  static const double _weatherCacheMaxDistanceMeters = 5000;
+
   WeatherService._();
 
-  Future<WeatherData?> getCurrentWeather() async {
+  Future<WeatherData?> getCurrentWeather({bool forceRefresh = false}) async {
     try {
-      print('[Weather Debug] getCurrentWeather: 位置情報を取得中...');
+      debugPrint(
+        '[Weather Debug] getCurrentWeather: getting current position...',
+      );
       final position = await LocationService.instance.getCurrentPosition();
       if (position == null) {
-        print('[Weather Debug] getCurrentWeather: 位置情報がnull → return null');
+        debugPrint('[Weather Debug] getCurrentWeather: position is null');
         return null;
       }
-      print('[Weather Debug] getCurrentWeather: 位置情報取得成功 lat=${position.latitude}, lon=${position.longitude}');
+      debugPrint(
+        '[Weather Debug] getCurrentWeather: lat=${position.latitude}, '
+        'lon=${position.longitude}',
+      );
 
-      return getWeatherByCoordinates(position.latitude, position.longitude);
+      return getWeatherByCoordinates(
+        position.latitude,
+        position.longitude,
+        forceRefresh: forceRefresh,
+      );
     } catch (e, stackTrace) {
-      print('[Weather Debug] getCurrentWeather EXCEPTION: $e');
-      print('[Weather Debug] getCurrentWeather StackTrace: $stackTrace');
+      debugPrint('[Weather Debug] getCurrentWeather EXCEPTION: $e');
+      debugPrint('[Weather Debug] getCurrentWeather StackTrace: $stackTrace');
       return null;
     }
   }
 
-  Future<WeatherData?> getWeatherByCoordinates(double lat, double lon) async {
+  Future<WeatherData?> getWeatherByCoordinates(
+    double lat,
+    double lon, {
+    bool forceRefresh = false,
+  }) async {
     try {
-      print('[Weather Debug] getWeatherByCoordinates: Firebase Functions呼び出し中 lat=$lat, lon=$lon');
+      if (!forceRefresh) {
+        final cachedWeather = await _getCachedWeather(lat, lon);
+        if (cachedWeather != null) {
+          debugPrint('[Weather Debug] getWeatherByCoordinates: cache hit');
+          return cachedWeather;
+        }
+      }
+
+      debugPrint(
+        '[Weather Debug] getWeatherByCoordinates: calling Firebase Functions '
+        'lat=$lat, lon=$lon',
+      );
       final data = await FirebaseFunctionsService.call(
         'getCurrentWeather',
         {
@@ -35,34 +74,165 @@ class WeatherService {
           'lon': lon,
         },
       );
-      print('[Weather Debug] getWeatherByCoordinates: レスポンス受信 city=${data['name']}');
-      return WeatherData.fromJson(data);
+      debugPrint(
+        '[Weather Debug] getWeatherByCoordinates: response city=${data['name']}',
+      );
+
+      final weather = WeatherData.fromJson(data);
+      await _saveWeatherCache(lat, lon, weather);
+      return weather;
     } catch (e, stackTrace) {
-      print('[Weather Debug] getWeatherByCoordinates EXCEPTION: $e');
-      print('[Weather Debug] getWeatherByCoordinates StackTrace: $stackTrace');
+      debugPrint('[Weather Debug] getWeatherByCoordinates EXCEPTION: $e');
+      debugPrint(
+        '[Weather Debug] getWeatherByCoordinates StackTrace: $stackTrace',
+      );
       return null;
     }
   }
 
   bool isApiKeyConfigured() => true;
 
-  Future<bool> validateApiKey() async {
+  Future<bool> validateApiKey({bool forceRefresh = false}) async {
     try {
-      print('[Weather Debug] validateApiKey: Firebase Functions呼び出し中...');
+      if (!forceRefresh) {
+        final cachedValidation = await _getCachedApiKeyValidation();
+        if (cachedValidation != null) {
+          debugPrint(
+            '[Weather Debug] validateApiKey: cache hit = $cachedValidation',
+          );
+          return cachedValidation;
+        }
+      }
+
+      debugPrint(
+        '[Weather Debug] validateApiKey: calling Firebase Functions...',
+      );
       final response = await FirebaseFunctionsService.call(
         'validateOpenWeatherApiKey',
         const {},
       );
-      print('[Weather Debug] validateApiKey: レスポンス = $response');
+      debugPrint('[Weather Debug] validateApiKey: response = $response');
       final isValid = response['valid'] == true;
-      print('[Weather Debug] validateApiKey: isValid = $isValid');
+      await _saveApiKeyValidation(isValid);
+      debugPrint('[Weather Debug] validateApiKey: isValid = $isValid');
       return isValid;
     } catch (e, stackTrace) {
-      print('[Weather Debug] validateApiKey EXCEPTION: $e');
-      print('[Weather Debug] validateApiKey StackTrace: $stackTrace');
+      debugPrint('[Weather Debug] validateApiKey EXCEPTION: $e');
+      debugPrint('[Weather Debug] validateApiKey StackTrace: $stackTrace');
       return false;
     }
   }
+
+  Future<WeatherData?> _getCachedWeather(double lat, double lon) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cached = prefs.getString(_weatherCacheKey);
+      if (cached == null) return null;
+
+      final decoded = jsonDecode(cached) as Map<String, dynamic>;
+      final fetchedAt = DateTime.fromMillisecondsSinceEpoch(
+        decoded['fetchedAt'] as int,
+      );
+      final age = DateTime.now().difference(fetchedAt);
+      if (age > _weatherCacheDuration) return null;
+
+      final cachedLat = (decoded['lat'] as num).toDouble();
+      final cachedLon = (decoded['lon'] as num).toDouble();
+      final distance = _distanceInMeters(lat, lon, cachedLat, cachedLon);
+      if (distance > _weatherCacheMaxDistanceMeters) return null;
+
+      return WeatherData.fromCacheJson(
+        Map<String, dynamic>.from(decoded['data'] as Map),
+      );
+    } catch (e) {
+      debugPrint('[Weather Debug] _getCachedWeather EXCEPTION: $e');
+      return null;
+    }
+  }
+
+  Future<void> _saveWeatherCache(
+    double lat,
+    double lon,
+    WeatherData weather,
+  ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _weatherCacheKey,
+        jsonEncode({
+          'fetchedAt': DateTime.now().millisecondsSinceEpoch,
+          'lat': lat,
+          'lon': lon,
+          'data': weather.toJson(),
+        }),
+      );
+    } catch (e) {
+      debugPrint('[Weather Debug] _saveWeatherCache EXCEPTION: $e');
+    }
+  }
+
+  Future<bool?> _getCachedApiKeyValidation() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cached = prefs.getString(_apiKeyValidationCacheKey);
+      if (cached == null) return null;
+
+      final decoded = jsonDecode(cached) as Map<String, dynamic>;
+      final isValid = decoded['valid'] == true;
+      final validatedAt = DateTime.fromMillisecondsSinceEpoch(
+        decoded['validatedAt'] as int,
+      );
+      final maxAge = isValid
+          ? _apiKeyValidationCacheDuration
+          : _apiKeyValidationFailureCacheDuration;
+
+      if (DateTime.now().difference(validatedAt) > maxAge) return null;
+      return isValid;
+    } catch (e) {
+      debugPrint(
+        '[Weather Debug] _getCachedApiKeyValidation EXCEPTION: $e',
+      );
+      return null;
+    }
+  }
+
+  Future<void> _saveApiKeyValidation(bool isValid) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+        _apiKeyValidationCacheKey,
+        jsonEncode({
+          'validatedAt': DateTime.now().millisecondsSinceEpoch,
+          'valid': isValid,
+        }),
+      );
+    } catch (e) {
+      debugPrint('[Weather Debug] _saveApiKeyValidation EXCEPTION: $e');
+    }
+  }
+
+  double _distanceInMeters(
+    double lat1,
+    double lon1,
+    double lat2,
+    double lon2,
+  ) {
+    const earthRadiusMeters = 6371000.0;
+    final dLat = _degreesToRadians(lat2 - lat1);
+    final dLon = _degreesToRadians(lon2 - lon1);
+    final rLat1 = _degreesToRadians(lat1);
+    final rLat2 = _degreesToRadians(lat2);
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(rLat1) *
+            math.cos(rLat2) *
+            math.sin(dLon / 2) *
+            math.sin(dLon / 2);
+    final clampedA = a.clamp(0.0, 1.0);
+    final c = 2 * math.atan2(math.sqrt(clampedA), math.sqrt(1 - clampedA));
+    return earthRadiusMeters * c;
+  }
+
+  double _degreesToRadians(double degrees) => degrees * math.pi / 180;
 
   WeatherData getMockWeatherData() {
     return WeatherData(
@@ -117,6 +287,21 @@ class WeatherData {
       windDirection: json['wind']?['deg'] as int? ?? 0,
       cloudiness: json['clouds']['all'] as int,
       cityName: json['name'] as String,
+    );
+  }
+
+  factory WeatherData.fromCacheJson(Map<String, dynamic> json) {
+    return WeatherData(
+      temperature: (json['temperature'] as num).toDouble(),
+      humidity: json['humidity'] as int,
+      description: json['description'] as String,
+      feelsLike: (json['feelsLike'] as num).toDouble(),
+      pressure: json['pressure'] as int,
+      visibility: json['visibility'] as int,
+      windSpeed: (json['windSpeed'] as num).toDouble(),
+      windDirection: json['windDirection'] as int,
+      cloudiness: json['cloudiness'] as int,
+      cityName: json['cityName'] as String,
     );
   }
 

@@ -256,7 +256,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   // 天気情報を取得して気温・湿度を自動入力
-  Future<void> _initializeWeather() async {
+  Future<void> _initializeWeather({bool forceRefresh = false}) async {
     if (!mounted) return;
 
     setState(() {
@@ -267,7 +267,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
       final weatherService = WeatherService.instance;
 
       // APIキーが設定されているかチェック
-      print('[Weather Debug] Step 1: isApiKeyConfigured = ${weatherService.isApiKeyConfigured()}');
+      print(
+          '[Weather Debug] Step 1: isApiKeyConfigured = ${weatherService.isApiKeyConfigured()}');
       if (!weatherService.isApiKeyConfigured()) {
         print('[Weather Debug] FAILED at Step 1: APIキーが未設定 → モックデータ');
         final mockWeather = weatherService.getMockWeatherData();
@@ -297,8 +298,11 @@ class _CarSettingPageState extends State<CarSettingPage> {
       }
 
       print('[Weather Debug] Step 3: getCurrentWeather() を呼び出し中...');
-      final weather = await weatherService.getCurrentWeather();
-      print('[Weather Debug] Step 3: getCurrentWeather() = ${weather?.toString() ?? 'null'}');
+      final weather = await weatherService.getCurrentWeather(
+        forceRefresh: forceRefresh,
+      );
+      print(
+          '[Weather Debug] Step 3: getCurrentWeather() = ${weather?.toString() ?? 'null'}');
 
       if (weather != null && mounted) {
         setState(() {
@@ -310,7 +314,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
         print('[Weather Debug] SUCCESS: 天気情報を取得しました: ${weather.toString()}');
       } else {
-        print('[Weather Debug] FAILED at Step 3: weather=$weather, mounted=$mounted → モックデータ');
+        print(
+            '[Weather Debug] FAILED at Step 3: weather=$weather, mounted=$mounted → モックデータ');
         final mockWeather = weatherService.getMockWeatherData();
         if (mounted) {
           setState(() {
@@ -361,7 +366,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
   // 天気情報を手動で再取得
   Future<void> _refreshWeather() async {
-    await _initializeWeather();
+    await _initializeWeather(forceRefresh: true);
   }
 
   // トラック情報から路面情報を更新
