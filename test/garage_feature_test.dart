@@ -7,8 +7,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:rc_setting_manager/models/car.dart';
 import 'package:rc_setting_manager/models/manufacturer.dart';
+import 'package:rc_setting_manager/models/saved_setting.dart';
 import 'package:rc_setting_manager/pages/car_selection_page.dart';
 import 'package:rc_setting_manager/pages/car_setting_page.dart';
+import 'package:rc_setting_manager/pages/history_page.dart';
 import 'package:rc_setting_manager/pages/my_garage_page.dart';
 import 'package:rc_setting_manager/providers/settings_provider.dart';
 
@@ -27,6 +29,8 @@ Future<void> _pumpUntilInitialized(
 }
 
 Car _buildCar({
+  String id = 'tamiya/trf421',
+  String name = 'TRF421',
   bool isInGarage = false,
   bool suppressGaragePrompt = false,
 }) {
@@ -37,8 +41,8 @@ Car _buildCar({
   );
 
   return Car(
-    id: 'tamiya/trf421',
-    name: 'TRF421',
+    id: id,
+    name: name,
     imageUrl: '',
     manufacturer: manufacturer,
     category: 'touring',
@@ -47,10 +51,15 @@ Car _buildCar({
   );
 }
 
-SettingsProvider _createProvider(List<Car> cars) {
+SettingsProvider _createProvider(
+  List<Car> cars, {
+  List<SavedSetting> savedSettings = const [],
+}) {
   SharedPreferences.setMockInitialValues({
     'language_settings': true,
     'cars_settings': jsonEncode(cars.map((car) => car.toJson()).toList()),
+    'saved_settings':
+        jsonEncode(savedSettings.map((setting) => setting.toJson()).toList()),
   });
 
   return SettingsProvider();
@@ -82,6 +91,54 @@ void main() {
 
     expect(find.byType(MyGaragePage), findsOneWidget);
     expect(find.text('TRF421'), findsOneWidget);
+  });
+
+  testWidgets('garage car selection opens history filtered to that car',
+      (WidgetTester tester) async {
+    final garageCar = _buildCar(isInGarage: true);
+    final otherCar = _buildCar(
+      id: 'tamiya/trf420x',
+      name: 'TRF420X',
+    );
+    final provider = _createProvider(
+      [
+        garageCar,
+        otherCar,
+      ],
+      savedSettings: [
+        SavedSetting(
+          id: 'setting-1',
+          name: 'TRF421 Race Setup',
+          createdAt: DateTime(2026, 1, 2, 12, 0),
+          car: garageCar,
+          settings: const {},
+        ),
+        SavedSetting(
+          id: 'setting-2',
+          name: 'TRF420X Practice Setup',
+          createdAt: DateTime(2026, 1, 1, 12, 0),
+          car: otherCar,
+          settings: const {},
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: const MaterialApp(home: MyGaragePage()),
+      ),
+    );
+
+    await _pumpUntilInitialized(tester, provider);
+    await tester.pump();
+
+    await tester.tap(find.text('TRF421').first);
+    await tester.pumpAndSettle();
+
+    expect(find.byType(HistoryPage), findsOneWidget);
+    expect(find.text('TRF421 Race Setup'), findsOneWidget);
+    expect(find.text('TRF420X Practice Setup'), findsNothing);
   });
 
   testWidgets('new save shows garage prompt and can suppress future prompts',

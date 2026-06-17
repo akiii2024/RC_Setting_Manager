@@ -1,18 +1,40 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../models/car.dart';
 import '../providers/settings_provider.dart';
 import '../models/saved_setting.dart';
 import 'car_setting_page.dart';
 
 class HistoryPage extends StatelessWidget {
-  const HistoryPage({super.key});
+  final Car? filterCar;
+
+  const HistoryPage({
+    super.key,
+    this.filterCar,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Consumer<SettingsProvider>(
       builder: (context, settingsProvider, child) {
-        final savedSettings = settingsProvider.savedSettings;
+        final savedSettings = filterCar == null
+            ? settingsProvider.savedSettings
+            : settingsProvider.savedSettings
+                .where((setting) => setting.car.id == filterCar!.id)
+                .toList(growable: false);
         final isEnglish = settingsProvider.isEnglish;
+        final emptyTitle = filterCar == null
+            ? (isEnglish ? 'No history available' : '履歴がありません')
+            : (isEnglish
+                ? 'No history for ${filterCar!.name}'
+                : '${filterCar!.name} の履歴がありません');
+        final emptyMessage = filterCar == null
+            ? (isEnglish
+                ? 'Your saved settings will appear here'
+                : '保存された設定がここに表示されます')
+            : (isEnglish
+                ? 'Saved settings for this car will appear here'
+                : 'この車の保存済みセッティングがここに表示されます');
 
         if (savedSettings.isEmpty) {
           return Center(
@@ -38,7 +60,7 @@ class HistoryPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    isEnglish ? 'No history available' : '履歴がありません',
+                    emptyTitle,
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
@@ -46,9 +68,7 @@ class HistoryPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    isEnglish
-                        ? 'Your saved settings will appear here'
-                        : 'ここに保存された設定が表示されます',
+                    emptyMessage,
                     style: TextStyle(
                       fontSize: 16,
                       color: Theme.of(context)

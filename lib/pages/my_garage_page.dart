@@ -4,7 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/car.dart';
 import '../models/manufacturer.dart';
 import '../providers/settings_provider.dart';
-import 'car_setting_page.dart';
+import 'history_page.dart';
 
 String _garageText(bool isEnglish, String en, String ja) => isEnglish ? en : ja;
 
@@ -244,7 +244,18 @@ class _GarageCarCard extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => CarSettingPage(originalCar: car),
+              builder: (context) => Scaffold(
+                appBar: AppBar(
+                  title: Text(
+                    _garageText(
+                      isEnglish,
+                      '${car.name} History',
+                      '${car.name} の履歴',
+                    ),
+                  ),
+                ),
+                body: HistoryPage(filterCar: car),
+              ),
             ),
           );
         },
