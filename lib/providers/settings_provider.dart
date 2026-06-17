@@ -418,13 +418,25 @@ class SettingsProvider extends ChangeNotifier {
       final index = _savedSettings
           .indexWhere((setting) => setting.id == updatedSetting.id);
       if (index != -1) {
-        _savedSettings[index] = updatedSetting;
+        final uniqueName = _createUniqueSettingName(
+          updatedSetting.name,
+          excludeId: updatedSetting.id,
+        );
+        final settingToSave = SavedSetting(
+          id: updatedSetting.id,
+          name: uniqueName,
+          createdAt: updatedSetting.createdAt,
+          car: updatedSetting.car,
+          settings: updatedSetting.settings,
+        );
+
+        _savedSettings[index] = settingToSave;
         await _saveSettings();
 
         // オンラインモードの場合はFirebaseにも保存
         if (_isOnlineMode && _firestoreService != null) {
           try {
-            await _firestoreService!.saveSetting(updatedSetting);
+            await _firestoreService!.saveSetting(settingToSave);
           } catch (e) {
             print('Firebase保存エラー: $e');
           }
@@ -608,9 +620,10 @@ class SettingsProvider extends ChangeNotifier {
   // 設定追加時にFirebaseにも保存
   Future<void> addSetting(
       String name, Car car, Map<String, dynamic> settings) async {
+    final uniqueName = _createUniqueSettingName(name);
     final newSetting = SavedSetting(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      name: name,
+      name: uniqueName,
       createdAt: DateTime.now(),
       car: car,
       settings: settings,
@@ -629,6 +642,40 @@ class SettingsProvider extends ChangeNotifier {
     }
 
     notifyListeners();
+  }
+
+  String _createUniqueSettingName(String name, {String? excludeId}) {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) {
+      return name;
+    }
+
+    final existingNames = _savedSettings
+        .where((setting) => setting.id != excludeId)
+        .map((setting) => setting.name.trim())
+        .toSet();
+
+    if (!existingNames.contains(trimmedName)) {
+      return trimmedName;
+    }
+
+    final baseName = _stripCopySuffix(trimmedName);
+    var suffix = 1;
+    while (existingNames.contains('$baseName ($suffix)')) {
+      suffix++;
+    }
+
+    return '$baseName ($suffix)';
+  }
+
+  String _stripCopySuffix(String name) {
+    final match = RegExp(r'^(.*) \((\d+)\)$').firstMatch(name);
+    if (match == null) {
+      return name;
+    }
+
+    final baseName = match.group(1)?.trim();
+    return baseName == null || baseName.isEmpty ? name : baseName;
   }
 
   // 設定削除時にFirebaseからも削除

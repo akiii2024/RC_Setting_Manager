@@ -2477,18 +2477,6 @@ class _CarSettingPageState extends State<CarSettingPage> {
       return;
     }
 
-    if (_settingNameController.text == widget.settingName) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(isEnglish
-              ? 'Please change the setting name to save as new'
-              : '新規保存するにはセッティング名を変更してください'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-      return;
-    }
-
     // Add new setting
     await settingsProvider.addSetting(
       _settingNameController.text,
