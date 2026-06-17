@@ -1006,6 +1006,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
     );
   }
 
+  bool _useSimplePaperCopy() => true;
+
   Widget _buildPaperEditorBody(BuildContext context, bool isEnglish) {
     if (_carSettingDefinition == null) {
       return Center(
@@ -1042,15 +1044,17 @@ class _CarSettingPageState extends State<CarSettingPage> {
               const SizedBox(height: 16),
               _buildPaperHeaderCard(isEnglish),
               const SizedBox(height: 16),
-              Text(
-                isEnglish
-                    ? 'Tap the same area you would look at on the paper sheet.'
-                    : '紙で見る場所と同じ位置のセクションをタップして編集します。',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+              if (!_useSimplePaperCopy()) ...[
+                Text(
+                  isEnglish
+                      ? 'Tap the same area you would look at on the paper sheet.'
+                      : '紙で見る場所と同じ位置のセクションをタップして編集します。',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
+              ],
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1216,15 +1220,17 @@ class _CarSettingPageState extends State<CarSettingPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      isEnglish ? 'SETTING SHEET' : 'SETTING SHEET',
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        letterSpacing: 1.4,
-                        fontWeight: FontWeight.w700,
-                        color: theme.colorScheme.primary,
+                    if (!_useSimplePaperCopy()) ...[
+                      Text(
+                        isEnglish ? 'SETTING SHEET' : 'SETTING SHEET',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          letterSpacing: 1.4,
+                          fontWeight: FontWeight.w700,
+                          color: theme.colorScheme.primary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
+                      const SizedBox(height: 4),
+                    ],
                     Text(
                       carName,
                       style: theme.textTheme.headlineSmall?.copyWith(
@@ -1234,21 +1240,22 @@ class _CarSettingPageState extends State<CarSettingPage> {
                   ],
                 ),
               ),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  color: theme.colorScheme.primary.withValues(alpha: 0.12),
-                ),
-                child: Text(
-                  isEnglish ? 'Paper Layout' : '紙レイアウト',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w700,
+              if (!_useSimplePaperCopy())
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    color: theme.colorScheme.primary.withValues(alpha: 0.12),
+                  ),
+                  child: Text(
+                    isEnglish ? 'Paper Layout' : '紙レイアウト',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
           if (trackSummary != null) ...[
@@ -1490,6 +1497,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
     final categorySettings = _getCategorySettings(category);
     final theme = Theme.of(context);
     final canOpen = categorySettings.isNotEmpty;
+    final displayTitle = _paperCategoryTitle(category, isEnglish);
+    final displaySubtitle = _paperCategorySubtitle(category, isEnglish);
 
     return SizedBox(
       height: height,
@@ -1581,7 +1590,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  title,
+                                  displayTitle,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.titleMedium?.copyWith(
@@ -1590,7 +1599,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  subtitle,
+                                  displaySubtitle,
                                   maxLines: subtitleMaxLines,
                                   overflow: TextOverflow.ellipsis,
                                   style: theme.textTheme.bodySmall?.copyWith(
@@ -1849,35 +1858,38 @@ class _CarSettingPageState extends State<CarSettingPage> {
                         ],
                       ),
                       SizedBox(height: isTight ? 10 : 14),
-                      Text(
-                        isEnglish
-                            ? 'Tap to open this section'
-                            : 'タップしてこのセクションを開く',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: tint,
-                          fontWeight: FontWeight.w700,
+                      if (!_useSimplePaperCopy()) ...[
+                        Text(
+                          isEnglish
+                              ? 'Tap to open this section'
+                              : 'タップしてこのセクションを開く',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelMedium?.copyWith(
+                            color: tint,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
+                      ],
                       SizedBox(height: isTight ? 8 : 12),
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.topLeft,
-                          child: Text(
-                            isEnglish
-                                ? 'Open this area to edit the detailed values.'
-                                : 'このエリアを開いて詳細な設定値を編集します。',
-                            maxLines: isMicro ? 1 : 3,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurface
-                                  .withValues(alpha: 0.68),
-                              height: 1.35,
+                      if (!_useSimplePaperCopy())
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.topLeft,
+                            child: Text(
+                              isEnglish
+                                  ? 'Open this area to edit the detailed values.'
+                                  : 'このエリアを開いて詳細な設定値を編集します。',
+                              maxLines: isMicro ? 1 : 3,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.onSurface
+                                    .withValues(alpha: 0.68),
+                                height: 1.35,
+                              ),
                             ),
                           ),
                         ),
-                      ),
                       Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: isMicro ? 10 : 12,
@@ -1932,6 +1944,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
     if (categorySettings.isEmpty) {
       return;
     }
+    final displayTitle = _paperCategoryTitle(category, isEnglish);
+    final displaySubtitle = _paperCategorySubtitle(category, isEnglish);
 
     showDialog(
       context: context,
@@ -1958,7 +1972,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          title,
+                          displayTitle,
                           style: Theme.of(dialogContext)
                               .textTheme
                               .titleLarge
@@ -1968,7 +1982,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          subtitle,
+                          displaySubtitle,
                           style: Theme.of(dialogContext)
                               .textTheme
                               .bodyMedium
@@ -1995,13 +2009,15 @@ class _CarSettingPageState extends State<CarSettingPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      isEnglish
-                          ? 'This editor focuses only on the selected paper area.'
-                          : '選択した紙のエリアだけを集中して編集できます。',
-                      style: Theme.of(dialogContext).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 16),
+                    if (!_useSimplePaperCopy()) ...[
+                      Text(
+                        isEnglish
+                            ? 'This editor focuses only on the selected paper area.'
+                            : '選択した紙のエリアだけを集中して編集できます。',
+                        style: Theme.of(dialogContext).textTheme.bodyMedium,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     _buildPaperFieldGrid(
                       categorySettings,
                       showFavorite: showFavorite,
@@ -2065,6 +2081,48 @@ class _CarSettingPageState extends State<CarSettingPage> {
     return category;
   }
 
+  String _paperCategoryTitle(String category, bool isEnglish) {
+    switch (category) {
+      case 'front':
+        return isEnglish ? 'Front' : 'フロント';
+      case 'rear':
+        return isEnglish ? 'Rear' : 'リア';
+      case 'frontDamper':
+        return isEnglish ? 'Front Damper' : 'フロントダンパー';
+      case 'rearDamper':
+        return isEnglish ? 'Rear Damper' : 'リアダンパー';
+      case 'top':
+        return isEnglish ? 'Top Deck' : 'トップ';
+      case 'other':
+        return isEnglish ? 'Other' : 'その他';
+      case 'memo':
+        return isEnglish ? 'Notes' : 'メモ';
+      default:
+        return category;
+    }
+  }
+
+  String _paperCategorySubtitle(String category, bool isEnglish) {
+    switch (category) {
+      case 'front':
+        return isEnglish ? 'Front suspension and steering' : 'フロント周り';
+      case 'rear':
+        return isEnglish ? 'Rear suspension and drivetrain' : 'リア周り';
+      case 'frontDamper':
+        return isEnglish ? 'Front shock and spring' : '前ダンパー';
+      case 'rearDamper':
+        return isEnglish ? 'Rear shock and spring' : '後ダンパー';
+      case 'top':
+        return isEnglish ? 'Deck and chassis' : 'シャーシ周り';
+      case 'other':
+        return isEnglish ? 'Power, body, tires' : 'メカ・ボディ・タイヤ';
+      case 'memo':
+        return isEnglish ? 'Free notes' : 'メモ';
+      default:
+        return '';
+    }
+  }
+
   String _buildPaperSectionSubtitle(String category, bool isEnglish) {
     switch (category) {
       case 'front':
@@ -2076,9 +2134,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
       case 'rear':
         return isEnglish ? 'Upper-right area on the sheet' : '紙の右上にあるリア周辺';
       case 'rearDamper':
-        return isEnglish
-            ? 'Rear shock and spring settings'
-            : 'リア側のダンパーとスプリング';
+        return isEnglish ? 'Rear shock and spring settings' : 'リア側のダンパーとスプリング';
       case 'top':
         return isEnglish
             ? 'Lower area for top deck and chassis'
@@ -3067,6 +3123,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   Widget _buildTextField(SettingItem setting) {
+    if (setting.options != null && setting.options!.isNotEmpty) {
+      return _buildSuggestedTextField(setting);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -3104,6 +3164,59 @@ class _CarSettingPageState extends State<CarSettingPage> {
             setState(() {
               settings[setting.key] = value;
             });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSuggestedTextField(SettingItem setting) {
+    final initialText = settings[setting.key]?.toString() ?? '';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(setting.label),
+        const SizedBox(height: 8),
+        Autocomplete<String>(
+          key: ValueKey('${setting.key}_suggested_$initialText'),
+          initialValue: TextEditingValue(text: initialText),
+          optionsBuilder: (TextEditingValue value) {
+            final query = value.text.trim().toLowerCase();
+            if (query.isEmpty) {
+              return setting.options!;
+            }
+
+            return setting.options!.where(
+              (option) => option.toLowerCase().contains(query),
+            );
+          },
+          onSelected: (value) {
+            setState(() {
+              settings[setting.key] = value;
+            });
+          },
+          fieldViewBuilder: (
+            context,
+            controller,
+            focusNode,
+            onFieldSubmitted,
+          ) {
+            return TextFormField(
+              controller: controller,
+              focusNode: focusNode,
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                suffixIcon: const Icon(Icons.arrow_drop_down_rounded),
+                hintText: setting.options?.first,
+              ),
+              onChanged: (value) {
+                setState(() {
+                  settings[setting.key] = value;
+                });
+              },
+              onFieldSubmitted: (_) => onFieldSubmitted(),
+            );
           },
         ),
       ],

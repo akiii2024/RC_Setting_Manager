@@ -139,6 +139,7 @@ final List<SettingItem> bd12SpecificSettings = [
     category: 'chassis',
     label: 'モーター',
     defaultValue: '',
+    options: ['10.5T', '13.5T', '17.5T', '21.5T'],
   ),
   SettingItem(
     key: 'spurGear',
@@ -167,6 +168,7 @@ final List<SettingItem> bd12SpecificSettings = [
     category: 'chassis',
     label: 'アンプ',
     defaultValue: '',
+    options: ['Hobbywing', 'Muchmore', 'Yokomo', 'Futaba', 'Sanwa'],
   ),
   SettingItem(
     key: 'body',

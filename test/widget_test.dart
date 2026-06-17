@@ -8,6 +8,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:rc_setting_manager/models/car.dart';
 import 'package:rc_setting_manager/models/manufacturer.dart';
 import 'package:rc_setting_manager/pages/home_page.dart';
+import 'package:rc_setting_manager/pages/login_page.dart';
+import 'package:rc_setting_manager/pages/simple_import_page.dart';
+import 'package:rc_setting_manager/pages/tools_page.dart';
+import 'package:rc_setting_manager/providers/app_mode_provider.dart';
 import 'package:rc_setting_manager/providers/settings_provider.dart';
 
 Future<void> _pumpUntilInitialized(
@@ -63,12 +67,71 @@ void main() {
     await tester.pump();
 
     expect(find.byType(NavigationBar), findsOneWidget);
-    expect(find.text('My Garage'), findsOneWidget);
+    expect(find.text('Garage'), findsOneWidget);
 
-    await tester.tap(find.text('My Garage'));
+    await tester.tap(find.text('Garage'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
 
     expect(find.text('Your garage is empty'), findsOneWidget);
+  });
+
+  testWidgets('offline welcome hides Firebase login controls',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'language_settings': true,
+      'cars_settings': jsonEncode([_testCar().toJson()]),
+    });
+
+    final settingsProvider = SettingsProvider();
+    final appModeProvider = AppModeProvider(
+      preferredOnline: false,
+      isFirebaseReady: false,
+    );
+
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: settingsProvider),
+          ChangeNotifierProvider.value(value: appModeProvider),
+        ],
+        child: const MaterialApp(home: LoginPage()),
+      ),
+    );
+
+    await _pumpUntilInitialized(tester, settingsProvider);
+    await tester.pump();
+
+    expect(find.text('Start offline'), findsOneWidget);
+    expect(find.text('Email'), findsNothing);
+    expect(find.text('Password'), findsNothing);
+    expect(find.text('Continue as Guest'), findsNothing);
+    expect(find.text('Use online (Beta)'), findsNothing);
+  });
+
+  testWidgets('tools restore opens simple import page',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'language_settings': true,
+      'cars_settings': jsonEncode([_testCar().toJson()]),
+    });
+
+    final provider = SettingsProvider();
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: const MaterialApp(home: ToolsPage()),
+      ),
+    );
+
+    await _pumpUntilInitialized(tester, provider);
+    await tester.pump();
+
+    await tester.tap(find.text('Restore'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
+
+    expect(find.byType(SimpleImportPage), findsOneWidget);
   });
 }

@@ -42,6 +42,8 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
+  bool _showOnlineFeatures() => false;
+
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
@@ -122,215 +124,219 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 8.0),
           const Divider(),
           const SizedBox(height: 8.0),
-          // オンライン機能セクション
-          ListTile(
-            title: Text(isEnglish ? 'Online Features' : 'オンライン機能'),
-            subtitle: Text(isEnglish
-                ? 'Sign in to sync your data across devices'
-                : 'サインインしてデバイス間でデータを同期'),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          ),
-          if (authService == null || !authService.isFirebaseAvailable) ...[
+          if (_showOnlineFeatures()) ...[
+            // オンライン機能セクション
             ListTile(
-              title: Text(
-                  isEnglish ? 'Firebase Not Available' : 'Firebaseが利用できません'),
+              title: Text(isEnglish ? 'Online Features' : 'オンライン機能'),
               subtitle: Text(isEnglish
-                  ? 'Please check Firebase configuration'
-                  : 'Firebase設定を確認してください'),
-              leading: const Icon(Icons.warning, color: Colors.orange),
+                  ? 'Sign in to sync your data across devices'
+                  : 'サインインしてデバイス間でデータを同期'),
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             ),
-          ] else if (!authService.isSignedIn) ...[
-            ListTile(
-              title: Text(isEnglish ? 'Sign In / Sign Up' : 'サインイン / サインアップ'),
-              subtitle: Text(isEnglish
-                  ? 'Create account or sign in to sync data'
-                  : 'アカウントを作成またはサインインしてデータを同期'),
-              leading: const Icon(Icons.login),
-              trailing: const Icon(Icons.arrow_forward_ios),
-              onTap: () {
-                Navigator.of(context).pushNamed('/login');
-              },
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            ),
-          ] else if (authService.isGuestUser) ...[
-            // ゲストユーザー用のアカウント作成セクション
-            ListTile(
-              title: Text(isEnglish ? 'Create Account' : 'アカウント作成'),
-              subtitle: Text(isEnglish
-                  ? 'Convert guest account to permanent account'
-                  : 'ゲストアカウントを永続アカウントに変換'),
-              leading: const Icon(Icons.person_add, color: Colors.blue),
-              trailing: const Icon(Icons.arrow_forward_ios),
-              onTap: () {
-                Navigator.of(context).pushNamed('/login');
-              },
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            ),
-            ListTile(
-              title: Text(isEnglish ? 'Guest Account' : 'ゲストアカウント'),
-              subtitle: Text(isEnglish
-                  ? 'Your data is saved locally and in cloud'
-                  : 'データはローカルとクラウドに保存されています'),
-              leading: const Icon(Icons.person_outline, color: Colors.green),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            ),
-          ] else ...[
-            ListTile(
-              title: Text(isEnglish ? 'Signed in as' : 'サインイン中'),
-              subtitle: Text(authService.currentUser?.email ?? ''),
-              leading: const Icon(Icons.account_circle),
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            ),
-            SwitchListTile(
-              title: Text(isEnglish ? 'Online Sync' : 'オンライン同期'),
-              subtitle: Text(isEnglish
-                  ? 'Automatically sync data to cloud'
-                  : 'データを自動的にクラウドに同期'),
-              value: settingsProvider.isOnlineMode,
-              onChanged: (bool value) async {
-                try {
-                  await settingsProvider.toggleOnlineMode();
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(value
-                            ? (isEnglish
-                                ? 'Online sync enabled'
-                                : 'オンライン同期が有効になりました')
-                            : (isEnglish
-                                ? 'Online sync disabled'
-                                : 'オンライン同期が無効になりました')),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
+            if (authService == null || !authService.isFirebaseAvailable) ...[
+              ListTile(
+                title: Text(
+                    isEnglish ? 'Firebase Not Available' : 'Firebaseが利用できません'),
+                subtitle: Text(isEnglish
+                    ? 'Please check Firebase configuration'
+                    : 'Firebase設定を確認してください'),
+                leading: const Icon(Icons.warning, color: Colors.orange),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              ),
+            ] else if (!authService.isSignedIn) ...[
+              ListTile(
+                title: Text(isEnglish ? 'Sign In / Sign Up' : 'サインイン / サインアップ'),
+                subtitle: Text(isEnglish
+                    ? 'Create account or sign in to sync data'
+                    : 'アカウントを作成またはサインインしてデータを同期'),
+                leading: const Icon(Icons.login),
+                trailing: const Icon(Icons.arrow_forward_ios),
+                onTap: () {
+                  Navigator.of(context).pushNamed('/login');
+                },
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              ),
+            ] else if (authService.isGuestUser) ...[
+              // ゲストユーザー用のアカウント作成セクション
+              ListTile(
+                title: Text(isEnglish ? 'Create Account' : 'アカウント作成'),
+                subtitle: Text(isEnglish
+                    ? 'Convert guest account to permanent account'
+                    : 'ゲストアカウントを永続アカウントに変換'),
+                leading: const Icon(Icons.person_add, color: Colors.blue),
+                trailing: const Icon(Icons.arrow_forward_ios),
+                onTap: () {
+                  Navigator.of(context).pushNamed('/login');
+                },
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              ),
+              ListTile(
+                title: Text(isEnglish ? 'Guest Account' : 'ゲストアカウント'),
+                subtitle: Text(isEnglish
+                    ? 'Your data is saved locally and in cloud'
+                    : 'データはローカルとクラウドに保存されています'),
+                leading: const Icon(Icons.person_outline, color: Colors.green),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              ),
+            ] else ...[
+              ListTile(
+                title: Text(isEnglish ? 'Signed in as' : 'サインイン中'),
+                subtitle: Text(authService.currentUser?.email ?? ''),
+                leading: const Icon(Icons.account_circle),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              ),
+              SwitchListTile(
+                title: Text(isEnglish ? 'Online Sync' : 'オンライン同期'),
+                subtitle: Text(isEnglish
+                    ? 'Automatically sync data to cloud'
+                    : 'データを自動的にクラウドに同期'),
+                value: settingsProvider.isOnlineMode,
+                onChanged: (bool value) async {
+                  try {
+                    await settingsProvider.toggleOnlineMode();
+                    if (mounted) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(value
+                              ? (isEnglish
+                                  ? 'Online sync enabled'
+                                  : 'オンライン同期が有効になりました')
+                              : (isEnglish
+                                  ? 'Online sync disabled'
+                                  : 'オンライン同期が無効になりました')),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(isEnglish
+                              ? 'Failed to toggle sync: $e'
+                              : '同期の切り替えに失敗しました: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   }
-                } catch (e) {
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(isEnglish
-                            ? 'Failed to toggle sync: $e'
-                            : '同期の切り替えに失敗しました: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
+                },
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              ),
+              ListTile(
+                title: Text(isEnglish ? 'Sync Now' : '今すぐ同期'),
+                subtitle: Text(isEnglish
+                    ? 'Manually sync data to cloud'
+                    : '手動でデータをクラウドに同期'),
+                leading: const Icon(Icons.sync),
+                trailing: const Icon(Icons.arrow_forward_ios),
+                onTap: () async {
+                  try {
+                    await settingsProvider.syncToFirebase();
+                    if (mounted) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(isEnglish
+                              ? 'Data synced successfully'
+                              : 'データの同期が完了しました'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(
+                              isEnglish ? 'Sync failed: $e' : '同期に失敗しました: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   }
-                }
-              },
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            ),
-            ListTile(
-              title: Text(isEnglish ? 'Sync Now' : '今すぐ同期'),
-              subtitle: Text(
-                  isEnglish ? 'Manually sync data to cloud' : '手動でデータをクラウドに同期'),
-              leading: const Icon(Icons.sync),
-              trailing: const Icon(Icons.arrow_forward_ios),
-              onTap: () async {
-                try {
-                  await settingsProvider.syncToFirebase();
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(isEnglish
-                            ? 'Data synced successfully'
-                            : 'データの同期が完了しました'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
+                },
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              ),
+              ListTile(
+                title: Text(isEnglish ? 'Load from Cloud' : 'クラウドから読み込み'),
+                subtitle: Text(isEnglish
+                    ? 'Load data from cloud storage'
+                    : 'クラウドストレージからデータを読み込み'),
+                leading: const Icon(Icons.cloud_download),
+                trailing: const Icon(Icons.arrow_forward_ios),
+                onTap: () async {
+                  try {
+                    await settingsProvider.loadFromFirebase();
+                    if (mounted) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(isEnglish
+                              ? 'Data loaded successfully'
+                              : 'データの読み込みが完了しました'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(isEnglish
+                              ? 'Load failed: $e'
+                              : '読み込みに失敗しました: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   }
-                } catch (e) {
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            isEnglish ? 'Sync failed: $e' : '同期に失敗しました: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
+                },
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              ),
+              ListTile(
+                title: Text(isEnglish ? 'Sign Out' : 'サインアウト'),
+                leading: const Icon(Icons.logout),
+                trailing: const Icon(Icons.arrow_forward_ios),
+                onTap: () async {
+                  try {
+                    if (authService != null) {
+                      await authService.signOut();
+                    }
+                    if (mounted) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(isEnglish
+                              ? 'Signed out successfully'
+                              : 'サインアウトしました'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text(isEnglish
+                              ? 'Sign out failed: $e'
+                              : 'サインアウトに失敗しました: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   }
-                }
-              },
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            ),
-            ListTile(
-              title: Text(isEnglish ? 'Load from Cloud' : 'クラウドから読み込み'),
-              subtitle: Text(isEnglish
-                  ? 'Load data from cloud storage'
-                  : 'クラウドストレージからデータを読み込み'),
-              leading: const Icon(Icons.cloud_download),
-              trailing: const Icon(Icons.arrow_forward_ios),
-              onTap: () async {
-                try {
-                  await settingsProvider.loadFromFirebase();
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(isEnglish
-                            ? 'Data loaded successfully'
-                            : 'データの読み込みが完了しました'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(
-                            isEnglish ? 'Load failed: $e' : '読み込みに失敗しました: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            ),
-            ListTile(
-              title: Text(isEnglish ? 'Sign Out' : 'サインアウト'),
-              leading: const Icon(Icons.logout),
-              trailing: const Icon(Icons.arrow_forward_ios),
-              onTap: () async {
-                try {
-                  if (authService != null) {
-                    await authService.signOut();
-                  }
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(isEnglish
-                            ? 'Signed out successfully'
-                            : 'サインアウトしました'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text(isEnglish
-                            ? 'Sign out failed: $e'
-                            : 'サインアウトに失敗しました: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                }
-              },
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            ),
+                },
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              ),
+            ],
           ],
           const SizedBox(height: 16.0),
           const Divider(),

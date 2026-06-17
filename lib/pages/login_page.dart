@@ -688,11 +688,78 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  bool _isOfflineOnlyMode() => true;
+
+  Widget _buildOfflineOnlyWelcome(SettingsProvider settingsProvider) {
+    final isEnglish = settingsProvider.isEnglish;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(isEnglish ? 'Welcome' : 'ようこそ'),
+        automaticallyImplyLeading: false,
+      ),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Icon(
+                    Icons.offline_pin_rounded,
+                    size: 72,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 24),
+                  Text(
+                    isEnglish ? 'RC Setting Manager' : 'RC Setting Manager',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    isEnglish
+                        ? 'Save and manage your setup sheets on this device.'
+                        : 'この端末だけでセッティングシートを保存・管理します。',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                  const SizedBox(height: 32),
+                  ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _selectOfflineMode,
+                    icon: _isLoading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.arrow_forward_rounded),
+                    label: Text(isEnglish ? 'Start offline' : 'オフラインで始める'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settingsProvider = Provider.of<SettingsProvider>(context);
     final isEnglish = settingsProvider.isEnglish;
     final modeProvider = Provider.of<AppModeProvider>(context);
+
+    if (_isOfflineOnlyMode()) {
+      return _buildOfflineOnlyWelcome(settingsProvider);
+    }
 
     return Scaffold(
       appBar: AppBar(

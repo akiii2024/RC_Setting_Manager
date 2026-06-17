@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rc_setting_manager/data/car_settings_definitions.dart';
 import 'package:rc_setting_manager/models/car.dart';
 import 'package:rc_setting_manager/models/manufacturer.dart';
 
@@ -46,6 +47,24 @@ void main() {
 
       expect(decoded.isInGarage, isFalse);
       expect(decoded.suppressGaragePrompt, isFalse);
+    });
+  });
+
+  group('car setting definitions', () {
+    test('power fields expose suggested options while remaining text fields',
+        () {
+      final trf420x = getCarSettingDefinition('tamiya/trf420x')!;
+      final bd12 = getCarSettingDefinition('yokomo/bd12')!;
+
+      final trf420xMotor = trf420x.availableSettings
+          .firstWhere((setting) => setting.key == 'motor');
+      final bd12Esc =
+          bd12.availableSettings.firstWhere((setting) => setting.key == 'esc');
+
+      expect(trf420xMotor.type, 'text');
+      expect(trf420xMotor.options, contains('13.5T'));
+      expect(bd12Esc.type, 'text');
+      expect(bd12Esc.options, contains('Hobbywing'));
     });
   });
 }

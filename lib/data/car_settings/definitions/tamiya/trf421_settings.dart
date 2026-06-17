@@ -269,6 +269,7 @@ final List<SettingItem> trf421SpecificSettings = [
     category: 'general',
     label: 'モーター',
     defaultValue: '',
+    options: ['10.5T', '13.5T', '17.5T', '21.5T'],
   ),
   SettingItem(
     key: 'spurGear',

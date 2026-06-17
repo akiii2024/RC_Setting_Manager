@@ -31,12 +31,10 @@ void main() async {
     print('WidgetsFlutterBinding initialization error: $e');
   }
 
-  final storedMode = await AppModeProvider.loadStoredPreference();
-  var firebaseInitialized = false;
-
-  if (storedMode == true) {
-    firebaseInitialized = await _initializeFirebaseWithLogging();
-  }
+  // Current release is offline-only. Keep Firebase code available, but do not
+  // initialize it from saved preferences.
+  const storedMode = false;
+  const firebaseInitialized = false;
 
   final appModeProvider = AppModeProvider(
     preferredOnline: storedMode,
@@ -77,6 +75,7 @@ void main() async {
   );
 }
 
+// ignore: unused_element
 Future<bool> _initializeFirebaseWithLogging() async {
   var firebaseInitialized = false;
 

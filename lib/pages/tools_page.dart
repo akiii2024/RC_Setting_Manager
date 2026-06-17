@@ -3,6 +3,9 @@ import 'package:share_plus/share_plus.dart';
 import '../models/saved_setting.dart';
 import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
+import '../services/file_service.dart';
+import '../services/xml_service.dart';
+import 'simple_import_page.dart';
 import 'statistics_page.dart';
 
 class ToolsPage extends StatelessWidget {
@@ -12,6 +15,10 @@ class ToolsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final settingsProvider = Provider.of<SettingsProvider>(context);
     final isEnglish = settingsProvider.isEnglish;
+
+    if (_useSimpleToolsLayout()) {
+      return _buildSimpleToolsLayout(context, isEnglish);
+    }
 
     return Scaffold(
       body: Padding(
@@ -81,9 +88,111 @@ class ToolsPage extends StatelessWidget {
     );
   }
 
-  void _exportSettings(BuildContext context) {
-    // Backup feature is not implemented yet
-    _showComingSoonDialog(context);
+  bool _useSimpleToolsLayout() => true;
+
+  Widget _buildSimpleToolsLayout(BuildContext context, bool isEnglish) {
+    return Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: ListView(
+          children: [
+            _SectionHeader(title: isEnglish ? 'Data Management' : 'データ管理'),
+            _ToolCard(
+              title: isEnglish ? 'Backup' : 'バックアップ',
+              description: isEnglish
+                  ? 'Export all data to an XML file'
+                  : 'すべてのデータをXMLファイルに保存します',
+              icon: Icons.backup_rounded,
+              color: Colors.blue,
+              onTap: () => _exportSettings(context),
+            ),
+            _ToolCard(
+              title: isEnglish ? 'Restore' : 'レストア',
+              description: isEnglish
+                  ? 'Restore from an app XML backup'
+                  : 'アプリ内のXMLバックアップから復元します',
+              icon: Icons.restore_rounded,
+              color: Colors.indigo,
+              onTap: () => _openRestore(context),
+            ),
+            const SizedBox(height: 24),
+            _SectionHeader(title: isEnglish ? 'Calculation Tools' : '計算ツール'),
+            _ToolCard(
+              title: isEnglish ? 'Gear Ratio Calculator' : 'ギヤ比計算',
+              description: isEnglish
+                  ? 'Calculate gear ratio from spur and pinion gears'
+                  : 'スパーギヤとピニオンギヤからギヤ比を計算します',
+              icon: Icons.calculate_rounded,
+              color: Colors.orange,
+              onTap: () => _showGearRatioCalculator(context),
+            ),
+            const SizedBox(height: 24),
+            _SectionHeader(title: isEnglish ? 'Other' : 'その他'),
+            _ToolCard(
+              title: isEnglish ? 'Share Settings' : '設定を共有',
+              description: isEnglish
+                  ? 'Share one saved setting as text'
+                  : '保存済み設定をテキストで共有します',
+              icon: Icons.share_rounded,
+              color: Colors.teal,
+              onTap: () => _shareSettings(context),
+            ),
+            _ToolCard(
+              title: isEnglish ? 'Statistics' : '統計',
+              description:
+                  isEnglish ? 'View your setting trends' : 'セッティングの傾向を確認します',
+              icon: Icons.bar_chart_rounded,
+              color: Colors.purple,
+              onTap: () => _openStatistics(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _exportSettings(BuildContext context) async {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final isEnglish = settingsProvider.isEnglish;
+    final messenger = ScaffoldMessenger.of(context);
+
+    try {
+      final xmlContent = await XmlService.exportToXml(
+        savedSettings: settingsProvider.savedSettings,
+        cars: settingsProvider.cars,
+        visibilitySettings: settingsProvider.visibilitySettings,
+        isEnglish: settingsProvider.isEnglish,
+      );
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      await FileService.saveAndShareXml(
+        xmlContent,
+        'rc_setting_manager_backup_$timestamp.xml',
+      );
+
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(isEnglish ? 'Backup exported.' : 'バックアップを書き出しました。'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(isEnglish ? 'Backup failed: $e' : 'バックアップに失敗しました: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _openRestore(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SimpleImportPage(),
+      ),
+    );
   }
 
   void _shareSettings(BuildContext context) {
