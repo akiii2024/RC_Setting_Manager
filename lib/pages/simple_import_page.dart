@@ -106,12 +106,13 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
   Future<void> _importSelectedData() async {
     if (_previewData == null) return;
 
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+
     if (!_includeCars &&
         !_includeSavedSettings &&
         !_includeVisibilitySettings &&
         !_includeLanguageSettings) {
-      final settingsProvider =
-          Provider.of<SettingsProvider>(context, listen: false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -126,16 +127,13 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
     }
 
     final confirmed = await _showConfirmationDialog();
-    if (!confirmed) return;
+    if (!confirmed || !mounted) return;
 
     setState(() {
       _isLoading = true;
     });
 
     try {
-      final settingsProvider =
-          Provider.of<SettingsProvider>(context, listen: false);
-
       await settingsProvider.replacePartialData(
         cars: _includeCars ? _previewData!.cars : null,
         savedSettings:

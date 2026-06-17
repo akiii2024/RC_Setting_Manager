@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -84,8 +83,9 @@ class FileService {
     }
 
     try {
-      if (await (file as File).exists()) {
-        await (file as File).delete();
+      final targetFile = file as File;
+      if (await targetFile.exists()) {
+        await targetFile.delete();
       }
     } catch (e) {
       throw Exception('Failed to delete file: $e');

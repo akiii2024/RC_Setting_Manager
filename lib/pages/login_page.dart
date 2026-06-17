@@ -91,10 +91,11 @@ class _LoginPageState extends State<LoginPage> {
 
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
+    final modeProvider = Provider.of<AppModeProvider>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
 
     final confirmed = await _showBetaWarningDialog(isEnglish);
-    if (confirmed != true) return;
+    if (confirmed != true || !mounted) return;
 
     setState(() {
       _isModeOperation = true;
@@ -102,8 +103,6 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final modeProvider = Provider.of<AppModeProvider>(context, listen: false);
-
       await modeProvider.setOnlineAndInit();
       await settingsProvider.setOnlineMode();
 
@@ -169,9 +168,9 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final modeProvider =
-          Provider.of<AppModeProvider>(context, listen: false);
-      if (modeProvider.preferredOnline != true || !modeProvider.isFirebaseReady) {
+      final modeProvider = Provider.of<AppModeProvider>(context, listen: false);
+      if (modeProvider.preferredOnline != true ||
+          !modeProvider.isFirebaseReady) {
         throw Exception('オンラインモード（ベータ）を有効にしてください。');
       }
 
@@ -295,9 +294,9 @@ class _LoginPageState extends State<LoginPage> {
     }
 
     try {
-      final modeProvider =
-          Provider.of<AppModeProvider>(context, listen: false);
-      if (modeProvider.preferredOnline != true || !modeProvider.isFirebaseReady) {
+      final modeProvider = Provider.of<AppModeProvider>(context, listen: false);
+      if (modeProvider.preferredOnline != true ||
+          !modeProvider.isFirebaseReady) {
         throw Exception('オンラインモード（ベータ）を有効にしてください。');
       }
 
@@ -337,9 +336,9 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final modeProvider =
-          Provider.of<AppModeProvider>(context, listen: false);
-      if (modeProvider.preferredOnline != true || !modeProvider.isFirebaseReady) {
+      final modeProvider = Provider.of<AppModeProvider>(context, listen: false);
+      if (modeProvider.preferredOnline != true ||
+          !modeProvider.isFirebaseReady) {
         throw Exception('オンラインモード（ベータ）を有効にしてください。');
       }
 
@@ -388,9 +387,9 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      final modeProvider =
-          Provider.of<AppModeProvider>(context, listen: false);
-      if (modeProvider.preferredOnline != true || !modeProvider.isFirebaseReady) {
+      final modeProvider = Provider.of<AppModeProvider>(context, listen: false);
+      if (modeProvider.preferredOnline != true ||
+          !modeProvider.isFirebaseReady) {
         throw Exception('オンラインモード（ベータ）を有効にしてください。');
       }
 
@@ -455,8 +454,7 @@ class _LoginPageState extends State<LoginPage> {
       final confirm = await showDialog<bool>(
         context: context,
         builder: (ctx) => AlertDialog(
-          title:
-              Text(isEnglish ? 'Start demo mode?' : 'デモモードを開始しますか？'),
+          title: Text(isEnglish ? 'Start demo mode?' : 'デモモードを開始しますか？'),
           content: Text(isEnglish
               ? 'Offline demo data will be created for all cars (TRF421, TRF420X, BD12). Continue?'
               : '全車種（TRF421 / TRF420X / BD12）のデモデータをオフラインで作成します。続行しますか？'),
@@ -619,11 +617,9 @@ class _LoginPageState extends State<LoginPage> {
       statusText =
           isEnglish ? 'Online mode (Beta) is active.' : 'オンラインモード（ベータ）が有効です。';
     } else if (mode == false) {
-      statusText =
-          isEnglish ? 'Offline mode is active.' : 'オフラインモードが有効です。';
+      statusText = isEnglish ? 'Offline mode is active.' : 'オフラインモードが有効です。';
     } else {
-      statusText =
-          isEnglish ? 'Please select a mode.' : 'モードを選択してください。';
+      statusText = isEnglish ? 'Please select a mode.' : 'モードを選択してください。';
     }
 
     return Card(
@@ -667,16 +663,13 @@ class _LoginPageState extends State<LoginPage> {
                 OutlinedButton.icon(
                   onPressed: busy ? null : _selectOfflineMode,
                   icon: const Icon(Icons.offline_pin),
-                  label:
-                      Text(isEnglish ? 'Use offline' : 'オフラインで使う'),
+                  label: Text(isEnglish ? 'Use offline' : 'オフラインで使う'),
                 ),
                 ElevatedButton.icon(
                   onPressed: busy ? null : _selectOnlineMode,
                   icon: const Icon(Icons.cloud_queue),
                   label: Text(
-                    isEnglish
-                        ? 'Use online (Beta)'
-                        : 'オンラインで使う（ベータ）',
+                    isEnglish ? 'Use online (Beta)' : 'オンラインで使う（ベータ）',
                   ),
                 ),
                 if (busy) ...[

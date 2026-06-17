@@ -54,6 +54,7 @@ class _SettingsPageState extends State<SettingsPage> {
       authService = null;
     }
     final isEnglish = settingsProvider.isEnglish;
+    final messenger = ScaffoldMessenger.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -197,7 +198,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 try {
                   await settingsProvider.toggleOnlineMode();
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text(value
                             ? (isEnglish
@@ -212,7 +213,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text(isEnglish
                             ? 'Failed to toggle sync: $e'
@@ -236,7 +237,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 try {
                   await settingsProvider.syncToFirebase();
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text(isEnglish
                             ? 'Data synced successfully'
@@ -247,7 +248,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text(
                             isEnglish ? 'Sync failed: $e' : '同期に失敗しました: $e'),
@@ -271,7 +272,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 try {
                   await settingsProvider.loadFromFirebase();
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text(isEnglish
                             ? 'Data loaded successfully'
@@ -282,7 +283,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text(
                             isEnglish ? 'Load failed: $e' : '読み込みに失敗しました: $e'),
@@ -305,7 +306,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     await authService.signOut();
                   }
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text(isEnglish
                             ? 'Signed out successfully'
@@ -316,7 +317,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   }
                 } catch (e) {
                   if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text(isEnglish
                             ? 'Sign out failed: $e'

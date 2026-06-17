@@ -143,10 +143,6 @@ class _CarListPageState extends State<CarListPage> {
       settingTypes[key] = 'select'; // デフォルトは選択式
     }
 
-    // 追加の設定項目
-    final additionalSettings =
-        CarSettingsUtil.getAdditionalSettingsForModel(nameController.text);
-
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -249,102 +245,6 @@ class _CarListPageState extends State<CarListPage> {
         );
       },
     );
-  }
-
-  // 設定項目のチェックボックスを生成するヘルパーメソッド
-  List<Widget> _buildSettingCheckboxes(
-    Map<String, bool> availableSettingsState,
-    Function(Function()) setState,
-    bool isEnglish,
-  ) {
-    // 設定項目をカテゴリ別にグループ化
-    Map<String, List<String>> groupedSettings = {};
-
-    availableSettingsState.forEach((key, value) {
-      String category = 'その他';
-
-      if (key.startsWith('front')) {
-        if (key.contains('Damper') || key.contains('Dumper')) {
-          category = isEnglish ? 'Front Damper Settings' : 'フロントダンパー設定';
-        } else {
-          category = isEnglish ? 'Front Settings' : 'フロント設定';
-        }
-      } else if (key.startsWith('rear')) {
-        if (key.contains('Damper') || key.contains('Dumper')) {
-          category = isEnglish ? 'Rear Damper Settings' : 'リアダンパー設定';
-        } else {
-          category = isEnglish ? 'Rear Settings' : 'リア設定';
-        }
-      } else if (key == 'date' ||
-          key == 'track' ||
-          key == 'surface' ||
-          key == 'airTemp' ||
-          key == 'humidity' ||
-          key == 'trackTemp' ||
-          key == 'condition') {
-        category = isEnglish ? 'Basic Information' : '基本情報';
-      } else if (key.contains('upperDeck') || key.contains('ballast')) {
-        category = isEnglish ? 'Top Settings' : 'トップ設定';
-      } else if (key.contains('knucklearm') ||
-          key.contains('steering') ||
-          key.contains('lowerDeck')) {
-        category = isEnglish ? 'Top Detailed Settings' : 'トップ詳細設定';
-      } else if (key == 'motor' ||
-          key == 'spurGear' ||
-          key == 'pinionGear' ||
-          key == 'battery' ||
-          key == 'body' ||
-          key == 'tire' ||
-          key == 'wheel') {
-        category = isEnglish ? 'Other Settings' : 'その他設定';
-      }
-
-      if (!groupedSettings.containsKey(category)) {
-        groupedSettings[category] = [];
-      }
-      groupedSettings[category]!.add(key);
-    });
-
-    // チェックボックスウィジェットのリストを作成
-    List<Widget> widgets = [];
-
-    groupedSettings.forEach((category, keys) {
-      widgets.add(
-        ExpansionTile(
-          title: Text(category),
-          children: keys.map((key) {
-            String label = key;
-
-            // 設定項目名からラベルを生成（簡易的な実装）
-            if (isEnglish) {
-              // 英語ラベルの生成（ここでは簡易的に実装）
-              label = key.replaceAllMapped(
-                  RegExp(r'([A-Z])'), (match) => ' ${match.group(1)}');
-              label = label[0].toUpperCase() + label.substring(1);
-            } else {
-              // 日本語ラベルの生成（ここでは簡易的に実装）
-              if (key.startsWith('front')) {
-                label = 'フロント${key.substring(5)}';
-              } else if (key.startsWith('rear')) {
-                label = 'リア${key.substring(4)}';
-              }
-            }
-
-            return CheckboxListTile(
-              title: Text(label),
-              value: availableSettingsState[key],
-              onChanged: (bool? value) {
-                setState(() {
-                  availableSettingsState[key] = value ?? false;
-                });
-              },
-            );
-          }).toList(),
-        ),
-      );
-    });
-
-    return widgets;
   }
 
   // 設定項目のチェックボックスとタイプ選択を生成するヘルパーメソッド
