@@ -67,6 +67,28 @@ void main() {
       expect(bd12Esc.options, contains('Hobbywing'));
     });
 
+    test('trf420x exposes separate front and rear sus mount shaft positions',
+        () {
+      final trf420x = getCarSettingDefinition('tamiya/trf420x')!;
+      final settingsByKey = {
+        for (final setting in trf420x.availableSettings) setting.key: setting,
+      };
+
+      for (final key in const [
+        'frontSusMountFrontShaftPosition',
+        'frontSusMountRearShaftPosition',
+        'rearSusMountFrontShaftPosition',
+        'rearSusMountRearShaftPosition',
+      ]) {
+        expect(settingsByKey[key]?.type, 'grid');
+        expect(settingsByKey[key]?.constraints['rows'], 5);
+        expect(settingsByKey[key]?.constraints['cols'], 5);
+      }
+
+      expect(settingsByKey, isNot(contains('frontSusMountShaftPosition')));
+      expect(settingsByKey, isNot(contains('rearSusMountShaftPosition')));
+    });
+
     test('all setting definitions resolve to visible editor categories', () {
       const visibleCategories = {
         'basic',

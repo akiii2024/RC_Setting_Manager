@@ -81,10 +81,21 @@ final List<SettingItem> trf420xSpecificSettings = [
     defaultValue: 'XB',
   ),
   SettingItem(
-    key: 'frontSusMountShaftPosition',
+    key: 'frontSusMountFrontShaftPosition',
     type: 'grid',
     category: 'front',
-    label: 'サスマウントシャフト位置',
+    label: 'Fサスマウント前シャフト位置',
+    constraints: {
+      'rows': 5,
+      'cols': 5,
+      'multiple': false,
+    },
+  ),
+  SettingItem(
+    key: 'frontSusMountRearShaftPosition',
+    type: 'grid',
+    category: 'front',
+    label: 'Fサスマウント後シャフト位置',
     constraints: {
       'rows': 5,
       'cols': 5,
@@ -296,10 +307,21 @@ final List<SettingItem> trf420xSpecificSettings = [
     defaultValue: 'XB',
   ),
   SettingItem(
-    key: 'rearSusMountShaftPosition',
+    key: 'rearSusMountFrontShaftPosition',
     type: 'grid',
     category: 'rear',
-    label: 'サスマウントシャフト位置',
+    label: 'Rサスマウント前シャフト位置',
+    constraints: {
+      'rows': 5,
+      'cols': 5,
+      'multiple': false,
+    },
+  ),
+  SettingItem(
+    key: 'rearSusMountRearShaftPosition',
+    type: 'grid',
+    category: 'rear',
+    label: 'Rサスマウント後シャフト位置',
     constraints: {
       'rows': 5,
       'cols': 5,

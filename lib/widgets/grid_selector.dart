@@ -6,6 +6,7 @@ class GridSelector extends StatefulWidget {
   final bool allowMultiple;
   final Function(List<Point>) onChanged;
   final List<Point> initialValue;
+  final double cellSize;
 
   const GridSelector({
     super.key,
@@ -14,6 +15,7 @@ class GridSelector extends StatefulWidget {
     this.allowMultiple = false,
     required this.onChanged,
     this.initialValue = const [],
+    this.cellSize = 48,
   });
 
   @override
@@ -38,6 +40,8 @@ class _GridSelectorState extends State<GridSelector> {
         } else {
           selectedPoints.add(point);
         }
+      } else if (selectedPoints.contains(point)) {
+        selectedPoints = [];
       } else {
         selectedPoints = [point];
       }
@@ -84,8 +88,8 @@ class _GridSelectorState extends State<GridSelector> {
                     borderRadius: BorderRadius.circular(8),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      width: 48,
-                      height: 48,
+                      width: widget.cellSize,
+                      height: widget.cellSize,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
@@ -103,7 +107,8 @@ class _GridSelectorState extends State<GridSelector> {
                           ? Center(
                               child: Icon(
                                 Icons.check_rounded,
-                                size: 18,
+                                size:
+                                    (widget.cellSize * 0.45).clamp(14.0, 18.0),
                                 color: theme.colorScheme.primary,
                               ),
                             )

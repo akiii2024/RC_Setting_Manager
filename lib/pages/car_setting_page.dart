@@ -2844,18 +2844,178 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
   Widget _buildCategorySettings(String category) {
     final categorySettings = _getCategorySettings(category);
+    final settingWidgets = <Widget>[];
+
+    for (var index = 0; index < categorySettings.length; index++) {
+      final setting = categorySettings[index];
+      final nextSetting = index + 1 < categorySettings.length
+          ? categorySettings[index + 1]
+          : null;
+
+      if (nextSetting != null &&
+          _shouldPairSettingsInResponsiveRow(setting, nextSetting)) {
+        settingWidgets.add(_buildResponsiveSettingPair(setting, nextSetting));
+        index++;
+        continue;
+      }
+
+      settingWidgets.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 16.0),
+          child: _buildSettingFieldWithFavorite(setting),
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // 基本設定タブの場合、天気情報の状況を表示
         if (category == 'basic') _buildWeatherInfoCard(),
-        ...categorySettings.map((setting) {
+        ...settingWidgets,
+      ],
+    );
+  }
+
+  bool _shouldPairSettingsInResponsiveRow(
+    SettingItem first,
+    SettingItem second,
+  ) {
+    const pairedKeys = {
+      'frontSusMountFrontShaftPosition': 'frontSusMountRearShaftPosition',
+      'rearSusMountFrontShaftPosition': 'rearSusMountRearShaftPosition',
+    };
+
+    return pairedKeys[first.key] == second.key;
+  }
+
+  Widget _buildResponsiveSettingPair(
+    SettingItem first,
+    SettingItem second,
+  ) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= 320 &&
+            first.type == 'grid' &&
+            second.type == 'grid') {
+          final availableItemWidth = (constraints.maxWidth - 8) / 2;
+          final firstCellSize = _compactGridCellSize(first, availableItemWidth);
+          final secondCellSize =
+              _compactGridCellSize(second, availableItemWidth);
+
           return Padding(
             padding: const EdgeInsets.only(bottom: 16.0),
-            child: _buildSettingFieldWithFavorite(setting),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _buildCompactGridSettingWithFavorite(
+                    first,
+                    cellSize: firstCellSize,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildCompactGridSettingWithFavorite(
+                    second,
+                    cellSize: secondCellSize,
+                  ),
+                ),
+              ],
+            ),
           );
-        }).toList(),
+        }
+
+        if (constraints.maxWidth >= 640) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 16.0),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: _buildSettingFieldWithFavorite(first)),
+                const SizedBox(width: 16),
+                Expanded(child: _buildSettingFieldWithFavorite(second)),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: _buildSettingFieldWithFavorite(first),
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: _buildSettingFieldWithFavorite(second),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  double _compactGridCellSize(SettingItem setting, double availableWidth) {
+    final cols = setting.constraints['cols'] as int;
+    final rawSize = ((availableWidth - 16) / cols) - 4;
+    return rawSize.clamp(24.0, 48.0);
+  }
+
+  Widget _buildCompactGridSettingWithFavorite(
+    SettingItem setting, {
+    required double cellSize,
+  }) {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final favoriteKeys =
+        settingsProvider.getFavoriteSettings(widget.originalCar.id);
+    final isFavorite = favoriteKeys.contains(setting.key);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: Text(
+                setting.label,
+                style: const TextStyle(fontSize: 13),
+              ),
+            ),
+            IconButton(
+              icon: Icon(
+                isFavorite ? Icons.star : Icons.star_border,
+                color: isFavorite ? Colors.amber : null,
+                size: 20,
+              ),
+              onPressed: () {
+                settingsProvider.toggleFavoriteSetting(
+                  widget.originalCar.id,
+                  setting.key,
+                  !isFavorite,
+                );
+              },
+              tooltip: settingsProvider.isEnglish
+                  ? (isFavorite ? 'Remove from favorites' : 'Add to favorites')
+                  : (isFavorite ? 'よく使う項目から削除' : 'よく使う項目に追加'),
+              constraints: const BoxConstraints(
+                minWidth: 32,
+                minHeight: 32,
+              ),
+              padding: EdgeInsets.zero,
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        GridSelector(
+          rows: setting.constraints['rows'] as int,
+          cols: setting.constraints['cols'] as int,
+          allowMultiple: setting.constraints['multiple'] as bool,
+          initialValue: _getGridValue(setting.key),
+          cellSize: cellSize,
+          onChanged: (points) => _updateGridValue(setting.key, points),
+        ),
       ],
     );
   }
