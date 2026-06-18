@@ -3,7 +3,10 @@ import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/auth_service.dart';
+import '../data/car_settings_definitions.dart';
 import '../models/car.dart';
+import '../models/car_setting_definition.dart';
+import '../models/visibility_settings.dart';
 import 'import_export_page.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -465,6 +468,24 @@ class _SettingsPageState extends State<SettingsPage> {
         Provider.of<SettingsProvider>(context, listen: false);
     final visibilitySettings = settingsProvider.getVisibilitySettings(car.id);
     final isEnglish = settingsProvider.isEnglish;
+    final definition = getCarSettingDefinition(car.id);
+    final definitionByKey = <String, SettingItem>{
+      for (final setting in definition?.availableSettings ?? <SettingItem>[])
+        setting.key: setting,
+    };
+    final resolvedSettings = settingsProvider.getCarAvailableSettings(car.id);
+
+    if (definitionByKey.isNotEmpty || resolvedSettings.isNotEmpty) {
+      return _buildVisibilitySettingsList(
+        car: car,
+        settingKeys: resolvedSettings,
+        definitionByKey: definitionByKey,
+        visibilitySettings: visibilitySettings,
+        settingsProvider: settingsProvider,
+        isEnglish: isEnglish,
+        setState: setState,
+      );
+    }
 
     // 車種固有の利用可能な設定項目を取得
     List<String> availableSettings = car.availableSettings;
@@ -752,6 +773,163 @@ class _SettingsPageState extends State<SettingsPage> {
         },
       );
     }
+  }
+
+  Widget _buildVisibilitySettingsList({
+    required Car car,
+    required List<String> settingKeys,
+    required Map<String, SettingItem> definitionByKey,
+    required VisibilitySettings visibilitySettings,
+    required SettingsProvider settingsProvider,
+    required bool isEnglish,
+    required StateSetter setState,
+  }) {
+    final groupedSettings = _groupVisibilitySettingKeys(
+      settingKeys,
+      definitionByKey,
+      isEnglish,
+    );
+
+    return ListView.builder(
+      shrinkWrap: true,
+      itemCount: groupedSettings.length,
+      itemBuilder: (context, index) {
+        final category = groupedSettings.keys.elementAt(index);
+        final settings = groupedSettings[category]!;
+
+        return ExpansionTile(
+          title: Text(category),
+          tilePadding:
+              const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          childrenPadding: const EdgeInsets.only(left: 16.0, right: 16.0),
+          children: settings.map((key) {
+            final label = definitionByKey[key]?.label ??
+                _fallbackSettingLabel(key, isEnglish);
+            final isVisible =
+                visibilitySettings.settingsVisibility[key] ?? true;
+
+            return SwitchListTile(
+              title: Text(label),
+              value: isVisible,
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
+              onChanged: (bool value) {
+                setState(() {
+                  settingsProvider.toggleSettingVisibility(car.id, key, value);
+                });
+              },
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
+
+  Map<String, List<String>> _groupVisibilitySettingKeys(
+    List<String> settingKeys,
+    Map<String, SettingItem> definitionByKey,
+    bool isEnglish,
+  ) {
+    final categoryOrder = <String>[
+      'basic',
+      'front',
+      'frontDamper',
+      'rear',
+      'rearDamper',
+      'top',
+      'other',
+      'memo',
+    ];
+    final groupedByKey = <String, List<String>>{};
+
+    for (final key in settingKeys) {
+      final definition = definitionByKey[key];
+      final categoryKey = definition == null
+          ? _fallbackDisplayCategoryForSettingKey(key)
+          : displayCategoryForSetting(definition);
+
+      groupedByKey.putIfAbsent(categoryKey, () => <String>[]).add(key);
+    }
+
+    final ordered = <String, List<String>>{};
+    for (final categoryKey in categoryOrder) {
+      final keys = groupedByKey.remove(categoryKey);
+      if (keys != null && keys.isNotEmpty) {
+        ordered[_visibilityCategoryLabel(categoryKey, isEnglish)] = keys;
+      }
+    }
+
+    for (final entry in groupedByKey.entries) {
+      ordered[_visibilityCategoryLabel(entry.key, isEnglish)] = entry.value;
+    }
+
+    return ordered;
+  }
+
+  String _fallbackDisplayCategoryForSettingKey(String key) {
+    if (key == 'date' ||
+        key == 'track' ||
+        key == 'surface' ||
+        key == 'airTemp' ||
+        key == 'humidity' ||
+        key == 'trackTemp' ||
+        key == 'condition' ||
+        key == 'memo') {
+      return key == 'memo' ? 'memo' : 'basic';
+    }
+
+    if (key.startsWith('front')) {
+      return isDamperSettingKey(key) ? 'frontDamper' : 'front';
+    }
+
+    if (key.startsWith('rear')) {
+      return isDamperSettingKey(key) ? 'rearDamper' : 'rear';
+    }
+
+    if (key.contains('upperDeck') ||
+        key.contains('ballast') ||
+        key.contains('knuckle') ||
+        key.contains('steering') ||
+        key.contains('lowerDeck')) {
+      return 'top';
+    }
+
+    return 'other';
+  }
+
+  String _visibilityCategoryLabel(String category, bool isEnglish) {
+    switch (category) {
+      case 'basic':
+        return isEnglish ? 'Basic Information' : '基本情報';
+      case 'front':
+        return isEnglish ? 'Front Settings' : 'フロント設定';
+      case 'frontDamper':
+        return isEnglish ? 'Front Damper Settings' : 'フロントダンパー設定';
+      case 'rear':
+        return isEnglish ? 'Rear Settings' : 'リア設定';
+      case 'rearDamper':
+        return isEnglish ? 'Rear Damper Settings' : 'リアダンパー設定';
+      case 'top':
+        return isEnglish ? 'Top Settings' : 'トップ設定';
+      case 'other':
+        return isEnglish ? 'Other Settings' : 'その他設定';
+      case 'memo':
+        return isEnglish ? 'Memo' : 'メモ';
+      default:
+        return category;
+    }
+  }
+
+  String _fallbackSettingLabel(String key, bool isEnglish) {
+    if (!isEnglish) {
+      return key;
+    }
+
+    final spaced = key.replaceAllMapped(
+      RegExp(r'([A-Z])'),
+      (match) => ' ${match.group(1)}',
+    );
+    return spaced.isEmpty ? key : spaced[0].toUpperCase() + spaced.substring(1);
   }
 
   void _showEditorLayoutDialog(BuildContext context) {

@@ -1023,16 +1023,19 @@ class _CarSettingPageState extends State<CarSettingPage> {
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= 920;
         final isCompact = constraints.maxWidth < 560;
-        final topRowHeight = isWide
-            ? 250.0
-            : isCompact
-                ? 190.0
-                : 220.0;
         final lowerRowHeight = isWide
             ? 270.0
             : isCompact
                 ? 210.0
                 : 235.0;
+        final stackedSectionHeight = isWide
+            ? 340.0
+            : isCompact
+                ? 256.0
+                : 300.0;
+        const stackedSectionGap = 12.0;
+        final stackedButtonHeight =
+            (stackedSectionHeight - stackedSectionGap) / 2;
         final memoHeight = isCompact ? 124.0 : 144.0;
         final theme = Theme.of(context);
 
@@ -1059,57 +1062,58 @@ class _CarSettingPageState extends State<CarSettingPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: _buildPaperSectionButton(
-                      category: 'front',
-                      title: isEnglish ? 'Front' : 'フロント',
-                      subtitle: _buildPaperSectionSubtitle('front', isEnglish),
-                      icon: Icons.north_west_rounded,
-                      tint: const Color(0xFF1976D2),
-                      height: topRowHeight,
-                      isEnglish: isEnglish,
+                    child: Column(
+                      children: [
+                        _buildPaperSectionButton(
+                          category: 'front',
+                          title: isEnglish ? 'Front' : 'フロント',
+                          subtitle:
+                              _buildPaperSectionSubtitle('front', isEnglish),
+                          icon: Icons.north_west_rounded,
+                          tint: const Color(0xFF1976D2),
+                          height: stackedButtonHeight,
+                          isEnglish: isEnglish,
+                        ),
+                        const SizedBox(height: stackedSectionGap),
+                        _buildPaperSectionButton(
+                          category: 'frontDamper',
+                          title: isEnglish ? 'Front Damper' : 'フロントダンパー',
+                          subtitle: _buildPaperSectionSubtitle(
+                              'frontDamper', isEnglish),
+                          icon: Icons.swap_vert_rounded,
+                          tint: const Color(0xFF3949AB),
+                          height: stackedButtonHeight,
+                          isEnglish: isEnglish,
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 16),
                   Expanded(
-                    child: _buildPaperSectionButton(
-                      category: 'rear',
-                      title: isEnglish ? 'Rear' : 'リア',
-                      subtitle: _buildPaperSectionSubtitle('rear', isEnglish),
-                      icon: Icons.north_east_rounded,
-                      tint: const Color(0xFF00897B),
-                      height: topRowHeight,
-                      isEnglish: isEnglish,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _buildPaperSectionButton(
-                      category: 'frontDamper',
-                      title: isEnglish ? 'Front Damper' : 'フロントダンパー',
-                      subtitle:
-                          _buildPaperSectionSubtitle('frontDamper', isEnglish),
-                      icon: Icons.swap_vert_rounded,
-                      tint: const Color(0xFF3949AB),
-                      height: topRowHeight,
-                      isEnglish: isEnglish,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildPaperSectionButton(
-                      category: 'rearDamper',
-                      title: isEnglish ? 'Rear Damper' : 'リアダンパー',
-                      subtitle:
-                          _buildPaperSectionSubtitle('rearDamper', isEnglish),
-                      icon: Icons.swap_vert_circle_rounded,
-                      tint: const Color(0xFF00796B),
-                      height: topRowHeight,
-                      isEnglish: isEnglish,
+                    child: Column(
+                      children: [
+                        _buildPaperSectionButton(
+                          category: 'rear',
+                          title: isEnglish ? 'Rear' : 'リア',
+                          subtitle:
+                              _buildPaperSectionSubtitle('rear', isEnglish),
+                          icon: Icons.north_east_rounded,
+                          tint: const Color(0xFF00897B),
+                          height: stackedButtonHeight,
+                          isEnglish: isEnglish,
+                        ),
+                        const SizedBox(height: stackedSectionGap),
+                        _buildPaperSectionButton(
+                          category: 'rearDamper',
+                          title: isEnglish ? 'Rear Damper' : 'リアダンパー',
+                          subtitle: _buildPaperSectionSubtitle(
+                              'rearDamper', isEnglish),
+                          icon: Icons.swap_vert_circle_rounded,
+                          tint: const Color(0xFF00796B),
+                          height: stackedButtonHeight,
+                          isEnglish: isEnglish,
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -1769,6 +1773,42 @@ class _CarSettingPageState extends State<CarSettingPage> {
                   ? 2
                   : 3;
 
+          Widget buildItemBadge({
+            required EdgeInsets padding,
+            bool showAction = true,
+          }) {
+            return Container(
+              padding: padding,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(999),
+                color: tint.withValues(alpha: 0.12),
+              ),
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    isEnglish
+                        ? '${categorySettings.length} items'
+                        : '${categorySettings.length}項目',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: tint,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  if (showAction)
+                    Text(
+                      isEnglish ? 'Open Editor' : '編集を開く',
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: tint,
+                      ),
+                    ),
+                ],
+              ),
+            );
+          }
+
           return Material(
             color: Colors.transparent,
             child: InkWell(
@@ -1806,124 +1846,166 @@ class _CarSettingPageState extends State<CarSettingPage> {
                 ),
                 child: Padding(
                   padding: contentPadding,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Container(
-                            width: isMicro ? 40 : 44,
-                            height: isMicro ? 40 : 44,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: tint.withValues(alpha: 0.16),
-                            ),
-                            child: Icon(icon, color: tint),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
+                  child: isMicro
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  title,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.w700,
+                                Container(
+                                  width: 34,
+                                  height: 34,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: tint.withValues(alpha: 0.16),
+                                  ),
+                                  child: Icon(icon, color: tint, size: 20),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.titleSmall
+                                            ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        subtitle,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style:
+                                            theme.textTheme.bodySmall?.copyWith(
+                                          color: theme.colorScheme.onSurface
+                                              .withValues(alpha: 0.72),
+                                          height: 1.25,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  subtitle,
-                                  maxLines: subtitleMaxLines,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.bodySmall?.copyWith(
-                                    color: theme.colorScheme.onSurface
-                                        .withValues(alpha: 0.72),
-                                    height: 1.3,
-                                  ),
+                                const SizedBox(width: 6),
+                                Icon(
+                                  Icons.open_in_new_rounded,
+                                  size: 16,
+                                  color: theme.colorScheme.onSurface
+                                      .withValues(alpha: 0.55),
                                 ),
                               ],
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            Icons.open_in_new_rounded,
-                            size: 18,
-                            color: theme.colorScheme.onSurface
-                                .withValues(alpha: 0.55),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: isTight ? 10 : 14),
-                      if (!_useSimplePaperCopy()) ...[
-                        Text(
-                          isEnglish
-                              ? 'Tap to open this section'
-                              : 'タップしてこのセクションを開く',
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: theme.textTheme.labelMedium?.copyWith(
-                            color: tint,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                      SizedBox(height: isTight ? 8 : 12),
-                      if (!_useSimplePaperCopy())
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.topLeft,
-                            child: Text(
-                              isEnglish
-                                  ? 'Open this area to edit the detailed values.'
-                                  : 'このエリアを開いて詳細な設定値を編集します。',
-                              maxLines: isMicro ? 1 : 3,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurface
-                                    .withValues(alpha: 0.68),
-                                height: 1.35,
+                            const Spacer(),
+                            buildItemBadge(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 6,
                               ),
+                              showAction: false,
                             ),
-                          ),
-                        ),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: isMicro ? 10 : 12,
-                          vertical: isMicro ? 6 : 8,
-                        ),
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(999),
-                          color: tint.withValues(alpha: 0.12),
-                        ),
-                        child: Wrap(
-                          spacing: 10,
-                          runSpacing: 4,
-                          crossAxisAlignment: WrapCrossAlignment.center,
+                          ],
+                        )
+                      : Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              isEnglish
-                                  ? '${categorySettings.length} items'
-                                  : '${categorySettings.length}項目',
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                color: tint,
-                                fontWeight: FontWeight.w700,
-                              ),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: isMicro ? 40 : 44,
+                                  height: isMicro ? 40 : 44,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    color: tint.withValues(alpha: 0.16),
+                                  ),
+                                  child: Icon(icon, color: tint),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        title,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        subtitle,
+                                        maxLines: subtitleMaxLines,
+                                        overflow: TextOverflow.ellipsis,
+                                        style:
+                                            theme.textTheme.bodySmall?.copyWith(
+                                          color: theme.colorScheme.onSurface
+                                              .withValues(alpha: 0.72),
+                                          height: 1.3,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Icon(
+                                  Icons.open_in_new_rounded,
+                                  size: 18,
+                                  color: theme.colorScheme.onSurface
+                                      .withValues(alpha: 0.55),
+                                ),
+                              ],
                             ),
-                            Text(
-                              isEnglish ? 'Open Editor' : '編集を開く',
-                              style: theme.textTheme.labelMedium?.copyWith(
-                                color: tint,
+                            SizedBox(height: isTight ? 10 : 14),
+                            if (!_useSimplePaperCopy()) ...[
+                              Text(
+                                isEnglish
+                                    ? 'Tap to open this section'
+                                    : 'タップしてこのセクションを開く',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.labelMedium?.copyWith(
+                                  color: tint,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                            SizedBox(height: isTight ? 8 : 12),
+                            if (!_useSimplePaperCopy())
+                              Expanded(
+                                child: Align(
+                                  alignment: Alignment.topLeft,
+                                  child: Text(
+                                    isEnglish
+                                        ? 'Open this area to edit the detailed values.'
+                                        : 'このエリアを開いて詳細な設定値を編集します。',
+                                    maxLines: isMicro ? 1 : 3,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: theme.colorScheme.onSurface
+                                          .withValues(alpha: 0.68),
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            buildItemBadge(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ),
@@ -2038,47 +2120,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
     }
 
     return _carSettingDefinition!.availableSettings
-        .where((setting) => _displayCategoryForSetting(setting) == category)
+        .where((setting) => displayCategoryForSetting(setting) == category)
         .toList();
-  }
-
-  bool _isDamperSettingKey(String key) {
-    return key.contains('Damper') ||
-        key.contains('Dumper') ||
-        key.contains('Shock') ||
-        key.contains('Bladder') ||
-        key.contains('Piston') ||
-        key.endsWith('Spring');
-  }
-
-  String _displayCategoryForSetting(SettingItem setting) {
-    final key = setting.key;
-    final category = setting.category;
-
-    if (category == 'frontDamper' || category == 'rearDamper') {
-      return category;
-    }
-
-    if (category == 'damper') {
-      if (key.startsWith('front')) {
-        return 'frontDamper';
-      }
-      if (key.startsWith('rear')) {
-        return 'rearDamper';
-      }
-    }
-
-    if ((category == 'front' || key.startsWith('front')) &&
-        _isDamperSettingKey(key)) {
-      return 'frontDamper';
-    }
-
-    if ((category == 'rear' || key.startsWith('rear')) &&
-        _isDamperSettingKey(key)) {
-      return 'rearDamper';
-    }
-
-    return category;
   }
 
   String _paperCategoryTitle(String category, bool isEnglish) {

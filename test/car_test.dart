@@ -66,5 +66,53 @@ void main() {
       expect(bd12Esc.type, 'text');
       expect(bd12Esc.options, contains('Hobbywing'));
     });
+
+    test('all setting definitions resolve to visible editor categories', () {
+      const visibleCategories = {
+        'basic',
+        'front',
+        'frontDamper',
+        'rear',
+        'rearDamper',
+        'top',
+        'other',
+        'memo',
+      };
+
+      for (final entry in carSettingsDefinitions.entries) {
+        final unmappedSettings = entry.value.availableSettings
+            .where(
+              (setting) => !visibleCategories
+                  .contains(displayCategoryForSetting(setting)),
+            )
+            .map((setting) => '${setting.key}:${setting.category}')
+            .toList();
+
+        expect(
+          unmappedSettings,
+          isEmpty,
+          reason: '${entry.key} has settings outside visible categories.',
+        );
+      }
+    });
+
+    test('legacy definition categories are normalized for the editor', () {
+      final trf421 = getCarSettingDefinition('tamiya/trf421')!;
+      final bd12 = getCarSettingDefinition('yokomo/bd12')!;
+
+      final trf421Motor = trf421.availableSettings
+          .firstWhere((setting) => setting.key == 'motor');
+      final bd12MainChassis = bd12.availableSettings
+          .firstWhere((setting) => setting.key == 'mainChassis');
+      final bd12FrontRideHeight = bd12.availableSettings
+          .firstWhere((setting) => setting.key == 'frontRideHeight');
+      final bd12RearRideHeight = bd12.availableSettings
+          .firstWhere((setting) => setting.key == 'rearRideHeight');
+
+      expect(displayCategoryForSetting(trf421Motor), 'other');
+      expect(displayCategoryForSetting(bd12MainChassis), 'other');
+      expect(displayCategoryForSetting(bd12FrontRideHeight), 'front');
+      expect(displayCategoryForSetting(bd12RearRideHeight), 'rear');
+    });
   });
 }

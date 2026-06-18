@@ -4,6 +4,7 @@ import '../models/saved_setting.dart';
 import '../models/car.dart';
 import '../models/manufacturer.dart';
 import '../models/visibility_settings.dart';
+import '../data/car_settings_definitions.dart';
 import '../services/firestore_service.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -287,7 +288,15 @@ class SettingsProvider extends ChangeNotifier {
   // 車種固有の設定項目を取得
   List<String> getCarAvailableSettings(String carId) {
     final car = getCarById(carId);
-    return car?.availableSettings ?? [];
+    if (car != null && car.availableSettings.isNotEmpty) {
+      return car.availableSettings;
+    }
+
+    final definition = getCarSettingDefinition(carId);
+    return definition?.availableSettings
+            .map((setting) => setting.key)
+            .toList(growable: false) ??
+        [];
   }
 
   Future<void> setGarageMembership(String carId, bool value) async {

@@ -134,4 +134,20 @@ void main() {
       ['Race Setup (1)', 'Race Setup'],
     );
   });
+
+  test('resolves built-in available settings from definitions', () async {
+    final car = _buildCar();
+
+    SharedPreferences.setMockInitialValues({
+      'cars_settings': jsonEncode([car.toJson()]),
+    });
+
+    final provider = SettingsProvider();
+    await _waitForProvider(provider);
+
+    expect(
+      provider.getCarAvailableSettings('tamiya/trf421'),
+      containsAll(['frontUpperArmSpacer', 'motor', 'additive']),
+    );
+  });
 }

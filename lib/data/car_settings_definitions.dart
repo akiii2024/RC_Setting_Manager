@@ -16,3 +16,56 @@ CarSettingDefinition? getCarSettingDefinition(String carId) {
   print('Available definitions: ${carSettingsDefinitions.keys}'); // デバッグ用ログ
   return carSettingsDefinitions[carId];
 }
+
+bool isDamperSettingKey(String key) {
+  return key.contains('Damper') ||
+      key.contains('Dumper') ||
+      key.contains('Shock') ||
+      key.contains('Bladder') ||
+      key.contains('Piston') ||
+      key.endsWith('Spring');
+}
+
+String displayCategoryForSetting(SettingItem setting) {
+  final key = setting.key;
+  final category = setting.category;
+
+  if (category == 'frontDamper' || category == 'rearDamper') {
+    return category;
+  }
+
+  if (category == 'damper') {
+    if (key.startsWith('front')) {
+      return 'frontDamper';
+    }
+    if (key.startsWith('rear')) {
+      return 'rearDamper';
+    }
+  }
+
+  if ((category == 'front' || key.startsWith('front')) &&
+      isDamperSettingKey(key)) {
+    return 'frontDamper';
+  }
+
+  if ((category == 'rear' || key.startsWith('rear')) &&
+      isDamperSettingKey(key)) {
+    return 'rearDamper';
+  }
+
+  if (category == 'general' || category == 'chassis') {
+    return 'other';
+  }
+
+  if (category == 'suspension') {
+    if (key.startsWith('front')) {
+      return 'front';
+    }
+    if (key.startsWith('rear')) {
+      return 'rear';
+    }
+    return 'front';
+  }
+
+  return category;
+}
