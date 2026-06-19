@@ -319,31 +319,6 @@ class _DashboardHomeTab extends StatelessWidget {
                               ),
                             ),
                           ),
-                    const SizedBox(height: 28),
-                    _SimpleHomeSectionHeader(
-                      title: _t(isEnglish, 'My machines', '自分のマシン'),
-                      subtitle: _t(
-                        isEnglish,
-                        'Sorted by latest saved work.',
-                        '最後に保存した順に表示します。',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ...activities.asMap().entries.map(
-                          (entry) => Padding(
-                            padding: EdgeInsets.only(
-                              bottom:
-                                  entry.key == activities.length - 1 ? 0 : 10,
-                            ),
-                            child: _MyMachineTile(
-                              activity: entry.value,
-                              isEnglish: isEnglish,
-                              index: entry.key + 1,
-                              onTap: () =>
-                                  _openCarEditor(context, entry.value.car),
-                            ),
-                          ),
-                        ),
                   ],
                 ),
               ),
@@ -518,93 +493,6 @@ class _RecentMachineCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       _lastSavedLabel(latestSetting, isEnglish),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 12),
-              Icon(
-                Icons.chevron_right_rounded,
-                color: colorScheme.onSurfaceVariant,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MyMachineTile extends StatelessWidget {
-  final _HomeCarActivity activity;
-  final bool isEnglish;
-  final int index;
-  final VoidCallback onTap;
-
-  const _MyMachineTile({
-    required this.activity,
-    required this.isEnglish,
-    required this.index,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(18),
-        onTap: onTap,
-        child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: colorScheme.outlineVariant.withValues(alpha: 0.3),
-            ),
-          ),
-          child: Row(
-            children: [
-              _HomeMachineLeading(
-                label: index.toString().padLeft(2, '0'),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      activity.car.name,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      activity.car.manufacturer.name,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _latestSettingLabel(activity.latestSetting, isEnglish),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _lastSavedLabel(activity.latestSetting, isEnglish),
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),

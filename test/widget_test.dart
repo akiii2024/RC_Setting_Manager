@@ -76,6 +76,29 @@ void main() {
     expect(find.text('Your garage is empty'), findsOneWidget);
   });
 
+  testWidgets('Home page does not show the my machines section',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'language_settings': true,
+      'cars_settings': jsonEncode([_testCar().toJson()]),
+    });
+
+    final provider = SettingsProvider();
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: const MaterialApp(home: HomePage()),
+      ),
+    );
+
+    await _pumpUntilInitialized(tester, provider);
+    await tester.pump();
+
+    expect(find.text('My machines'), findsNothing);
+    expect(find.text('TRF421'), findsNothing);
+  });
+
   testWidgets('offline welcome hides Firebase login controls',
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
