@@ -456,8 +456,8 @@ class _LoginPageState extends State<LoginPage> {
         builder: (ctx) => AlertDialog(
           title: Text(isEnglish ? 'Start demo mode?' : 'デモモードを開始しますか？'),
           content: Text(isEnglish
-              ? 'Offline demo data will be created for all cars (TRF421, TRF420X, BD12). Continue?'
-              : '全車種（TRF421 / TRF420X / BD12）のデモデータをオフラインで作成します。続行しますか？'),
+              ? 'Offline demo data will be created for all registered cars. Continue?'
+              : '登録されている全車種のデモデータをオフラインで作成します。続行しますか？'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),

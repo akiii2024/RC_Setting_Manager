@@ -150,4 +150,31 @@ void main() {
       containsAll(['frontUpperArmSpacer', 'motor', 'additive']),
     );
   });
+
+  test('merges new built-in cars into persisted car list', () async {
+    final car = _buildCar(isInGarage: true);
+
+    SharedPreferences.setMockInitialValues({
+      'cars_settings': jsonEncode([car.toJson()]),
+    });
+
+    final provider = SettingsProvider();
+    await _waitForProvider(provider);
+
+    final carIds = provider.cars.map((car) => car.id).toSet();
+
+    expect(
+      carIds,
+      containsAll({
+        'tamiya/trf421',
+        'tamiya/trf420x',
+        'tamiya/trf421x',
+        'yokomo/bd11',
+        'yokomo/bd12',
+        'yokomo/ms1_0',
+        'yokomo/ms2_0',
+      }),
+    );
+    expect(provider.getCarById('tamiya/trf421')?.isInGarage, isTrue);
+  });
 }

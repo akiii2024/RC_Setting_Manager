@@ -2,7 +2,7 @@ import '../../../../models/car_setting_definition.dart';
 import '../../common/basic_settings.dart';
 import '../common/setting_item_helpers.dart';
 
-List<SettingItem> _trf421EndSettings({
+List<SettingItem> _trf421xEndSettings({
   required String prefix,
   required String category,
   required String labelPrefix,
@@ -12,7 +12,7 @@ List<SettingItem> _trf421EndSettings({
     numberSetting(
       key: '${prefix}UpperArmSpacerIn',
       category: category,
-      label: '$labelPrefix アッパーアームスペーサー F',
+      label: '$labelPrefix アッパーアームスペーサー（内）',
       unit: 'mm',
       max: 10,
     ),
@@ -26,7 +26,14 @@ List<SettingItem> _trf421EndSettings({
     numberSetting(
       key: '${prefix}UpperArmSpacerOut',
       category: category,
-      label: '$labelPrefix アッパーアームスペーサー R',
+      label: '$labelPrefix アッパーアームスペーサー（外）',
+      unit: 'mm',
+      max: 10,
+    ),
+    numberSetting(
+      key: '${prefix}StabilizerBall',
+      category: category,
+      label: '$labelPrefix スタビライザーボール',
       unit: 'mm',
       max: 10,
     ),
@@ -76,14 +83,14 @@ List<SettingItem> _trf421EndSettings({
     numberSetting(
       key: '$prefix${susMountPrefix}SusMountSpacerIn',
       category: category,
-      label: '$labelPrefix $susMountPrefixサスマウントスペーサー In',
+      label: '$labelPrefix $susMountPrefixサスマウントスペーサー（内）',
       unit: 'mm',
       max: 10,
     ),
     numberSetting(
       key: '$prefix${susMountPrefix}SusMountSpacerOut',
       category: category,
-      label: '$labelPrefix $susMountPrefixサスマウントスペーサー Out',
+      label: '$labelPrefix $susMountPrefixサスマウントスペーサー（外）',
       unit: 'mm',
       max: 10,
     ),
@@ -147,7 +154,7 @@ List<SettingItem> _trf421EndSettings({
   ];
 }
 
-List<SettingItem> _trf421DamperSettings({
+List<SettingItem> _trf421xDamperSettings({
   required String prefix,
   required String category,
   required String labelPrefix,
@@ -232,7 +239,7 @@ List<SettingItem> _trf421DamperSettings({
     numberSetting(
       key: '${prefix}DamperAirHole',
       category: category,
-      label: '$labelPrefix エア抜き用穴',
+      label: '$labelPrefix エア抜き穴',
       unit: 'mm',
       max: 5,
       step: 0.1,
@@ -240,28 +247,28 @@ List<SettingItem> _trf421DamperSettings({
   ];
 }
 
-final List<SettingItem> trf421SpecificSettings = [
-  ..._trf421EndSettings(
+final List<SettingItem> trf421xSpecificSettings = [
+  ..._trf421xEndSettings(
     prefix: 'front',
     category: 'front',
     labelPrefix: 'フロント',
     susMountPrefix: 'F',
   ),
-  ..._trf421DamperSettings(
+  ..._trf421xDamperSettings(
     prefix: 'front',
     category: 'frontDamper',
     labelPrefix: 'フロント',
   ),
-  ..._trf421EndSettings(
+  ..._trf421xEndSettings(
     prefix: 'rear',
     category: 'rear',
-    labelPrefix: 'リヤ',
+    labelPrefix: 'リア',
     susMountPrefix: 'R',
   ),
-  ..._trf421DamperSettings(
+  ..._trf421xDamperSettings(
     prefix: 'rear',
     category: 'rearDamper',
-    labelPrefix: 'リヤ',
+    labelPrefix: 'リア',
   ),
   numberSetting(
     key: 'frontToeAngle',
@@ -275,7 +282,7 @@ final List<SettingItem> trf421SpecificSettings = [
   numberSetting(
     key: 'rearToeAngle',
     category: 'top',
-    label: 'リヤ トー角',
+    label: 'リア トー角',
     unit: '°',
     min: -5,
     max: 5,
@@ -291,7 +298,7 @@ final List<SettingItem> trf421SpecificSettings = [
   numberSetting(
     key: 'rearUprightSpacer',
     category: 'top',
-    label: 'リヤ アップライトスペーサー',
+    label: 'リア アップライトスペーサー',
     unit: 'mm',
     max: 10,
   ),
@@ -333,6 +340,19 @@ final List<SettingItem> trf421SpecificSettings = [
     label: 'アッパーデッキ',
     options: const ['1pcs', '2pcs'],
   ),
+  textSetting(
+    key: 'upperDeckCutPosition',
+    category: 'top',
+    label: 'アッパーデッキ カット位置',
+  ),
+  gridSetting(
+    key: 'topScrewPositions',
+    category: 'top',
+    label: 'アッパーデッキ ネジ位置',
+    rows: 1,
+    cols: 7,
+    multiple: true,
+  ),
   gridSetting(
     key: 'motorMountScrewPositions',
     category: 'top',
@@ -340,6 +360,17 @@ final List<SettingItem> trf421SpecificSettings = [
     rows: 2,
     cols: 7,
     multiple: true,
+  ),
+  selectSetting(
+    key: 'rearStiffenerMountPosition',
+    category: 'top',
+    label: 'リアステフナー取付位置',
+    options: const ['Inside', 'Outside'],
+  ),
+  textSetting(
+    key: 'rearStiffener',
+    category: 'top',
+    label: 'リアステフナー',
   ),
   textSetting(
     key: 'servoHorn',
@@ -363,28 +394,28 @@ final List<SettingItem> trf421SpecificSettings = [
   numberSetting(
     key: 'ballastWeightA',
     category: 'top',
-    label: 'バランスウエイト A',
+    label: 'バランスウェイト A',
     unit: 'g',
     max: 100,
   ),
   numberSetting(
     key: 'ballastWeightB',
     category: 'top',
-    label: 'バランスウエイト B',
+    label: 'バランスウェイト B',
     unit: 'g',
     max: 100,
   ),
   numberSetting(
     key: 'ballastWeightC',
     category: 'top',
-    label: 'バランスウエイト C',
+    label: 'バランスウェイト C',
     unit: 'g',
     max: 100,
   ),
   numberSetting(
     key: 'batteryWeight',
     category: 'top',
-    label: 'バッテリーウエイト',
+    label: 'バッテリーウェイト',
     unit: 'g',
     max: 200,
   ),
@@ -469,14 +500,14 @@ final List<SettingItem> trf421SpecificSettings = [
     label: 'インナー',
   ),
   textSetting(
-    key: 'additive',
+    key: 'bestLap',
     category: 'other',
-    label: '添加物',
+    label: 'ベストラップ',
   ),
 ];
 
-final trf421Settings = CarSettingDefinition(
-  carId: 'tamiya/trf421',
-  availableSettings: [...basicSettings, ...trf421SpecificSettings],
+final trf421xSettings = CarSettingDefinition(
+  carId: 'tamiya/trf421x',
+  availableSettings: [...basicSettings, ...trf421xSpecificSettings],
   isHumanVerified: true,
 );

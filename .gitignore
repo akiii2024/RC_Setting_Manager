@@ -121,3 +121,5 @@ coverage/
 test/coverage/
 coverage/
 .test_coverage/
+
+setting_sheet_pdf/

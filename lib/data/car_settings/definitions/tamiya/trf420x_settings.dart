@@ -154,7 +154,13 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'front',
     label: 'スタビライザー',
     unit: 'φ',
-    constraints: {'min': 1.0, 'max': 3.0, 'step': 0.1},
+    constraints: {
+      'min': 1.0,
+      'max': 3.0,
+      'step': 0.1,
+      'composite': 'stabilizer',
+      'noteKey': 'frontStabilizerNote',
+    },
     defaultValue: '1.0',
   ),
   SettingItem(
@@ -170,6 +176,12 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'front',
     label: 'デフオイル',
     unit: '#',
+    constraints: {
+      'composite': 'diffOil',
+      'oilTypeKey': 'frontDiffOilType',
+      'oilKey': 'frontDiff',
+      'weightKey': 'frontDiffWeight',
+    },
     defaultValue: '',
   ),
 
@@ -212,7 +224,16 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'frontDamper',
     label: 'ピストン',
     unit: 'φ',
-    constraints: {'min': 1.0, 'max': 3.0, 'step': 0.1},
+    constraints: {
+      'min': 1.0,
+      'max': 3.0,
+      'step': 0.1,
+      'composite': 'damperPiston',
+      'pistonKey': 'frontDamperPiston',
+      'holeKey': 'frontDamperPistonHole',
+      'pistonAliases': ['frontDumperPistonSize'],
+      'holeAliases': ['frontDumperPistonHole'],
+    },
     defaultValue: '1.0',
   ),
   SettingItem(
@@ -229,6 +250,13 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'frontDamper',
     label: 'オイル',
     unit: '#',
+    constraints: {
+      'composite': 'damperOil',
+      'oilKey': 'frontDamperOil',
+      'oilNameKey': 'frontDamperOilName',
+      'oilAliases': ['frontDumperOilHardness'],
+      'oilNameAliases': ['frontDumperOilName'],
+    },
     defaultValue: '',
   ),
   SettingItem(
@@ -388,7 +416,13 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'rear',
     label: 'スタビライザー',
     unit: 'φ',
-    constraints: {'min': 1.0, 'max': 3.0, 'step': 0.1},
+    constraints: {
+      'min': 1.0,
+      'max': 3.0,
+      'step': 0.1,
+      'composite': 'stabilizer',
+      'noteKey': 'rearStabilizerNote',
+    },
     defaultValue: '1.0',
   ),
   SettingItem(
@@ -404,6 +438,12 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'rear',
     label: 'デフオイル',
     unit: '#',
+    constraints: {
+      'composite': 'diffOil',
+      'oilTypeKey': 'rearDiffOilType',
+      'oilKey': 'rearDiff',
+      'weightKey': 'rearDiffWeight',
+    },
     defaultValue: '',
   ),
 
@@ -446,7 +486,16 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'rearDamper',
     label: 'ピストン',
     unit: 'φ',
-    constraints: {'min': 1.0, 'max': 3.0, 'step': 0.1},
+    constraints: {
+      'min': 1.0,
+      'max': 3.0,
+      'step': 0.1,
+      'composite': 'damperPiston',
+      'pistonKey': 'rearDamperPiston',
+      'holeKey': 'rearDamperPistonHole',
+      'pistonAliases': ['rearDumperPistonSize'],
+      'holeAliases': ['rearDumperPistonHole'],
+    },
     defaultValue: '1.0',
   ),
   SettingItem(
@@ -463,6 +512,13 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'rearDamper',
     label: 'オイル',
     unit: '#',
+    constraints: {
+      'composite': 'damperOil',
+      'oilKey': 'rearDamperOil',
+      'oilNameKey': 'rearDamperOilName',
+      'oilAliases': ['rearDumperOilHardness'],
+      'oilNameAliases': ['rearDumperOilName'],
+    },
     defaultValue: '',
   ),
   SettingItem(

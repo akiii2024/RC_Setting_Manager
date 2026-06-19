@@ -2,13 +2,27 @@ import '../../../../models/car_setting_definition.dart';
 import '../../common/basic_settings.dart';
 import '../common/setting_item_helpers.dart';
 
-List<SettingItem> _bd12SideSettings({
+List<SettingItem> _bd11SetupSideSettings({
   required String prefix,
   required String category,
   required String labelPrefix,
-  bool includeWeight = false,
+  required List<String> hubOptions,
 }) {
   return [
+    selectSetting(
+      key: '${prefix}CamHeight',
+      category: category,
+      label: '$labelPrefix カム',
+      options: const ['高', '低'],
+      defaultValue: '高',
+    ),
+    selectSetting(
+      key: '${prefix}WheelHub',
+      category: category,
+      label: '$labelPrefix ホイールハブ',
+      options: hubOptions,
+      defaultValue: hubOptions.first,
+    ),
     numberSetting(
       key: '${prefix}RideHeight',
       category: category,
@@ -22,7 +36,7 @@ List<SettingItem> _bd12SideSettings({
     numberSetting(
       key: '${prefix}Camber',
       category: category,
-      label: '$labelPrefix キャンバー角',
+      label: '$labelPrefix キャンバー',
       unit: '°',
       min: -5,
       max: 5,
@@ -34,9 +48,9 @@ List<SettingItem> _bd12SideSettings({
       label: '$labelPrefix スタビ',
       unit: 'mm',
       min: 1.0,
-      max: 1.4,
+      max: 2.0,
       step: 0.1,
-      defaultValue: '1.1',
+      defaultValue: '1.2',
       constraints: {
         'composite': 'stabilizer',
         'noteKey': '${prefix}SwayBarNote',
@@ -66,14 +80,13 @@ List<SettingItem> _bd12SideSettings({
       max: 5,
       step: 0.1,
     ),
-    if (includeWeight)
-      numberSetting(
-        key: '${prefix}Weight',
-        category: category,
-        label: '$labelPrefix ウェイト',
-        unit: 'g',
-        max: 200,
-      ),
+    numberSetting(
+      key: '${prefix}Weight',
+      category: category,
+      label: '$labelPrefix ウェイト',
+      unit: 'g',
+      max: 200,
+    ),
     textSetting(
       key: '${prefix}Notes',
       category: category,
@@ -82,7 +95,7 @@ List<SettingItem> _bd12SideSettings({
   ];
 }
 
-List<SettingItem> _bd12ShockSettings({
+List<SettingItem> _bd11ShockSettings({
   required String prefix,
   required String category,
   required String labelPrefix,
@@ -146,27 +159,19 @@ List<SettingItem> _bd12ShockSettings({
   ];
 }
 
-final List<SettingItem> bd12SpecificSettings = [
+final List<SettingItem> bd11SpecificSettings = [
   gridSetting(
     key: 'frontUpperArmPosition',
     category: 'front',
     label: 'フロント アッパーアーム位置',
     rows: 1,
     cols: 5,
-    multiple: true,
   ),
   selectSetting(
     key: 'frontCHub',
     category: 'front',
     label: 'フロント Cハブ',
     options: const ['グラファイト', 'スタンダード'],
-  ),
-  selectSetting(
-    key: 'frontCamHeight',
-    category: 'front',
-    label: 'フロント カム',
-    options: const ['高', '低'],
-    defaultValue: '高',
   ),
   numberSetting(
     key: 'frontBellCrankPostSpacer',
@@ -215,26 +220,13 @@ final List<SettingItem> bd12SpecificSettings = [
     unit: 'mm',
     max: 10,
   ),
-  numberSetting(
-    key: 'frontOuterSpacer',
-    category: 'front',
-    label: 'フロント アウタースペーサー',
-    unit: 'mm',
-    max: 10,
-  ),
-  selectSetting(
-    key: 'frontWheelHub',
-    category: 'front',
-    label: 'フロント ホイールハブ',
-    options: const ['4.0mm', '4.5mm', '5.0mm'],
-  ),
-  ..._bd12SideSettings(
+  ..._bd11SetupSideSettings(
     prefix: 'front',
     category: 'front',
     labelPrefix: 'フロント',
-    includeWeight: true,
+    hubOptions: const ['4.0mm', '4.5mm', '5.0mm', '6.0mm'],
   ),
-  ..._bd12ShockSettings(
+  ..._bd11ShockSettings(
     prefix: 'front',
     category: 'frontDamper',
     labelPrefix: 'フロント',
@@ -242,27 +234,19 @@ final List<SettingItem> bd12SpecificSettings = [
   gridSetting(
     key: 'rearUpperArmPosition',
     category: 'rear',
-    label: 'リヤ アッパーアーム位置',
+    label: 'リア アッパーアーム位置',
     rows: 1,
     cols: 5,
-    multiple: true,
-  ),
-  selectSetting(
-    key: 'rearCamHeight',
-    category: 'rear',
-    label: 'リヤ カム',
-    options: const ['高', '低'],
-    defaultValue: '高',
   ),
   textSetting(
     key: 'rearGear',
     category: 'rear',
-    label: 'リヤ ギア',
+    label: 'リア ギア',
   ),
   textSetting(
     key: 'rearGearOil',
     category: 'rear',
-    label: 'リヤ ギアオイル',
+    label: 'リア ギアオイル',
     unit: '#',
     constraints: const {
       'composite': 'diffOil',
@@ -274,82 +258,53 @@ final List<SettingItem> bd12SpecificSettings = [
   numberSetting(
     key: 'rearSpacerRF',
     category: 'rear',
-    label: 'リヤ スペーサー RF',
+    label: 'リア スペーサー RF',
     unit: 'mm',
     max: 10,
   ),
   numberSetting(
     key: 'rearSpacerRR',
     category: 'rear',
-    label: 'リヤ スペーサー RR',
+    label: 'リア スペーサー RR',
     unit: 'mm',
     max: 10,
   ),
   numberSetting(
     key: 'rearInnerSpacer',
     category: 'rear',
-    label: 'リヤ インナースペーサー',
+    label: 'リア インナースペーサー',
     unit: 'mm',
     max: 10,
   ),
   numberSetting(
     key: 'rearOuterSpacer',
     category: 'rear',
-    label: 'リヤ アウタースペーサー',
+    label: 'リア アウタースペーサー',
     unit: 'mm',
     max: 10,
   ),
-  selectSetting(
-    key: 'rearWheelHub',
-    category: 'rear',
-    label: 'リヤ ホイールハブ',
-    options: const ['4.0mm', '4.5mm', '5.0mm'],
-  ),
-  ..._bd12SideSettings(
+  ..._bd11SetupSideSettings(
     prefix: 'rear',
     category: 'rear',
-    labelPrefix: 'リヤ',
+    labelPrefix: 'リア',
+    hubOptions: const ['4.0mm', '4.5mm', '5.0mm', '6.0mm'],
   ),
-  ..._bd12ShockSettings(
+  ..._bd11ShockSettings(
     prefix: 'rear',
     category: 'rearDamper',
-    labelPrefix: 'リヤ',
+    labelPrefix: 'リア',
   ),
   selectSetting(
     key: 'mainChassis',
     category: 'other',
     label: 'メインシャーシ',
-    options: const ['カーボングラファイト', 'アルミ'],
+    options: const ['カーボン', 'アルミ'],
   ),
   selectSetting(
     key: 'upperDeck',
     category: 'top',
     label: 'アッパーデッキ',
-    options: const ['標準タイプ', '薄型'],
-  ),
-  gridSetting(
-    key: 'motorMountPosition',
-    category: 'top',
-    label: 'モーターマウント位置',
-    rows: 8,
-    cols: 1,
-    multiple: true,
-  ),
-  gridSetting(
-    key: 'topDeckScrewPositions',
-    category: 'top',
-    label: 'トップデッキビス位置',
-    rows: 6,
-    cols: 1,
-    multiple: true,
-  ),
-  gridSetting(
-    key: 'batteryPosition',
-    category: 'top',
-    label: 'バッテリー位置',
-    rows: 3,
-    cols: 2,
-    multiple: true,
+    options: const ['標準タイプ', '薄型タイプ'],
   ),
   textSetting(
     key: 'motor',
@@ -360,7 +315,7 @@ final List<SettingItem> bd12SpecificSettings = [
   numberSetting(
     key: 'spurGear',
     category: 'other',
-    label: 'スパーギヤ',
+    label: 'スパーギア',
     unit: 'T',
     min: 60,
     max: 120,
@@ -370,7 +325,7 @@ final List<SettingItem> bd12SpecificSettings = [
   numberSetting(
     key: 'pinionGear',
     category: 'other',
-    label: 'ピニオンギヤ',
+    label: 'ピニオンギア',
     unit: 'T',
     min: 20,
     max: 60,
@@ -398,6 +353,14 @@ final List<SettingItem> bd12SpecificSettings = [
     category: 'other',
     label: 'ウイング',
   ),
+  gridSetting(
+    key: 'batteryPosition',
+    category: 'top',
+    label: 'バッテリー位置',
+    rows: 3,
+    cols: 2,
+    multiple: true,
+  ),
   textSetting(
     key: 'frontTire',
     category: 'other',
@@ -406,7 +369,7 @@ final List<SettingItem> bd12SpecificSettings = [
   textSetting(
     key: 'rearTire',
     category: 'other',
-    label: 'リヤ タイヤ',
+    label: 'リア タイヤ',
   ),
   textSetting(
     key: 'frontTireInsert',
@@ -416,7 +379,7 @@ final List<SettingItem> bd12SpecificSettings = [
   textSetting(
     key: 'rearTireInsert',
     category: 'other',
-    label: 'リヤ インナー',
+    label: 'リア インナー',
   ),
   textSetting(
     key: 'frontWheel',
@@ -426,7 +389,7 @@ final List<SettingItem> bd12SpecificSettings = [
   textSetting(
     key: 'rearWheel',
     category: 'other',
-    label: 'リヤ ホイール',
+    label: 'リア ホイール',
   ),
   textSetting(
     key: 'frontTireTreatment',
@@ -436,12 +399,12 @@ final List<SettingItem> bd12SpecificSettings = [
   textSetting(
     key: 'rearTireTreatment',
     category: 'other',
-    label: 'リヤ トラクション剤',
+    label: 'リア トラクション剤',
   ),
 ];
 
-final bd12Settings = CarSettingDefinition(
-  carId: 'yokomo/bd12',
-  availableSettings: [...basicSettings, ...bd12SpecificSettings],
+final bd11Settings = CarSettingDefinition(
+  carId: 'yokomo/bd11',
+  availableSettings: [...basicSettings, ...bd11SpecificSettings],
   isHumanVerified: true,
 );

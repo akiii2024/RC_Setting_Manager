@@ -112,6 +112,53 @@ void main() {
           settingsByKey['topScrewPositions']?.constraints['multiple'], isTrue);
     });
 
+    test('trf421 exposes pdf setup sheet details', () {
+      final trf421 = getCarSettingDefinition('tamiya/trf421')!;
+      final settingsByKey = {
+        for (final setting in trf421.availableSettings) setting.key: setting,
+      };
+
+      expect(settingsByKey['frontUpperArmSpacerIn']?.category, 'front');
+      expect(settingsByKey['frontUpperArmSpacerOut']?.category, 'front');
+      expect(settingsByKey['frontDiffPositionShim']?.options,
+          contains('Alu. 0.5'));
+      expect(settingsByKey['frontDamperPiston']?.constraints['composite'],
+          'damperPiston');
+      expect(settingsByKey['motorMountScrewPositions']?.type, 'grid');
+      expect(settingsByKey['motorMountScrewPositions']?.constraints['rows'], 2);
+      expect(settingsByKey['motorMountScrewPositions']?.constraints['cols'], 7);
+
+      for (final key in const [
+        'ballastWeightA',
+        'ballastWeightB',
+        'ballastWeightC',
+        'batteryWeight',
+        'servoHornLength',
+      ]) {
+        expect(settingsByKey[key]?.category, 'top');
+      }
+    });
+
+    test('bd12 exposes pdf setup sheet details', () {
+      final bd12 = getCarSettingDefinition('yokomo/bd12')!;
+      final settingsByKey = {
+        for (final setting in bd12.availableSettings) setting.key: setting,
+      };
+
+      expect(settingsByKey['frontUpperArmPosition']?.type, 'grid');
+      expect(settingsByKey['frontBellCrankPostSpacer']?.category, 'front');
+      expect(settingsByKey['frontSwayBar']?.constraints['composite'],
+          'stabilizer');
+      expect(settingsByKey['frontShockOil']?.constraints['composite'],
+          'damperOil');
+      expect(settingsByKey['frontPiston']?.constraints['composite'],
+          'damperPiston');
+      expect(settingsByKey['rearGearOil']?.constraints['composite'], 'diffOil');
+      expect(settingsByKey['motorMountPosition']?.type, 'grid');
+      expect(settingsByKey['topDeckScrewPositions']?.type, 'grid');
+      expect(settingsByKey['batteryPosition']?.constraints['multiple'], isTrue);
+    });
+
     test('all setting definitions resolve to visible editor categories', () {
       const visibleCategories = {
         'basic',
@@ -158,6 +205,59 @@ void main() {
       expect(displayCategoryForSetting(bd12MainChassis), 'other');
       expect(displayCategoryForSetting(bd12FrontRideHeight), 'front');
       expect(displayCategoryForSetting(bd12RearRideHeight), 'rear');
+    });
+
+    test('new built-in car definitions are registered', () {
+      const expectedCarIds = {
+        'tamiya/trf421x',
+        'yokomo/bd11',
+        'yokomo/ms1_0',
+        'yokomo/ms2_0',
+      };
+
+      for (final carId in expectedCarIds) {
+        final definition = getCarSettingDefinition(carId);
+
+        expect(definition, isNotNull, reason: '$carId should be registered.');
+        expect(definition!.isHumanVerified, isTrue);
+        expect(definition.availableSettings.map((setting) => setting.key),
+            containsAll(['date', 'motor']));
+      }
+    });
+
+    test('all setting definitions use unique keys', () {
+      for (final entry in carSettingsDefinitions.entries) {
+        final keys = entry.value.availableSettings
+            .map((setting) => setting.key)
+            .toList();
+        final duplicateKeys = <String>{
+          for (final key in keys)
+            if (keys.where((candidate) => candidate == key).length > 1) key,
+        };
+
+        expect(
+          duplicateKeys,
+          isEmpty,
+          reason: '${entry.key} has duplicate setting keys.',
+        );
+      }
+    });
+
+    test('composite input metadata is available across supported cars', () {
+      final trf421x = getCarSettingDefinition('tamiya/trf421x')!;
+      final bd11 = getCarSettingDefinition('yokomo/bd11')!;
+      final ms1 = getCarSettingDefinition('yokomo/ms1_0')!;
+
+      final trf421xStabilizer = trf421x.availableSettings
+          .firstWhere((setting) => setting.key == 'frontStabilizer');
+      final bd11ShockOil = bd11.availableSettings
+          .firstWhere((setting) => setting.key == 'frontShockOil');
+      final ms1Piston = ms1.availableSettings
+          .firstWhere((setting) => setting.key == 'frontPiston');
+
+      expect(trf421xStabilizer.constraints['composite'], 'stabilizer');
+      expect(bd11ShockOil.constraints['composite'], 'damperOil');
+      expect(ms1Piston.constraints['composite'], 'damperPiston');
     });
   });
 }

@@ -101,6 +101,11 @@ class SettingsProvider extends ChangeNotifier {
       if (carsJson != null) {
         final List<dynamic> decoded = jsonDecode(carsJson);
         _cars = decoded.map((item) => Car.fromJson(item)).toList();
+        final mergedCars = _mergeBuiltInCars(_cars);
+        if (mergedCars.length != _cars.length) {
+          _cars = mergedCars;
+          await _saveCars();
+        }
       } else {
         // 初回起動時は初期データを設定
         _cars = _getInitialCars();
@@ -115,6 +120,23 @@ class SettingsProvider extends ChangeNotifier {
 
   // 初期車種データを取得
   List<Car> _getInitialCars() {
+    return _getBuiltInCars();
+  }
+
+  List<Car> _mergeBuiltInCars(List<Car> cars) {
+    final mergedCars = List<Car>.from(cars);
+    final existingIds = mergedCars.map((car) => car.id).toSet();
+
+    for (final builtInCar in _getBuiltInCars()) {
+      if (!existingIds.contains(builtInCar.id)) {
+        mergedCars.add(builtInCar);
+      }
+    }
+
+    return mergedCars;
+  }
+
+  List<Car> _getBuiltInCars() {
     try {
       final tamiyaManufacturer = Manufacturer(
         id: 'tamiya',
@@ -144,12 +166,40 @@ class SettingsProvider extends ChangeNotifier {
           manufacturer: tamiyaManufacturer,
           category: 'ツーリングカー',
         ),
+        Car(
+          id: 'tamiya/trf421x',
+          name: 'TRF421X',
+          imageUrl: 'assets/images/trf421x.jpg',
+          manufacturer: tamiyaManufacturer,
+          category: 'ツーリングカー',
+        ),
 
         // ヨコモの車種
+        Car(
+          id: 'yokomo/bd11',
+          name: 'BD11',
+          imageUrl: 'assets/images/bd11.jpg',
+          manufacturer: yokomoManufacturer,
+          category: 'ツーリングカー',
+        ),
         Car(
           id: 'yokomo/bd12',
           name: 'BD12',
           imageUrl: 'assets/images/bd12.jpg',
+          manufacturer: yokomoManufacturer,
+          category: 'ツーリングカー',
+        ),
+        Car(
+          id: 'yokomo/ms1_0',
+          name: 'MS1.0',
+          imageUrl: 'assets/images/ms1_0.jpg',
+          manufacturer: yokomoManufacturer,
+          category: 'ツーリングカー',
+        ),
+        Car(
+          id: 'yokomo/ms2_0',
+          name: 'MS2.0',
+          imageUrl: 'assets/images/ms2_0.jpg',
           manufacturer: yokomoManufacturer,
           category: 'ツーリングカー',
         ),
@@ -606,6 +656,7 @@ class SettingsProvider extends ChangeNotifier {
 
       // 車種リストを読み込み
       _cars = await _firestoreService!.getCars();
+      _cars = _mergeBuiltInCars(_cars);
 
       // 表示設定を読み込み
       _visibilitySettings = await _firestoreService!.getVisibilitySettings();
@@ -617,6 +668,11 @@ class SettingsProvider extends ChangeNotifier {
       await _saveCars();
       await _saveVisibilitySettings();
       await _saveLanguageSettings();
+      try {
+        await _firestoreService!.saveCars(_cars);
+      } catch (e) {
+        print('Firebase車種マージ保存エラー: $e');
+      }
 
       notifyListeners();
       print('Firebaseからデータを読み込みました');

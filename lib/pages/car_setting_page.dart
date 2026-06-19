@@ -2294,83 +2294,83 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   String? _buildTrf420xCompositePreviewValue(SettingItem setting) {
-    if (!_isTrf420x || !_isTrf420xCompositeSetting(setting.key)) {
+    final compositeType = _compositeTypeForSetting(setting);
+    if (compositeType == null) {
       return null;
     }
 
     final isEnglish =
         Provider.of<SettingsProvider>(context, listen: false).isEnglish;
     final holeUnit = isEnglish ? 'hole(s)' : '穴';
-    final values = switch (setting.key) {
-      'frontStabilizer' => [
-          _previewTextForSettingValue(settings['frontStabilizer'], suffix: 'φ'),
-          _previewTextForSettingValue(settings['frontStabilizerNote']),
+    final values = switch (compositeType) {
+      'stabilizer' => [
+          _previewTextForSettingValue(
+            settings[_compositeKey(setting, 'diameterKey', setting.key)],
+            suffix: 'φ',
+          ),
+          _previewTextForSettingValue(
+            settings[_compositeKey(setting, 'noteKey', '${setting.key}Note')],
+          ),
         ],
-      'rearStabilizer' => [
-          _previewTextForSettingValue(settings['rearStabilizer'], suffix: 'φ'),
-          _previewTextForSettingValue(settings['rearStabilizerNote']),
+      'diffOil' => [
+          _previewTextForSettingValue(
+            settings[
+                _compositeKey(setting, 'oilTypeKey', '${setting.key}Type')],
+          ),
+          _previewTextForSettingValue(
+            settings[_compositeKey(setting, 'oilKey', setting.key)],
+            prefix: '#',
+          ),
+          _previewTextForSettingValue(
+            settings[
+                _compositeKey(setting, 'weightKey', '${setting.key}Weight')],
+            suffix: 'g',
+          ),
         ],
-      'frontDiff' => [
-          _previewTextForSettingValue(settings['frontDiffOilType']),
-          _previewTextForSettingValue(settings['frontDiff'], prefix: '#'),
-          _previewTextForSettingValue(settings['frontDiffWeight'], suffix: 'g'),
-        ],
-      'rearDiff' => [
-          _previewTextForSettingValue(settings['rearDiffOilType']),
-          _previewTextForSettingValue(settings['rearDiff'], prefix: '#'),
-          _previewTextForSettingValue(settings['rearDiffWeight'], suffix: 'g'),
-        ],
-      'frontDamperPiston' => [
+      'damperPiston' => [
           _previewTextForSettingValue(
             _settingValueForKeys(
-              const ['frontDamperPiston', 'frontDumperPistonSize'],
+              _compositeKeys(
+                setting,
+                primaryKey: 'pistonKey',
+                fallback: setting.key,
+                aliasesKey: 'pistonAliases',
+              ),
             ),
             suffix: 'φ',
           ),
           _previewTextForSettingValue(
             _settingValueForKeys(
-              const ['frontDamperPistonHole', 'frontDumperPistonHole'],
+              _compositeKeys(
+                setting,
+                primaryKey: 'holeKey',
+                fallback: '${setting.key}Hole',
+                aliasesKey: 'holeAliases',
+              ),
             ),
             suffix: holeUnit,
           ),
         ],
-      'rearDamperPiston' => [
+      'damperOil' => [
           _previewTextForSettingValue(
             _settingValueForKeys(
-              const ['rearDamperPiston', 'rearDumperPistonSize'],
-            ),
-            suffix: 'φ',
-          ),
-          _previewTextForSettingValue(
-            _settingValueForKeys(
-              const ['rearDamperPistonHole', 'rearDumperPistonHole'],
-            ),
-            suffix: holeUnit,
-          ),
-        ],
-      'frontDamperOil' => [
-          _previewTextForSettingValue(
-            _settingValueForKeys(
-              const ['frontDamperOil', 'frontDumperOilHardness'],
+              _compositeKeys(
+                setting,
+                primaryKey: 'oilKey',
+                fallback: setting.key,
+                aliasesKey: 'oilAliases',
+              ),
             ),
             prefix: '#',
           ),
           _previewTextForSettingValue(
             _settingValueForKeys(
-              const ['frontDamperOilName', 'frontDumperOilName'],
-            ),
-          ),
-        ],
-      'rearDamperOil' => [
-          _previewTextForSettingValue(
-            _settingValueForKeys(
-              const ['rearDamperOil', 'rearDumperOilHardness'],
-            ),
-            prefix: '#',
-          ),
-          _previewTextForSettingValue(
-            _settingValueForKeys(
-              const ['rearDamperOilName', 'rearDumperOilName'],
+              _compositeKeys(
+                setting,
+                primaryKey: 'oilNameKey',
+                fallback: '${setting.key}Name',
+                aliasesKey: 'oilNameAliases',
+              ),
             ),
           ),
         ],
@@ -2382,6 +2382,38 @@ class _CarSettingPageState extends State<CarSettingPage> {
       return '-';
     }
     return filledValues.join(' / ');
+  }
+
+  String? _compositeTypeForSetting(SettingItem setting) {
+    final compositeType = setting.constraints['composite'];
+    return compositeType is String ? compositeType : null;
+  }
+
+  String _compositeKey(
+    SettingItem setting,
+    String constraintKey,
+    String fallback,
+  ) {
+    final value = setting.constraints[constraintKey];
+    return value is String && value.isNotEmpty ? value : fallback;
+  }
+
+  List<String> _compositeKeys(
+    SettingItem setting, {
+    required String primaryKey,
+    required String fallback,
+    String? aliasesKey,
+  }) {
+    final keys = <String>[
+      _compositeKey(setting, primaryKey, fallback),
+    ];
+
+    final aliases = aliasesKey == null ? null : setting.constraints[aliasesKey];
+    if (aliases is List) {
+      keys.addAll(aliases.whereType<String>());
+    }
+
+    return keys.toSet().toList(growable: false);
   }
 
   String _previewTextForSettingValue(
@@ -3449,27 +3481,79 @@ class _CarSettingPageState extends State<CarSettingPage> {
       widget.originalCar.id == 'tamiya/trf420x' ||
       widget.originalCar.id == 'trf420x';
 
-  bool _isTrf420xCompositeSetting(String key) {
-    return key == 'frontStabilizer' ||
-        key == 'rearStabilizer' ||
-        key == 'frontDiff' ||
-        key == 'rearDiff' ||
-        key == 'frontDamperPiston' ||
-        key == 'rearDamperPiston' ||
-        key == 'frontDamperOil' ||
-        key == 'rearDamperOil';
+  bool _isTrf420xHiddenCompositePart(String key) {
+    SettingItem? definitionSetting;
+    for (final setting
+        in _carSettingDefinition?.availableSettings ?? <SettingItem>[]) {
+      if (setting.key == key) {
+        definitionSetting = setting;
+        break;
+      }
+    }
+
+    if (definitionSetting?.constraints['hidden'] == true) {
+      return true;
+    }
+
+    if (_isCompositePartKey(key)) {
+      return true;
+    }
+
+    return _isTrf420x && key == 'ballastWeight';
   }
 
-  bool _isTrf420xHiddenCompositePart(String key) {
-    if (!_isTrf420x) {
+  bool _isCompositePartKey(String key) {
+    final settings = _carSettingDefinition?.availableSettings;
+    if (settings == null) {
       return false;
     }
 
-    return key == 'frontDamperPistonHole' ||
-        key == 'rearDamperPistonHole' ||
-        key == 'frontDamperOilName' ||
-        key == 'rearDamperOilName' ||
-        key == 'ballastWeight';
+    for (final setting in settings) {
+      if (_compositeTypeForSetting(setting) == null) {
+        continue;
+      }
+
+      final compositeKeys = <String>{
+        ..._compositeKeys(
+          setting,
+          primaryKey: 'diameterKey',
+          fallback: setting.key,
+        ),
+        _compositeKey(setting, 'noteKey', '${setting.key}Note'),
+        _compositeKey(setting, 'oilTypeKey', '${setting.key}Type'),
+        ..._compositeKeys(
+          setting,
+          primaryKey: 'oilKey',
+          fallback: setting.key,
+          aliasesKey: 'oilAliases',
+        ),
+        _compositeKey(setting, 'weightKey', '${setting.key}Weight'),
+        ..._compositeKeys(
+          setting,
+          primaryKey: 'pistonKey',
+          fallback: setting.key,
+          aliasesKey: 'pistonAliases',
+        ),
+        ..._compositeKeys(
+          setting,
+          primaryKey: 'holeKey',
+          fallback: '${setting.key}Hole',
+          aliasesKey: 'holeAliases',
+        ),
+        ..._compositeKeys(
+          setting,
+          primaryKey: 'oilNameKey',
+          fallback: '${setting.key}Name',
+          aliasesKey: 'oilNameAliases',
+        ),
+      }..remove(setting.key);
+
+      if (compositeKeys.contains(key)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   Widget _buildSettingLabel(SettingItem setting) {
@@ -3554,56 +3638,57 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   Widget? _buildTrf420xCompositeField(SettingItem setting) {
-    if (!_isTrf420x) {
+    final compositeType = _compositeTypeForSetting(setting);
+    if (compositeType == null) {
       return null;
     }
 
-    return switch (setting.key) {
-      'frontStabilizer' => _buildTrf420xStabilizerField(
+    return switch (compositeType) {
+      'stabilizer' => _buildTrf420xStabilizerField(
           setting,
-          diameterKey: 'frontStabilizer',
-          noteKey: 'frontStabilizerNote',
+          diameterKey: _compositeKey(setting, 'diameterKey', setting.key),
+          noteKey: _compositeKey(setting, 'noteKey', '${setting.key}Note'),
         ),
-      'rearStabilizer' => _buildTrf420xStabilizerField(
+      'diffOil' => _buildTrf420xDiffOilField(
           setting,
-          diameterKey: 'rearStabilizer',
-          noteKey: 'rearStabilizerNote',
+          oilTypeKey:
+              _compositeKey(setting, 'oilTypeKey', '${setting.key}Type'),
+          oilKey: _compositeKey(setting, 'oilKey', setting.key),
+          weightKey:
+              _compositeKey(setting, 'weightKey', '${setting.key}Weight'),
         ),
-      'frontDiff' => _buildTrf420xDiffOilField(
-          setting,
-          oilTypeKey: 'frontDiffOilType',
-          oilKey: 'frontDiff',
-          weightKey: 'frontDiffWeight',
+      'damperPiston' => _buildTrf420xDamperPistonField(
+          pistonKey: _compositeKey(setting, 'pistonKey', setting.key),
+          holeKey: _compositeKey(setting, 'holeKey', '${setting.key}Hole'),
+          pistonAliases: _compositeKeys(
+            setting,
+            primaryKey: 'pistonKey',
+            fallback: setting.key,
+            aliasesKey: 'pistonAliases',
+          ).skip(1).toList(growable: false),
+          holeAliases: _compositeKeys(
+            setting,
+            primaryKey: 'holeKey',
+            fallback: '${setting.key}Hole',
+            aliasesKey: 'holeAliases',
+          ).skip(1).toList(growable: false),
         ),
-      'rearDiff' => _buildTrf420xDiffOilField(
-          setting,
-          oilTypeKey: 'rearDiffOilType',
-          oilKey: 'rearDiff',
-          weightKey: 'rearDiffWeight',
-        ),
-      'frontDamperPiston' => _buildTrf420xDamperPistonField(
-          pistonKey: 'frontDamperPiston',
-          holeKey: 'frontDamperPistonHole',
-          pistonAliases: const ['frontDumperPistonSize'],
-          holeAliases: const ['frontDumperPistonHole'],
-        ),
-      'rearDamperPiston' => _buildTrf420xDamperPistonField(
-          pistonKey: 'rearDamperPiston',
-          holeKey: 'rearDamperPistonHole',
-          pistonAliases: const ['rearDumperPistonSize'],
-          holeAliases: const ['rearDumperPistonHole'],
-        ),
-      'frontDamperOil' => _buildTrf420xDamperOilField(
-          oilKey: 'frontDamperOil',
-          oilNameKey: 'frontDamperOilName',
-          oilAliases: const ['frontDumperOilHardness'],
-          oilNameAliases: const ['frontDumperOilName'],
-        ),
-      'rearDamperOil' => _buildTrf420xDamperOilField(
-          oilKey: 'rearDamperOil',
-          oilNameKey: 'rearDamperOilName',
-          oilAliases: const ['rearDumperOilHardness'],
-          oilNameAliases: const ['rearDumperOilName'],
+      'damperOil' => _buildTrf420xDamperOilField(
+          oilKey: _compositeKey(setting, 'oilKey', setting.key),
+          oilNameKey:
+              _compositeKey(setting, 'oilNameKey', '${setting.key}Name'),
+          oilAliases: _compositeKeys(
+            setting,
+            primaryKey: 'oilKey',
+            fallback: setting.key,
+            aliasesKey: 'oilAliases',
+          ).skip(1).toList(growable: false),
+          oilNameAliases: _compositeKeys(
+            setting,
+            primaryKey: 'oilNameKey',
+            fallback: '${setting.key}Name',
+            aliasesKey: 'oilNameAliases',
+          ).skip(1).toList(growable: false),
         ),
       _ => null,
     };
