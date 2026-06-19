@@ -53,6 +53,16 @@ enum _GaragePromptAction {
   suppress,
 }
 
+class _SelectGuideLabels {
+  final String start;
+  final String end;
+
+  const _SelectGuideLabels({
+    required this.start,
+    required this.end,
+  });
+}
+
 class CarSettingPage extends StatefulWidget {
   final Car originalCar;
   final Map<String, dynamic>? savedSettings;
@@ -2119,8 +2129,21 @@ class _CarSettingPageState extends State<CarSettingPage> {
       return const [];
     }
 
-    return _carSettingDefinition!.availableSettings
-        .where((setting) => displayCategoryForSetting(setting) == category)
+    return _filterHiddenTrf420xCompositeParts(
+      _carSettingDefinition!.availableSettings
+          .where((setting) => displayCategoryForSetting(setting) == category),
+    );
+  }
+
+  List<SettingItem> _filterHiddenTrf420xCompositeParts(
+    Iterable<SettingItem> items,
+  ) {
+    if (!_isTrf420x) {
+      return items.toList();
+    }
+
+    return items
+        .where((setting) => !_isTrf420xHiddenCompositePart(setting.key))
         .toList();
   }
 
@@ -2201,6 +2224,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
     final emptyItems = <MapEntry<String, String>>[];
 
     for (final setting in items) {
+      if (_isTrf420xHiddenCompositePart(setting.key)) {
+        continue;
+      }
       final previewValue = _buildSettingPreviewValue(setting);
       final previewItem = MapEntry(setting.label, previewValue);
       if (previewValue == '-') {
@@ -2224,6 +2250,11 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   String _buildSettingPreviewValue(SettingItem setting) {
+    final trf420xCompositeValue = _buildTrf420xCompositePreviewValue(setting);
+    if (trf420xCompositeValue != null) {
+      return trf420xCompositeValue;
+    }
+
     final value = settings[setting.key];
     if (value == null) {
       return '-';
@@ -2260,6 +2291,156 @@ class _CarSettingPageState extends State<CarSettingPage> {
     }
 
     return value.toString();
+  }
+
+  String? _buildTrf420xCompositePreviewValue(SettingItem setting) {
+    if (!_isTrf420x || !_isTrf420xCompositeSetting(setting.key)) {
+      return null;
+    }
+
+    final isEnglish =
+        Provider.of<SettingsProvider>(context, listen: false).isEnglish;
+    final holeUnit = isEnglish ? 'hole(s)' : '穴';
+    final values = switch (setting.key) {
+      'frontStabilizer' => [
+          _previewTextForSettingValue(settings['frontStabilizer'], suffix: 'φ'),
+          _previewTextForSettingValue(settings['frontStabilizerNote']),
+        ],
+      'rearStabilizer' => [
+          _previewTextForSettingValue(settings['rearStabilizer'], suffix: 'φ'),
+          _previewTextForSettingValue(settings['rearStabilizerNote']),
+        ],
+      'frontDiff' => [
+          _previewTextForSettingValue(settings['frontDiffOilType']),
+          _previewTextForSettingValue(settings['frontDiff'], prefix: '#'),
+          _previewTextForSettingValue(settings['frontDiffWeight'], suffix: 'g'),
+        ],
+      'rearDiff' => [
+          _previewTextForSettingValue(settings['rearDiffOilType']),
+          _previewTextForSettingValue(settings['rearDiff'], prefix: '#'),
+          _previewTextForSettingValue(settings['rearDiffWeight'], suffix: 'g'),
+        ],
+      'frontDamperPiston' => [
+          _previewTextForSettingValue(
+            _settingValueForKeys(
+              const ['frontDamperPiston', 'frontDumperPistonSize'],
+            ),
+            suffix: 'φ',
+          ),
+          _previewTextForSettingValue(
+            _settingValueForKeys(
+              const ['frontDamperPistonHole', 'frontDumperPistonHole'],
+            ),
+            suffix: holeUnit,
+          ),
+        ],
+      'rearDamperPiston' => [
+          _previewTextForSettingValue(
+            _settingValueForKeys(
+              const ['rearDamperPiston', 'rearDumperPistonSize'],
+            ),
+            suffix: 'φ',
+          ),
+          _previewTextForSettingValue(
+            _settingValueForKeys(
+              const ['rearDamperPistonHole', 'rearDumperPistonHole'],
+            ),
+            suffix: holeUnit,
+          ),
+        ],
+      'frontDamperOil' => [
+          _previewTextForSettingValue(
+            _settingValueForKeys(
+              const ['frontDamperOil', 'frontDumperOilHardness'],
+            ),
+            prefix: '#',
+          ),
+          _previewTextForSettingValue(
+            _settingValueForKeys(
+              const ['frontDamperOilName', 'frontDumperOilName'],
+            ),
+          ),
+        ],
+      'rearDamperOil' => [
+          _previewTextForSettingValue(
+            _settingValueForKeys(
+              const ['rearDamperOil', 'rearDumperOilHardness'],
+            ),
+            prefix: '#',
+          ),
+          _previewTextForSettingValue(
+            _settingValueForKeys(
+              const ['rearDamperOilName', 'rearDumperOilName'],
+            ),
+          ),
+        ],
+      _ => const <String>[],
+    };
+
+    final filledValues = values.where((value) => value.isNotEmpty).toList();
+    if (filledValues.isEmpty) {
+      return '-';
+    }
+    return filledValues.join(' / ');
+  }
+
+  String _previewTextForSettingValue(
+    dynamic value, {
+    String prefix = '',
+    String suffix = '',
+  }) {
+    if (value == null) {
+      return '';
+    }
+
+    final text = value is num
+        ? (value == value.roundToDouble()
+            ? value.toStringAsFixed(0)
+            : value
+                .toStringAsFixed(1)
+                .replaceAll(RegExp(r'0+$'), '')
+                .replaceAll(RegExp(r'\.$'), ''))
+        : value.toString().trim();
+
+    if (text.isEmpty) {
+      return '';
+    }
+    return '$prefix$text$suffix';
+  }
+
+  dynamic _settingValueForKeys(List<String> keys) {
+    for (final key in keys) {
+      final value = settings[key];
+      if (value == null) {
+        continue;
+      }
+      if (value is String && value.trim().isEmpty) {
+        continue;
+      }
+      return value;
+    }
+    return null;
+  }
+
+  String _settingTextForKey(
+    String key, {
+    List<String> aliases = const [],
+  }) {
+    final value = _settingValueForKeys([key, ...aliases]);
+    return value?.toString() ?? '';
+  }
+
+  void _updateTextSettingWithAliases(
+    String key,
+    List<String> aliases,
+    String value,
+  ) {
+    setState(() {
+      settings[key] = value;
+      for (final alias in aliases) {
+        settings[alias] = value;
+      }
+    });
   }
 
   Widget _buildPaperFieldGrid(
@@ -2822,9 +3003,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
     }
 
     // よく使う項目として選択された設定を表示
-    final favoriteSettings = _carSettingDefinition!.availableSettings
-        .where((setting) => favoriteKeys.contains(setting.key))
-        .toList();
+    final favoriteSettings = _filterHiddenTrf420xCompositeParts(
+      _carSettingDefinition!.availableSettings
+          .where((setting) => favoriteKeys.contains(setting.key)),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -3228,6 +3410,11 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   Widget _buildSettingField(SettingItem setting) {
+    final trf420xCompositeField = _buildTrf420xCompositeField(setting);
+    if (trf420xCompositeField != null) {
+      return trf420xCompositeField;
+    }
+
     if (setting.type == 'grid') {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3256,6 +3443,404 @@ class _CarSettingPageState extends State<CarSettingPage> {
       default:
         return Container();
     }
+  }
+
+  bool get _isTrf420x =>
+      widget.originalCar.id == 'tamiya/trf420x' ||
+      widget.originalCar.id == 'trf420x';
+
+  bool _isTrf420xCompositeSetting(String key) {
+    return key == 'frontStabilizer' ||
+        key == 'rearStabilizer' ||
+        key == 'frontDiff' ||
+        key == 'rearDiff' ||
+        key == 'frontDamperPiston' ||
+        key == 'rearDamperPiston' ||
+        key == 'frontDamperOil' ||
+        key == 'rearDamperOil';
+  }
+
+  bool _isTrf420xHiddenCompositePart(String key) {
+    if (!_isTrf420x) {
+      return false;
+    }
+
+    return key == 'frontDamperPistonHole' ||
+        key == 'rearDamperPistonHole' ||
+        key == 'frontDamperOilName' ||
+        key == 'rearDamperOilName';
+  }
+
+  Widget? _buildTrf420xCompositeField(SettingItem setting) {
+    if (!_isTrf420x) {
+      return null;
+    }
+
+    return switch (setting.key) {
+      'frontStabilizer' => _buildTrf420xStabilizerField(
+          setting,
+          diameterKey: 'frontStabilizer',
+          noteKey: 'frontStabilizerNote',
+        ),
+      'rearStabilizer' => _buildTrf420xStabilizerField(
+          setting,
+          diameterKey: 'rearStabilizer',
+          noteKey: 'rearStabilizerNote',
+        ),
+      'frontDiff' => _buildTrf420xDiffOilField(
+          setting,
+          oilTypeKey: 'frontDiffOilType',
+          oilKey: 'frontDiff',
+          weightKey: 'frontDiffWeight',
+        ),
+      'rearDiff' => _buildTrf420xDiffOilField(
+          setting,
+          oilTypeKey: 'rearDiffOilType',
+          oilKey: 'rearDiff',
+          weightKey: 'rearDiffWeight',
+        ),
+      'frontDamperPiston' => _buildTrf420xDamperPistonField(
+          pistonKey: 'frontDamperPiston',
+          holeKey: 'frontDamperPistonHole',
+          pistonAliases: const ['frontDumperPistonSize'],
+          holeAliases: const ['frontDumperPistonHole'],
+        ),
+      'rearDamperPiston' => _buildTrf420xDamperPistonField(
+          pistonKey: 'rearDamperPiston',
+          holeKey: 'rearDamperPistonHole',
+          pistonAliases: const ['rearDumperPistonSize'],
+          holeAliases: const ['rearDumperPistonHole'],
+        ),
+      'frontDamperOil' => _buildTrf420xDamperOilField(
+          oilKey: 'frontDamperOil',
+          oilNameKey: 'frontDamperOilName',
+          oilAliases: const ['frontDumperOilHardness'],
+          oilNameAliases: const ['frontDumperOilName'],
+        ),
+      'rearDamperOil' => _buildTrf420xDamperOilField(
+          oilKey: 'rearDamperOil',
+          oilNameKey: 'rearDamperOilName',
+          oilAliases: const ['rearDumperOilHardness'],
+          oilNameAliases: const ['rearDumperOilName'],
+        ),
+      _ => null,
+    };
+  }
+
+  Widget _buildTrf420xStabilizerField(
+    SettingItem setting, {
+    required String diameterKey,
+    required String noteKey,
+  }) {
+    final isEnglish =
+        Provider.of<SettingsProvider>(context, listen: false).isEnglish;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: Text(setting.label)),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 128,
+              child: TextFormField(
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  suffixText: 'φ',
+                ),
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                initialValue: settings[diameterKey]?.toString() ?? '',
+                onChanged: (value) {
+                  setState(() {
+                    settings[diameterKey] = double.tryParse(value) ?? 0.0;
+                  });
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          decoration: InputDecoration(
+            border: const OutlineInputBorder(),
+            hintText: isEnglish ? 'Stabilizer note' : ' ',
+          ),
+          initialValue: settings[noteKey]?.toString() ?? '',
+          onChanged: (value) {
+            setState(() {
+              settings[noteKey] = value;
+            });
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTrf420xDiffOilField(
+    SettingItem setting, {
+    required String oilTypeKey,
+    required String oilKey,
+    required String weightKey,
+  }) {
+    final isEnglish =
+        Provider.of<SettingsProvider>(context, listen: false).isEnglish;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final oilTypeField = TextFormField(
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                hintText: isEnglish ? 'Oil type' : 'オイル種類',
+              ),
+              initialValue: settings[oilTypeKey]?.toString() ?? '',
+              onChanged: (value) {
+                setState(() {
+                  settings[oilTypeKey] = value;
+                });
+              },
+            );
+            final oilField = TextFormField(
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                prefixText: '# ',
+                hintText: isEnglish ? 'Oil' : '番手',
+              ),
+              initialValue: settings[oilKey]?.toString() ?? '',
+              onChanged: (value) {
+                setState(() {
+                  settings[oilKey] = value;
+                });
+              },
+            );
+            final weightField = TextFormField(
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                suffixText: 'g',
+                hintText: isEnglish ? 'Weight' : '量',
+              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              initialValue: settings[weightKey]?.toString() ?? '',
+              onChanged: (value) {
+                setState(() {
+                  settings[weightKey] = value;
+                });
+              },
+            );
+
+            if (constraints.maxWidth < 480) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(setting.label),
+                  const SizedBox(height: 8),
+                  oilTypeField,
+                  const SizedBox(height: 8),
+                  oilField,
+                  const SizedBox(height: 8),
+                  weightField,
+                ],
+              );
+            }
+
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: Text(setting.label),
+                ),
+                const SizedBox(width: 8),
+                Expanded(flex: 3, child: oilTypeField),
+                const SizedBox(width: 8),
+                Expanded(flex: 3, child: oilField),
+                const SizedBox(width: 8),
+                Expanded(flex: 2, child: weightField),
+              ],
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTrf420xDamperPistonField({
+    required String pistonKey,
+    required String holeKey,
+    List<String> pistonAliases = const [],
+    List<String> holeAliases = const [],
+  }) {
+    final isEnglish =
+        Provider.of<SettingsProvider>(context, listen: false).isEnglish;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final label = _buildTrf420xCompactLabel(
+          isEnglish ? 'Piston' : 'ピストン',
+          secondary: isEnglish ? null : 'Piston',
+        );
+        final inputs = Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(
+              child: _buildTrf420xCompactTextField(
+                settingKey: pistonKey,
+                aliases: pistonAliases,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+              ),
+            ),
+            const SizedBox(width: 6),
+            const Text('φ', style: TextStyle(fontSize: 13)),
+            const SizedBox(width: 6),
+            Expanded(
+              child: _buildTrf420xCompactTextField(
+                settingKey: holeKey,
+                aliases: holeAliases,
+                keyboardType: TextInputType.number,
+              ),
+            ),
+            const SizedBox(width: 6),
+            const Text(
+              'hole(s)',
+              maxLines: 1,
+              overflow: TextOverflow.fade,
+              softWrap: false,
+              style: TextStyle(fontSize: 12),
+            ),
+          ],
+        );
+
+        if (constraints.maxWidth < 320) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              label,
+              const SizedBox(height: 8),
+              inputs,
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(width: 72, child: label),
+            const SizedBox(width: 8),
+            Expanded(child: inputs),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTrf420xDamperOilField({
+    required String oilKey,
+    required String oilNameKey,
+    List<String> oilAliases = const [],
+    List<String> oilNameAliases = const [],
+  }) {
+    final isEnglish =
+        Provider.of<SettingsProvider>(context, listen: false).isEnglish;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final label = _buildTrf420xCompactLabel(
+          isEnglish ? 'Oil' : 'オイル / Oil',
+        );
+        final oilNumberInput = Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Text('#', style: TextStyle(fontSize: 13)),
+            const SizedBox(width: 6),
+            Expanded(
+              child: _buildTrf420xCompactTextField(
+                settingKey: oilKey,
+                aliases: oilAliases,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+              ),
+            ),
+          ],
+        );
+        final oilRow = constraints.maxWidth < 320
+            ? Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  label,
+                  const SizedBox(height: 8),
+                  oilNumberInput,
+                ],
+              )
+            : Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(width: 92, child: label),
+                  const SizedBox(width: 8),
+                  Expanded(child: oilNumberInput),
+                ],
+              );
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            oilRow,
+            const SizedBox(height: 8),
+            _buildTrf420xCompactTextField(
+              settingKey: oilNameKey,
+              aliases: oilNameAliases,
+              hintText: isEnglish ? 'Oil name' : 'オイル名',
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildTrf420xCompactLabel(String label, {String? secondary}) {
+    return Text(
+      secondary == null ? label : '$label\n$secondary',
+      maxLines: secondary == null ? 1 : 2,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
+        height: 1.1,
+      ),
+    );
+  }
+
+  Widget _buildTrf420xCompactTextField({
+    required String settingKey,
+    List<String> aliases = const [],
+    TextInputType? keyboardType,
+    String? hintText,
+  }) {
+    return SizedBox(
+      height: 44,
+      child: TextFormField(
+        decoration: InputDecoration(
+          border: const OutlineInputBorder(),
+          isDense: true,
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 10,
+            vertical: 10,
+          ),
+          hintText: hintText,
+        ),
+        keyboardType: keyboardType,
+        initialValue: _settingTextForKey(settingKey, aliases: aliases),
+        onChanged: (value) {
+          _updateTextSettingWithAliases(settingKey, aliases, value);
+        },
+      ),
+    );
   }
 
   List<Point> _getGridValue(String key) {
@@ -3465,13 +4050,11 @@ class _CarSettingPageState extends State<CarSettingPage> {
             border: OutlineInputBorder(),
           ),
           value: validValue,
-          items: setting.options?.map((option) {
-            return DropdownMenuItem(
-              value: option,
-              child: Text(option),
-            );
-          }).toList(),
+          items: _buildSelectMenuItems(setting),
           onChanged: (value) {
+            if (_isSelectGuideValue(value)) {
+              return;
+            }
             setState(() {
               settings[setting.key] = value;
             });
@@ -3479,6 +4062,79 @@ class _CarSettingPageState extends State<CarSettingPage> {
         ),
       ],
     );
+  }
+
+  List<DropdownMenuItem<String>>? _buildSelectMenuItems(SettingItem setting) {
+    final options = setting.options;
+    if (options == null) {
+      return null;
+    }
+
+    final guideLabels = _selectGuideLabels(setting);
+    if (guideLabels == null) {
+      return options.map(_buildSelectOptionMenuItem).toList();
+    }
+
+    return [
+      _buildSelectGuideMenuItem(
+        value: _selectGuideValue(setting.key, 'start'),
+        label: guideLabels.start,
+      ),
+      ...options.map(_buildSelectOptionMenuItem),
+      _buildSelectGuideMenuItem(
+        value: _selectGuideValue(setting.key, 'end'),
+        label: guideLabels.end,
+      ),
+    ];
+  }
+
+  DropdownMenuItem<String> _buildSelectOptionMenuItem(String option) {
+    return DropdownMenuItem(
+      value: option,
+      child: Text(option),
+    );
+  }
+
+  DropdownMenuItem<T> _buildSelectGuideMenuItem<T>({
+    required T value,
+    required String label,
+  }) {
+    return DropdownMenuItem(
+      value: value,
+      enabled: false,
+      child: Text(
+        label,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  _SelectGuideLabels? _selectGuideLabels(SettingItem setting) {
+    final guide = setting.constraints['selectGuide'];
+    if (guide != 'insideOutside') {
+      return null;
+    }
+
+    return _insideOutsideSelectGuideLabels();
+  }
+
+  _SelectGuideLabels _insideOutsideSelectGuideLabels() {
+    final isEnglish = Provider.of<SettingsProvider>(context).isEnglish;
+    return isEnglish
+        ? const _SelectGuideLabels(start: 'Inside', end: 'Outside')
+        : const _SelectGuideLabels(start: '内側', end: '外側');
+  }
+
+  String _selectGuideValue(String settingKey, String edge) {
+    return '__select_guide_${settingKey}_$edge';
+  }
+
+  bool _isSelectGuideValue(String? value) {
+    return value?.startsWith('__select_guide_') ?? false;
   }
 
   Widget _buildSliderField(SettingItem setting) {
@@ -3524,6 +4180,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
   Widget _buildFrontSettingsTabForTRF420X() {
     final settingsProvider = Provider.of<SettingsProvider>(context);
     final isEnglish = settingsProvider.isEnglish;
+    final damperPositionGuideLabels = _insideOutsideSelectGuideLabels();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -3583,13 +4240,26 @@ class _CarSettingPageState extends State<CarSettingPage> {
                 border: const OutlineInputBorder(),
               ),
               value: settings['frontDamperPosition'] ?? 1,
-              items: List.generate(5, (index) {
-                return DropdownMenuItem(
-                  value: index + 1,
-                  child: Text('${index + 1}'),
-                );
-              }),
+              items: [
+                _buildSelectGuideMenuItem<int>(
+                  value: -1,
+                  label: damperPositionGuideLabels.start,
+                ),
+                ...List.generate(5, (index) {
+                  return DropdownMenuItem(
+                    value: index + 1,
+                    child: Text('${index + 1}'),
+                  );
+                }),
+                _buildSelectGuideMenuItem<int>(
+                  value: -2,
+                  label: damperPositionGuideLabels.end,
+                ),
+              ],
               onChanged: (value) {
+                if (value == null || value < 1) {
+                  return;
+                }
                 setState(() {
                   settings['frontDamperPosition'] = value;
                 });
@@ -4091,39 +4761,14 @@ class _CarSettingPageState extends State<CarSettingPage> {
                         const SizedBox(height: 16),
 
                         // ピストン関連設定
-                        _buildTRF420XSettingsRow(
-                          _buildTRF420XSettingFieldWithFavorite(
+                        _buildTRF420XSingleSetting(
+                          _buildTRF420XCompactSettingWithFavorite(
                             'frontDumperPistonSize',
-                            'ピストンサイズ',
-                            TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'ピストンサイズ',
-                                border: OutlineInputBorder(),
-                              ),
-                              initialValue:
-                                  settings['frontDumperPistonSize'] ?? '',
-                              onChanged: (value) {
-                                setState(() {
-                                  settings['frontDumperPistonSize'] = value;
-                                });
-                              },
-                            ),
-                          ),
-                          _buildTRF420XSettingFieldWithFavorite(
-                            'frontDumperPistonHole',
-                            'ピストン穴数',
-                            TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'ピストン穴数',
-                                border: OutlineInputBorder(),
-                              ),
-                              initialValue:
-                                  settings['frontDumperPistonHole'] ?? '',
-                              onChanged: (value) {
-                                setState(() {
-                                  settings['frontDumperPistonHole'] = value;
-                                });
-                              },
+                            _buildTrf420xDamperPistonField(
+                              pistonKey: 'frontDumperPistonSize',
+                              holeKey: 'frontDumperPistonHole',
+                              pistonAliases: const ['frontDamperPiston'],
+                              holeAliases: const ['frontDamperPistonHole'],
                             ),
                           ),
                         ),
@@ -4131,39 +4776,14 @@ class _CarSettingPageState extends State<CarSettingPage> {
                         const SizedBox(height: 16),
 
                         // オイル関連設定
-                        _buildTRF420XSettingsRow(
-                          _buildTRF420XSettingFieldWithFavorite(
+                        _buildTRF420XSingleSetting(
+                          _buildTRF420XCompactSettingWithFavorite(
                             'frontDumperOilHardness',
-                            'オイル硬度',
-                            TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'オイル硬度',
-                                border: OutlineInputBorder(),
-                              ),
-                              initialValue:
-                                  settings['frontDumperOilHardness'] ?? '',
-                              onChanged: (value) {
-                                setState(() {
-                                  settings['frontDumperOilHardness'] = value;
-                                });
-                              },
-                            ),
-                          ),
-                          _buildTRF420XSettingFieldWithFavorite(
-                            'frontDumperOilName',
-                            'オイル名',
-                            TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'オイル名',
-                                border: OutlineInputBorder(),
-                              ),
-                              initialValue:
-                                  settings['frontDumperOilName'] ?? '',
-                              onChanged: (value) {
-                                setState(() {
-                                  settings['frontDumperOilName'] = value;
-                                });
-                              },
+                            _buildTrf420xDamperOilField(
+                              oilKey: 'frontDumperOilHardness',
+                              oilNameKey: 'frontDumperOilName',
+                              oilAliases: const ['frontDamperOil'],
+                              oilNameAliases: const ['frontDamperOilName'],
                             ),
                           ),
                         ),
@@ -4271,6 +4891,46 @@ class _CarSettingPageState extends State<CarSettingPage> {
         ),
         Padding(
           padding: const EdgeInsets.only(top: 20.0), // ラベルの高さに合わせて調整
+          child: IconButton(
+            icon: Icon(
+              isFavorite ? Icons.star : Icons.star_border,
+              color: isFavorite ? Colors.amber : null,
+              size: 20,
+            ),
+            onPressed: () {
+              settingsProvider.toggleFavoriteSetting(
+                widget.originalCar.id,
+                key,
+                !isFavorite,
+              );
+            },
+            tooltip: settingsProvider.isEnglish
+                ? (isFavorite ? 'Remove from favorites' : 'Add to favorites')
+                : (isFavorite ? 'よく使う項目から削除' : 'よく使う項目に追加'),
+            constraints: const BoxConstraints(
+              minWidth: 32,
+              minHeight: 32,
+            ),
+            padding: EdgeInsets.zero,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTRF420XCompactSettingWithFavorite(
+      String key, Widget inputWidget) {
+    final settingsProvider = Provider.of<SettingsProvider>(context);
+    final favoriteKeys =
+        settingsProvider.getFavoriteSettings(widget.originalCar.id);
+    final isFavorite = favoriteKeys.contains(key);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(child: inputWidget),
+        Padding(
+          padding: const EdgeInsets.only(top: 4.0),
           child: IconButton(
             icon: Icon(
               isFavorite ? Icons.star : Icons.star_border,

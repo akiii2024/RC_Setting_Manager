@@ -5,7 +5,16 @@ import '../../common/basic_settings.dart';
 final List<SettingItem> trf420xSpecificSettings = [
   // フロント設定
   SettingItem(
-    key: 'frontUpperArmSpacer',
+    key: 'frontUpperArmSpacerMount',
+    type: 'number',
+    category: 'front',
+    label: 'アッパーアームスペーサー（マウント）',
+    unit: 'mm',
+    constraints: {'min': 0, 'max': 10, 'step': 0.5},
+    defaultValue: '0',
+  ),
+  SettingItem(
+    key: 'frontUpperArmSpacerIn',
     type: 'number',
     category: 'front',
     label: 'アッパーアームスペーサー（内）',
@@ -23,10 +32,20 @@ final List<SettingItem> trf420xSpecificSettings = [
     defaultValue: '0',
   ),
   SettingItem(
-    key: 'frontDamperPosition',
+    key: 'frontDamperPositionStay',
     type: 'select',
     category: 'front',
-    label: 'ダンパーポジション',
+    label: 'ダンパーポジション（ステー）',
+    constraints: {'selectGuide': 'insideOutside'},
+    options: ['1', '2', '3'],
+    defaultValue: '1',
+  ),
+  SettingItem(
+    key: 'frontDamperPositionArm',
+    type: 'select',
+    category: 'front',
+    label: 'ダンパーポジション（アーム）',
+    constraints: {'selectGuide': 'insideOutside'},
     options: ['1', '2', '3'],
     defaultValue: '1',
   ),
@@ -84,7 +103,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     key: 'frontSusMountFrontShaftPosition',
     type: 'grid',
     category: 'front',
-    label: 'Fサスマウント前シャフト位置',
+    label: 'Fシャフト位置',
     constraints: {
       'rows': 5,
       'cols': 5,
@@ -95,7 +114,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     key: 'frontSusMountRearShaftPosition',
     type: 'grid',
     category: 'front',
-    label: 'Fサスマウント後シャフト位置',
+    label: 'Rシャフト位置',
     constraints: {
       'rows': 5,
       'cols': 5,
@@ -213,6 +232,13 @@ final List<SettingItem> trf420xSpecificSettings = [
     defaultValue: '',
   ),
   SettingItem(
+    key: 'frontDamperOilName',
+    type: 'text',
+    category: 'frontDamper',
+    label: 'オイル名',
+    defaultValue: '',
+  ),
+  SettingItem(
     key: 'frontDamperSpring',
     type: 'text',
     category: 'frontDamper',
@@ -253,6 +279,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     type: 'select',
     category: 'rearDamper',
     label: 'ダンパーポジション',
+    constraints: {'selectGuide': 'insideOutside'},
     options: ['1', '2', '3'],
     defaultValue: '1',
   ),
@@ -436,6 +463,13 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'rearDamper',
     label: 'オイル',
     unit: '#',
+    defaultValue: '',
+  ),
+  SettingItem(
+    key: 'rearDamperOilName',
+    type: 'text',
+    category: 'rearDamper',
+    label: 'オイル名',
     defaultValue: '',
   ),
   SettingItem(
