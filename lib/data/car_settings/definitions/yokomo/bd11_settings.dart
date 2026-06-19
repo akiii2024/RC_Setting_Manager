@@ -406,5 +406,5 @@ final List<SettingItem> bd11SpecificSettings = [
 final bd11Settings = CarSettingDefinition(
   carId: 'yokomo/bd11',
   availableSettings: [...basicSettings, ...bd11SpecificSettings],
-  isHumanVerified: true,
+  isHumanVerified: false,
 );

@@ -8,5 +8,5 @@ final ms1Settings = CarSettingDefinition(
     ...basicSettings,
     ...masterSpeedSpecificSettings(isMs2: false),
   ],
-  isHumanVerified: true,
+  isHumanVerified: false,
 );

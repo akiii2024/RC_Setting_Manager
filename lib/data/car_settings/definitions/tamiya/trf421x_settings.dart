@@ -509,5 +509,5 @@ final List<SettingItem> trf421xSpecificSettings = [
 final trf421xSettings = CarSettingDefinition(
   carId: 'tamiya/trf421x',
   availableSettings: [...basicSettings, ...trf421xSpecificSettings],
-  isHumanVerified: true,
+  isHumanVerified: false,
 );
