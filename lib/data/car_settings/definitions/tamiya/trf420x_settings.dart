@@ -500,6 +500,15 @@ final List<SettingItem> trf420xSpecificSettings = [
 
   // トップ設定
   SettingItem(
+    key: 'toeAngle',
+    type: 'number',
+    category: 'top',
+    label: 'トー角',
+    unit: '°',
+    constraints: {'min': -5, 'max': 5, 'step': 0.1},
+    defaultValue: '0',
+  ),
+  SettingItem(
     key: 'knuckleArmType',
     type: 'select',
     category: 'top',
@@ -584,6 +593,62 @@ final List<SettingItem> trf420xSpecificSettings = [
     unit: 'g',
     constraints: {'min': 0, 'max': 100, 'step': 0.5},
     defaultValue: '0',
+  ),
+
+  // Top sheet layout settings
+  SettingItem(
+    key: 'ballastWeightA',
+    type: 'number',
+    category: 'top',
+    label: 'バランスウェイト A',
+    unit: 'g',
+    constraints: {'min': 0, 'max': 100, 'step': 0.5},
+    defaultValue: '0',
+  ),
+  SettingItem(
+    key: 'ballastWeightB',
+    type: 'number',
+    category: 'top',
+    label: 'バランスウェイト B',
+    unit: 'g',
+    constraints: {'min': 0, 'max': 100, 'step': 0.5},
+    defaultValue: '0',
+  ),
+  SettingItem(
+    key: 'ballastWeightC',
+    type: 'number',
+    category: 'top',
+    label: 'バランスウェイト C',
+    unit: 'g',
+    constraints: {'min': 0, 'max': 100, 'step': 0.5},
+    defaultValue: '0',
+  ),
+  SettingItem(
+    key: 'topScrewPositions',
+    type: 'grid',
+    category: 'top',
+    label: 'ビス取り付け位置',
+    constraints: {
+      'rows': 1,
+      'cols': 7,
+      'multiple': true,
+    },
+  ),
+  SettingItem(
+    key: 'rearSusType',
+    type: 'select',
+    category: 'top',
+    label: 'リヤサスタイプ',
+    options: ['Normal', 'OP'],
+    defaultValue: 'Normal',
+  ),
+  SettingItem(
+    key: 'rearSusHardness',
+    type: 'select',
+    category: 'top',
+    label: 'リヤ硬さ',
+    options: ['Hard', 'Soft'],
+    defaultValue: 'Hard',
   ),
 
   // その他の設定

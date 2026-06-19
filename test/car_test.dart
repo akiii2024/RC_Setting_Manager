@@ -89,6 +89,29 @@ void main() {
       expect(settingsByKey, isNot(contains('rearSusMountShaftPosition')));
     });
 
+    test('trf420x exposes top sheet layout settings', () {
+      final trf420x = getCarSettingDefinition('tamiya/trf420x')!;
+      final settingsByKey = {
+        for (final setting in trf420x.availableSettings) setting.key: setting,
+      };
+
+      for (final key in const [
+        'toeAngle',
+        'ballastWeightA',
+        'ballastWeightB',
+        'ballastWeightC',
+        'rearSusType',
+        'rearSusHardness',
+      ]) {
+        expect(settingsByKey[key]?.category, 'top');
+      }
+
+      expect(settingsByKey['topScrewPositions']?.type, 'grid');
+      expect(settingsByKey['topScrewPositions']?.constraints['cols'], 7);
+      expect(
+          settingsByKey['topScrewPositions']?.constraints['multiple'], isTrue);
+    });
+
     test('all setting definitions resolve to visible editor categories', () {
       const visibleCategories = {
         'basic',

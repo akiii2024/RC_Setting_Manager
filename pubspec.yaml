@@ -45,5 +45,4 @@ flutter:
 
   assets:
     - assets/launcher_icon/ios_icon.png
-    - assets/trf420x.png
     - lib/data/track_locations.json
