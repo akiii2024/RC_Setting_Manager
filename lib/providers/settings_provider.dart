@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../models/saved_setting.dart';
+import '../models/run_log.dart';
 import '../models/car.dart';
 import '../models/manufacturer.dart';
 import '../models/visibility_settings.dart';
@@ -11,6 +12,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class SettingsProvider extends ChangeNotifier {
   List<SavedSetting> _savedSettings = [];
+  List<RunLog> _runLogs = [];
   Map<String, VisibilitySettings> _visibilitySettings = {};
   bool _isEnglish = false;
   bool _usePaperStyleEditor = false;
@@ -19,6 +21,7 @@ class SettingsProvider extends ChangeNotifier {
   bool _isInitialized = false; // 初期化完了フラグ
 
   final String _savedSettingsKey = 'saved_settings';
+  final String _runLogsKey = 'run_logs';
   final String _visibilitySettingsKey = 'visibility_settings';
   final String _languageKey = 'language_settings';
   final String _carsKey = 'cars_settings';
@@ -28,6 +31,7 @@ class SettingsProvider extends ChangeNotifier {
   FirestoreService? _firestoreService;
 
   List<SavedSetting> get savedSettings => _savedSettings;
+  List<RunLog> get runLogs => _runLogs;
   Map<String, VisibilitySettings> get visibilitySettings => _visibilitySettings;
   bool get isEnglish => _isEnglish;
   List<Car> get cars => _cars;
@@ -58,6 +62,7 @@ class SettingsProvider extends ChangeNotifier {
       // 各設定を順次読み込み（並行処理を避ける）
       await _loadCars();
       await _loadSettings();
+      await _loadRunLogs();
       await _loadVisibilitySettings();
       await _loadLanguageSettings();
       await _loadEditorLayoutSettings();
@@ -387,6 +392,22 @@ class SettingsProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> _loadRunLogs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final runLogsJson = prefs.getString(_runLogsKey);
+
+      if (runLogsJson != null) {
+        final List<dynamic> decoded = jsonDecode(runLogsJson);
+        _runLogs = decoded.map((item) => RunLog.fromJson(item)).toList();
+        _runLogs.sort((a, b) => b.runAt.compareTo(a.runAt));
+      }
+    } catch (e) {
+      print('Error loading run logs: $e');
+      _runLogs = [];
+    }
+  }
+
   Future<void> _loadVisibilitySettings() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -441,6 +462,17 @@ class SettingsProvider extends ChangeNotifier {
       await prefs.setString(_savedSettingsKey, settingsJson);
     } catch (e) {
       print('Error saving settings: $e');
+    }
+  }
+
+  Future<void> _saveRunLogs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final runLogsJson =
+          jsonEncode(_runLogs.map((runLog) => runLog.toJson()).toList());
+      await prefs.setString(_runLogsKey, runLogsJson);
+    } catch (e) {
+      print('Error saving run logs: $e');
     }
   }
 
@@ -634,6 +666,7 @@ class SettingsProvider extends ChangeNotifier {
     try {
       await _firestoreService!.syncAllData(
         savedSettings: _savedSettings,
+        runLogs: _runLogs,
         cars: _cars,
         visibilitySettings: _visibilitySettings,
         isEnglish: _isEnglish,
@@ -654,6 +687,9 @@ class SettingsProvider extends ChangeNotifier {
       _savedSettings = await _firestoreService!.getSavedSettings();
       _savedSettings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
+      _runLogs = await _firestoreService!.getRunLogs();
+      _runLogs.sort((a, b) => b.runAt.compareTo(a.runAt));
+
       // 車種リストを読み込み
       _cars = await _firestoreService!.getCars();
       _cars = _mergeBuiltInCars(_cars);
@@ -665,6 +701,7 @@ class SettingsProvider extends ChangeNotifier {
       _isEnglish = await _firestoreService!.getLanguageSettings();
 
       await _saveSettings();
+      await _saveRunLogs();
       await _saveCars();
       await _saveVisibilitySettings();
       await _saveLanguageSettings();
@@ -683,11 +720,11 @@ class SettingsProvider extends ChangeNotifier {
   }
 
   // 設定追加時にFirebaseにも保存
-  Future<void> addSetting(
+  Future<SavedSetting> addSetting(
       String name, Car car, Map<String, dynamic> settings) async {
     final uniqueName = _createUniqueSettingName(name);
     final newSetting = SavedSetting(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
       name: uniqueName,
       createdAt: DateTime.now(),
       car: car,
@@ -707,6 +744,130 @@ class SettingsProvider extends ChangeNotifier {
     }
 
     notifyListeners();
+    return newSetting;
+  }
+
+  SavedSetting? getLatestSettingForCar(String carId) {
+    for (final setting in _savedSettings) {
+      if (setting.car.id == carId) {
+        return setting;
+      }
+    }
+    return null;
+  }
+
+  List<SavedSetting> getSavedSettingsForCar(String carId) {
+    return _savedSettings
+        .where((setting) => setting.car.id == carId)
+        .toList(growable: false);
+  }
+
+  Future<RunLog> addRunLog({
+    required DateTime runAt,
+    required Car car,
+    SavedSetting? baseSetting,
+    required int bestLapMillis,
+    required List<String> feelTagIds,
+    String memo = '',
+    List<RunSettingChange> changes = const [],
+  }) async {
+    final effectiveChanges = changes
+        .where((change) =>
+            change.settingKey.trim().isNotEmpty &&
+            change.afterValue != null &&
+            change.afterValue.toString().trim().isNotEmpty)
+        .toList(growable: false);
+
+    SavedSetting? resultSetting;
+    if (effectiveChanges.isNotEmpty) {
+      final resultSettings = baseSetting != null
+          ? Map<String, dynamic>.from(baseSetting.settings)
+          : <String, dynamic>{};
+
+      for (final change in effectiveChanges) {
+        resultSettings[change.settingKey] = change.afterValue;
+      }
+
+      resultSetting = await addSetting(
+        _buildRunSettingName(runAt, car),
+        car,
+        resultSettings,
+      );
+    }
+
+    final now = DateTime.now();
+    final runLog = RunLog(
+      id: now.microsecondsSinceEpoch.toString(),
+      createdAt: now,
+      runAt: runAt,
+      car: car,
+      baseSettingId: baseSetting?.id,
+      baseSettingName: baseSetting?.name,
+      resultSettingId: resultSetting?.id,
+      resultSettingName: resultSetting?.name,
+      bestLapMillis: bestLapMillis,
+      feelTagIds: List<String>.from(feelTagIds),
+      memo: memo.trim(),
+      changes: effectiveChanges,
+    );
+
+    _runLogs.insert(0, runLog);
+    _runLogs.sort((a, b) => b.runAt.compareTo(a.runAt));
+    await _saveRunLogs();
+
+    if (_isOnlineMode && _firestoreService != null) {
+      try {
+        await _firestoreService!.saveRunLog(runLog);
+      } catch (e) {
+        print('Firebase run log save error: $e');
+      }
+    }
+
+    notifyListeners();
+    return runLog;
+  }
+
+  Future<void> updateRunLog(RunLog updatedRunLog) async {
+    final index =
+        _runLogs.indexWhere((runLog) => runLog.id == updatedRunLog.id);
+    if (index == -1) {
+      return;
+    }
+
+    _runLogs[index] = updatedRunLog;
+    _runLogs.sort((a, b) => b.runAt.compareTo(a.runAt));
+    await _saveRunLogs();
+
+    if (_isOnlineMode && _firestoreService != null) {
+      try {
+        await _firestoreService!.saveRunLog(updatedRunLog);
+      } catch (e) {
+        print('Firebase run log save error: $e');
+      }
+    }
+
+    notifyListeners();
+  }
+
+  Future<void> deleteRunLog(String id) async {
+    _runLogs.removeWhere((runLog) => runLog.id == id);
+    await _saveRunLogs();
+
+    if (_isOnlineMode && _firestoreService != null) {
+      try {
+        await _firestoreService!.deleteRunLog(id);
+      } catch (e) {
+        print('Firebase run log delete error: $e');
+      }
+    }
+
+    notifyListeners();
+  }
+
+  String _buildRunSettingName(DateTime runAt, Car car) {
+    final formattedDate =
+        '${runAt.year}-${runAt.month.toString().padLeft(2, '0')}-${runAt.day.toString().padLeft(2, '0')}';
+    return '$formattedDate-${car.name}-run';
   }
 
   String _createUniqueSettingName(String name, {String? excludeId}) {
@@ -808,17 +969,21 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> replaceAllData({
     required List<Car> cars,
     required List<SavedSetting> savedSettings,
+    List<RunLog> runLogs = const [],
     required Map<String, VisibilitySettings> visibilitySettings,
   }) async {
     try {
       // データを置き換え
       _cars = cars;
       _savedSettings = savedSettings;
+      _runLogs = runLogs;
+      _runLogs.sort((a, b) => b.runAt.compareTo(a.runAt));
       _visibilitySettings = visibilitySettings;
 
       // ローカルストレージに保存
       await _saveCars();
       await _saveSettings();
+      await _saveRunLogs();
       await _saveVisibilitySettings();
 
       // オンラインモードの場合はFirebaseにも同期
@@ -826,6 +991,7 @@ class SettingsProvider extends ChangeNotifier {
         try {
           await _firestoreService!.syncAllData(
             savedSettings: _savedSettings,
+            runLogs: _runLogs,
             cars: _cars,
             visibilitySettings: _visibilitySettings,
             isEnglish: _isEnglish,
@@ -846,6 +1012,7 @@ class SettingsProvider extends ChangeNotifier {
   Future<void> replacePartialData({
     List<Car>? cars,
     List<SavedSetting>? savedSettings,
+    List<RunLog>? runLogs,
     Map<String, VisibilitySettings>? visibilitySettings,
     bool? isEnglish,
   }) async {
@@ -859,6 +1026,12 @@ class SettingsProvider extends ChangeNotifier {
       if (savedSettings != null) {
         _savedSettings = savedSettings;
         await _saveSettings();
+      }
+
+      if (runLogs != null) {
+        _runLogs = runLogs;
+        _runLogs.sort((a, b) => b.runAt.compareTo(a.runAt));
+        await _saveRunLogs();
       }
 
       if (visibilitySettings != null) {
@@ -876,6 +1049,7 @@ class SettingsProvider extends ChangeNotifier {
         try {
           await _firestoreService!.syncAllData(
             savedSettings: _savedSettings,
+            runLogs: _runLogs,
             cars: _cars,
             visibilitySettings: _visibilitySettings,
             isEnglish: _isEnglish,

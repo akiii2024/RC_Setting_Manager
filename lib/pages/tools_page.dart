@@ -160,6 +160,7 @@ class ToolsPage extends StatelessWidget {
     try {
       final xmlContent = await XmlService.exportToXml(
         savedSettings: settingsProvider.savedSettings,
+        runLogs: settingsProvider.runLogs,
         cars: settingsProvider.cars,
         visibilitySettings: settingsProvider.visibilitySettings,
         isEnglish: settingsProvider.isEnglish,

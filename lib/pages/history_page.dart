@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
+import '../data/run_feel_tags.dart';
 import '../models/car.dart';
-import '../providers/settings_provider.dart';
+import '../models/run_log.dart';
 import '../models/saved_setting.dart';
+import '../providers/settings_provider.dart';
+import '../utils/run_log_formatters.dart';
 import 'car_setting_page.dart';
 
-class HistoryPage extends StatelessWidget {
+class HistoryPage extends StatefulWidget {
   final Car? filterCar;
 
   const HistoryPage({
@@ -14,84 +18,179 @@ class HistoryPage extends StatelessWidget {
   });
 
   @override
+  State<HistoryPage> createState() => _HistoryPageState();
+}
+
+enum _HistoryView {
+  settings,
+  runLogs,
+}
+
+class _HistoryPageState extends State<HistoryPage> {
+  _HistoryView _selectedView = _HistoryView.settings;
+
+  @override
   Widget build(BuildContext context) {
     return Consumer<SettingsProvider>(
       builder: (context, settingsProvider, child) {
-        final savedSettings = filterCar == null
+        final savedSettings = widget.filterCar == null
             ? settingsProvider.savedSettings
             : settingsProvider.savedSettings
-                .where((setting) => setting.car.id == filterCar!.id)
+                .where((setting) => setting.car.id == widget.filterCar!.id)
+                .toList(growable: false);
+        final runLogs = widget.filterCar == null
+            ? settingsProvider.runLogs
+            : settingsProvider.runLogs
+                .where((runLog) => runLog.car.id == widget.filterCar!.id)
                 .toList(growable: false);
         final isEnglish = settingsProvider.isEnglish;
-        final emptyTitle = filterCar == null
+
+        return Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+              child: SegmentedButton<_HistoryView>(
+                segments: [
+                  ButtonSegment<_HistoryView>(
+                    value: _HistoryView.settings,
+                    icon: const Icon(Icons.tune_rounded),
+                    label: Text(isEnglish ? 'Settings' : '設定履歴'),
+                  ),
+                  ButtonSegment<_HistoryView>(
+                    value: _HistoryView.runLogs,
+                    icon: const Icon(Icons.timer_rounded),
+                    label: Text(isEnglish ? 'Run Logs' : '走行ログ'),
+                  ),
+                ],
+                selected: {_selectedView},
+                onSelectionChanged: (selection) {
+                  setState(() {
+                    _selectedView = selection.first;
+                  });
+                },
+              ),
+            ),
+            Expanded(
+              child: _selectedView == _HistoryView.settings
+                  ? _buildSettingsView(context, savedSettings, isEnglish)
+                  : _buildRunLogsView(context, runLogs, isEnglish),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildSettingsView(
+    BuildContext context,
+    List<SavedSetting> savedSettings,
+    bool isEnglish,
+  ) {
+    if (savedSettings.isEmpty) {
+      return _buildEmptyState(
+        context,
+        icon: Icons.history_rounded,
+        title: widget.filterCar == null
             ? (isEnglish ? 'No history available' : '履歴がありません')
             : (isEnglish
-                ? 'No history for ${filterCar!.name}'
-                : '${filterCar!.name} の履歴がありません');
-        final emptyMessage = filterCar == null
+                ? 'No history for ${widget.filterCar!.name}'
+                : '${widget.filterCar!.name} の履歴がありません'),
+        message: widget.filterCar == null
             ? (isEnglish
                 ? 'Your saved settings will appear here'
                 : '保存された設定がここに表示されます')
             : (isEnglish
                 ? 'Saved settings for this car will appear here'
-                : 'この車の保存済みセッティングがここに表示されます');
+                : 'この車両の保存済み設定がここに表示されます'),
+      );
+    }
 
-        if (savedSettings.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .secondary
-                          .withOpacity(0.1),
-                      shape: BoxShape.circle,
-                    ),
-                    padding: const EdgeInsets.all(24),
-                    child: Icon(
-                      Icons.history_rounded,
-                      size: 80,
-                      color: Theme.of(context).colorScheme.secondary,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(
-                    emptyTitle,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    emptyMessage,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurface
-                          .withOpacity(0.6),
-                    ),
-                  ),
-                ],
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 8, bottom: 24),
+      itemCount: savedSettings.length,
+      itemBuilder: (context, index) {
+        final setting = savedSettings[index];
+        return _buildHistoryItem(context, setting);
+      },
+    );
+  }
+
+  Widget _buildRunLogsView(
+    BuildContext context,
+    List<RunLog> runLogs,
+    bool isEnglish,
+  ) {
+    if (runLogs.isEmpty) {
+      return _buildEmptyState(
+        context,
+        icon: Icons.timer_rounded,
+        title: widget.filterCar == null
+            ? (isEnglish ? 'No run logs yet' : '走行ログがありません')
+            : (isEnglish
+                ? 'No run logs for ${widget.filterCar!.name}'
+                : '${widget.filterCar!.name} の走行ログがありません'),
+        message: isEnglish
+            ? 'Quick run logs will appear here after each run.'
+            : '走行後に記録したタイムと感触がここに表示されます',
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.only(top: 8, bottom: 24),
+      itemCount: runLogs.length,
+      itemBuilder: (context, index) {
+        final runLog = runLogs[index];
+        return _buildRunLogItem(context, runLog, isEnglish);
+      },
+    );
+  }
+
+  Widget _buildEmptyState(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String message,
+  }) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: colorScheme.secondary.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              padding: const EdgeInsets.all(24),
+              child: Icon(
+                icon,
+                size: 80,
+                color: colorScheme.secondary,
               ),
             ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.only(top: 12, bottom: 24),
-          itemCount: savedSettings.length,
-          itemBuilder: (context, index) {
-            final setting = savedSettings[index];
-            return _buildHistoryItem(context, setting);
-          },
-        );
-      },
+            const SizedBox(height: 24),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              message,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 16,
+                color: colorScheme.onSurface.withValues(alpha: 0.6),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -124,7 +223,8 @@ class HistoryPage extends StatelessWidget {
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: theme.colorScheme.secondary.withOpacity(0.1),
+                backgroundColor:
+                    theme.colorScheme.secondary.withValues(alpha: 0.1),
                 radius: 28,
                 child: Icon(
                   Icons.sports_motorsports_rounded,
@@ -150,20 +250,16 @@ class HistoryPage extends StatelessWidget {
                         Icon(
                           Icons.directions_car_rounded,
                           size: 18,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.6),
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.6),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           setting.car.name,
                           style: TextStyle(
                             fontSize: 15,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.6),
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.6),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -175,20 +271,16 @@ class HistoryPage extends StatelessWidget {
                         Icon(
                           Icons.calendar_today_rounded,
                           size: 16,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.5),
+                          color: theme.colorScheme.onSurface
+                              .withValues(alpha: 0.5),
                         ),
                         const SizedBox(width: 8),
                         Text(
                           _formatDate(setting.createdAt, isEnglish),
                           style: TextStyle(
                             fontSize: 13,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurface
-                                .withOpacity(0.5),
+                            color: theme.colorScheme.onSurface
+                                .withValues(alpha: 0.5),
                           ),
                         ),
                       ],
@@ -208,10 +300,109 @@ class HistoryPage extends StatelessWidget {
     );
   }
 
+  Widget _buildRunLogItem(
+    BuildContext context,
+    RunLog runLog,
+    bool isEnglish,
+  ) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final feelLabels = runLog.feelTagIds
+        .map((id) => runFeelTagLabel(id, isEnglish))
+        .join(', ');
+
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                CircleAvatar(
+                  backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
+                  child: Icon(
+                    Icons.timer_rounded,
+                    color: colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${formatBestLapMillis(runLog.bestLapMillis)} sec',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${runLog.car.name} / ${_formatDate(runLog.runAt, isEnglish)}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (feelLabels.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                feelLabels,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+            if (runLog.memo.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                runLog.memo,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
+            if (runLog.resultSettingName != null ||
+                runLog.changes.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  if (runLog.resultSettingName != null)
+                    Chip(
+                      avatar: const Icon(Icons.tune_rounded, size: 18),
+                      label: Text(runLog.resultSettingName!),
+                    ),
+                  if (runLog.changes.isNotEmpty)
+                    Chip(
+                      avatar: const Icon(Icons.edit_rounded, size: 18),
+                      label: Text(
+                        isEnglish
+                            ? '${runLog.changes.length} changes'
+                            : '${runLog.changes.length}件の変更',
+                      ),
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
   String _formatDate(DateTime dateTime, bool isEnglish) {
     if (isEnglish) {
-      // English format: Jan 1, 2023 12:34 PM
-      final List<String> months = [
+      const months = [
         'Jan',
         'Feb',
         'Mar',
@@ -225,18 +416,17 @@ class HistoryPage extends StatelessWidget {
         'Nov',
         'Dec'
       ];
-      final String month = months[dateTime.month - 1];
-      final String day = dateTime.day.toString();
-      final String year = dateTime.year.toString();
-      final String hour = (dateTime.hour > 12)
+      final month = months[dateTime.month - 1];
+      final day = dateTime.day.toString();
+      final year = dateTime.year.toString();
+      final hour = dateTime.hour > 12
           ? (dateTime.hour - 12).toString()
           : (dateTime.hour == 0 ? '12' : dateTime.hour.toString());
-      final String minute = dateTime.minute.toString().padLeft(2, '0');
-      final String period = dateTime.hour >= 12 ? 'PM' : 'AM';
+      final minute = dateTime.minute.toString().padLeft(2, '0');
+      final period = dateTime.hour >= 12 ? 'PM' : 'AM';
       return '$month $day, $year $hour:$minute $period';
-    } else {
-      // Japanese format: 2023年1月1日 12:34
-      return '${dateTime.year}/${dateTime.month}/${dateTime.day} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
     }
+
+    return '${dateTime.year}/${dateTime.month}/${dateTime.day} ${dateTime.hour}:${dateTime.minute.toString().padLeft(2, '0')}';
   }
 }

@@ -22,16 +22,19 @@ class _ImportExportPageState extends State<ImportExportPage> {
     });
 
     try {
-      final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
-      
+      final settingsProvider =
+          Provider.of<SettingsProvider>(context, listen: false);
+
       final xmlContent = await XmlService.exportToXml(
         savedSettings: settingsProvider.savedSettings,
+        runLogs: settingsProvider.runLogs,
         cars: settingsProvider.cars,
         visibilitySettings: settingsProvider.visibilitySettings,
         isEnglish: settingsProvider.isEnglish,
       );
 
-      final fileName = 'rc_car_settings_full_${DateTime.now().millisecondsSinceEpoch}.xml';
+      final fileName =
+          'rc_car_settings_full_${DateTime.now().millisecondsSinceEpoch}.xml';
       await FileService.saveAndShareXml(xmlContent, fileName);
 
       if (mounted) {
@@ -76,7 +79,6 @@ class _ImportExportPageState extends State<ImportExportPage> {
       ),
     );
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -125,7 +127,8 @@ class _ImportExportPageState extends State<ImportExportPage> {
                                 ? const SizedBox(
                                     width: 16,
                                     height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
                                   )
                                 : const Icon(Icons.download),
                             label: Text(isEnglish ? 'Export All' : '全てエクスポート'),
@@ -134,15 +137,19 @@ class _ImportExportPageState extends State<ImportExportPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: _isLoading ? null : () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => const PartialExportPage(),
-                                ),
-                              );
-                            },
+                            onPressed: _isLoading
+                                ? null
+                                : () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const PartialExportPage(),
+                                      ),
+                                    );
+                                  },
                             icon: const Icon(Icons.tune),
-                            label: Text(isEnglish ? 'Partial Export' : '部分エクスポート'),
+                            label:
+                                Text(isEnglish ? 'Partial Export' : '部分エクスポート'),
                           ),
                         ),
                       ],
@@ -160,7 +167,8 @@ class _ImportExportPageState extends State<ImportExportPage> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.download_for_offline, color: Colors.green),
+                        const Icon(Icons.download_for_offline,
+                            color: Colors.green),
                         const SizedBox(width: 8),
                         Text(
                           isEnglish ? 'Import Data' : 'データインポート',
@@ -181,11 +189,13 @@ class _ImportExportPageState extends State<ImportExportPage> {
                       decoration: BoxDecoration(
                         color: Colors.orange.withOpacity(0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange.withOpacity(0.3)),
+                        border:
+                            Border.all(color: Colors.orange.withOpacity(0.3)),
                       ),
                       child: Row(
                         children: [
-                          const Icon(Icons.warning, color: Colors.orange, size: 20),
+                          const Icon(Icons.warning,
+                              color: Colors.orange, size: 20),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -211,7 +221,8 @@ class _ImportExportPageState extends State<ImportExportPage> {
                                 ? const SizedBox(
                                     width: 16,
                                     height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
                                   )
                                 : const Icon(Icons.upload),
                             label: Text(isEnglish ? 'Import All' : '全てインポート'),
@@ -223,15 +234,19 @@ class _ImportExportPageState extends State<ImportExportPage> {
                         const SizedBox(width: 8),
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: _isLoading ? null : () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (context) => const SimpleImportPage(),
-                                ),
-                              );
-                            },
+                            onPressed: _isLoading
+                                ? null
+                                : () {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const SimpleImportPage(),
+                                      ),
+                                    );
+                                  },
                             icon: const Icon(Icons.tune),
-                            label: Text(isEnglish ? 'Partial Import' : '部分インポート'),
+                            label:
+                                Text(isEnglish ? 'Partial Import' : '部分インポート'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: Colors.green,
                               side: const BorderSide(color: Colors.green),
@@ -265,15 +280,15 @@ class _ImportExportPageState extends State<ImportExportPage> {
                     Text(
                       isEnglish
                           ? '• XML files contain all your settings, car data, and preferences\n'
-                            '• Files can be shared between devices\n'
-                            '• Full import/export replaces all current data\n'
-                            '• Partial import/export allows selective data transfer\n'
-                            '• Make sure to export current data before importing'
+                              '• Files can be shared between devices\n'
+                              '• Full import/export replaces all current data\n'
+                              '• Partial import/export allows selective data transfer\n'
+                              '• Make sure to export current data before importing'
                           : '• XMLファイルにはすべての設定、車種データ、環境設定が含まれます\n'
-                            '• ファイルはデバイス間で共有できます\n'
-                            '• 全体インポート/エクスポートは現在のデータを完全に置き換えます\n'
-                            '• 部分インポート/エクスポートは選択的なデータ転送が可能です\n'
-                            '• インポート前に現在のデータをエクスポートすることをお勧めします',
+                              '• ファイルはデバイス間で共有できます\n'
+                              '• 全体インポート/エクスポートは現在のデータを完全に置き換えます\n'
+                              '• 部分インポート/エクスポートは選択的なデータ転送が可能です\n'
+                              '• インポート前に現在のデータをエクスポートすることをお勧めします',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],

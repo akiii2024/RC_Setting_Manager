@@ -16,6 +16,7 @@ class SimpleImportPage extends StatefulWidget {
 class _SimpleImportPageState extends State<SimpleImportPage> {
   bool _includeCars = true;
   bool _includeSavedSettings = true;
+  bool _includeRunLogs = true;
   bool _includeVisibilitySettings = true;
   bool _includeLanguageSettings = false;
   bool _isLoading = false;
@@ -96,6 +97,8 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
           exportedTypes.contains('cars') && _previewData!.cars.isNotEmpty;
       _includeSavedSettings = exportedTypes.contains('savedSettings') &&
           _previewData!.savedSettings.isNotEmpty;
+      _includeRunLogs =
+          exportedTypes.contains('runLogs') && _previewData!.runLogs.isNotEmpty;
       _includeVisibilitySettings =
           exportedTypes.contains('visibilitySettings') &&
               _previewData!.visibilitySettings.isNotEmpty;
@@ -111,6 +114,7 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
 
     if (!_includeCars &&
         !_includeSavedSettings &&
+        !_includeRunLogs &&
         !_includeVisibilitySettings &&
         !_includeLanguageSettings) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -138,6 +142,7 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
         cars: _includeCars ? _previewData!.cars : null,
         savedSettings:
             _includeSavedSettings ? _previewData!.savedSettings : null,
+        runLogs: _includeRunLogs ? _previewData!.runLogs : null,
         visibilitySettings: _includeVisibilitySettings
             ? _previewData!.visibilitySettings
             : null,
@@ -209,6 +214,9 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
                   if (_includeSavedSettings)
                     Text(
                         '• ${isEnglish ? "Saved Settings" : "保存された設定"} (${_previewData!.savedSettings.length} ${isEnglish ? "items" : "件"})'),
+                  if (_includeRunLogs)
+                    Text(
+                        '• ${isEnglish ? "Run Logs" : "走行ログ"} (${_previewData!.runLogs.length} ${isEnglish ? "items" : "件"})'),
                   if (_includeVisibilitySettings)
                     Text(
                         '• ${isEnglish ? "Visibility Settings" : "表示設定"} (${_previewData!.visibilitySettings.length} ${isEnglish ? "cars" : "台分"})'),
@@ -521,6 +529,8 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
                         Text(
                             '• ${isEnglish ? "Saved Settings" : "保存された設定"}: ${_previewData!.savedSettings.length} ${isEnglish ? "items" : "件"}'),
                         Text(
+                            '• ${isEnglish ? "Run Logs" : "走行ログ"}: ${_previewData!.runLogs.length} ${isEnglish ? "items" : "件"}'),
+                        Text(
                             '• ${isEnglish ? "Visibility Settings" : "表示設定"}: ${_previewData!.visibilitySettings.length} ${isEnglish ? "cars" : "台分"}'),
                       ],
                     ],
@@ -562,6 +572,19 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
                               ? (value) {
                                   setState(() {
                                     _includeSavedSettings = value ?? false;
+                                  });
+                                }
+                              : null,
+                        ),
+                        CheckboxListTile(
+                          title: Text(isEnglish ? 'Run Logs' : '走行ログ'),
+                          subtitle: Text(
+                              '${_previewData!.runLogs.length} ${isEnglish ? "items available" : "件利用可能"}'),
+                          value: _includeRunLogs,
+                          onChanged: _previewData!.runLogs.isNotEmpty
+                              ? (value) {
+                                  setState(() {
+                                    _includeRunLogs = value ?? false;
                                   });
                                 }
                               : null,

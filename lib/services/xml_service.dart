@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:xml/xml.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../models/run_log.dart';
 import '../models/saved_setting.dart';
 import '../models/car.dart';
 import '../models/manufacturer.dart';
@@ -12,6 +13,7 @@ import '../models/visibility_settings.dart';
 enum DataType {
   cars,
   savedSettings,
+  runLogs,
   visibilitySettings,
   languageSettings,
 }
@@ -20,12 +22,14 @@ enum DataType {
 class ExportImportOptions {
   final bool includeCars;
   final bool includeSavedSettings;
+  final bool includeRunLogs;
   final bool includeVisibilitySettings;
   final bool includeLanguageSettings;
 
   const ExportImportOptions({
     this.includeCars = true,
     this.includeSavedSettings = true,
+    this.includeRunLogs = true,
     this.includeVisibilitySettings = true,
     this.includeLanguageSettings = true,
   });
@@ -34,6 +38,7 @@ class ExportImportOptions {
     List<DataType> types = [];
     if (includeCars) types.add(DataType.cars);
     if (includeSavedSettings) types.add(DataType.savedSettings);
+    if (includeRunLogs) types.add(DataType.runLogs);
     if (includeVisibilitySettings) types.add(DataType.visibilitySettings);
     if (includeLanguageSettings) types.add(DataType.languageSettings);
     return types;
@@ -44,6 +49,7 @@ class XmlService {
   // データをXML形式でエクスポート（部分的エクスポート対応）
   static Future<String> exportToXml({
     required List<SavedSetting> savedSettings,
+    List<RunLog> runLogs = const [],
     required List<Car> cars,
     required Map<String, VisibilitySettings> visibilitySettings,
     required bool isEnglish,
@@ -125,7 +131,59 @@ class XmlService {
         });
       }
 
-      // 表示設定データ（選択されている場合のみ）
+      // 走行ログデータ（選択されている場合のみ）
+      if (exportOptions.includeRunLogs) {
+        builder.element('runLogs', nest: () {
+          for (final runLog in runLogs) {
+            builder.element('runLog', nest: () {
+              builder.element('id', nest: runLog.id);
+              builder.element('createdAt',
+                  nest: runLog.createdAt.toIso8601String());
+              builder.element('runAt', nest: runLog.runAt.toIso8601String());
+
+              builder.element('car', nest: () {
+                builder.element('id', nest: runLog.car.id);
+                builder.element('name', nest: runLog.car.name);
+                builder.element('manufacturer',
+                    nest: runLog.car.manufacturer.name);
+                builder.element('category', nest: runLog.car.category);
+              });
+
+              builder.element('baseSettingId',
+                  nest: runLog.baseSettingId ?? '');
+              builder.element('baseSettingName',
+                  nest: runLog.baseSettingName ?? '');
+              builder.element('resultSettingId',
+                  nest: runLog.resultSettingId ?? '');
+              builder.element('resultSettingName',
+                  nest: runLog.resultSettingName ?? '');
+              builder.element('bestLapMillis',
+                  nest: runLog.bestLapMillis.toString());
+              builder.element('memo', nest: runLog.memo);
+
+              builder.element('feelTagIds', nest: () {
+                for (final tagId in runLog.feelTagIds) {
+                  builder.element('tag', nest: tagId);
+                }
+              });
+
+              builder.element('changes', nest: () {
+                for (final change in runLog.changes) {
+                  builder.element('change', nest: () {
+                    builder.element('settingKey', nest: change.settingKey);
+                    builder.element('settingLabel', nest: change.settingLabel);
+                    builder.element('beforeValue',
+                        nest: change.beforeValue?.toString() ?? '');
+                    builder.element('afterValue',
+                        nest: change.afterValue?.toString() ?? '');
+                  });
+                }
+              });
+            });
+          }
+        });
+      }
+
       if (exportOptions.includeVisibilitySettings) {
         builder.element('visibilitySettings', nest: () {
           visibilitySettings.forEach((carId, visibility) {
@@ -151,6 +209,7 @@ class XmlService {
   // XMLファイルをエクスポート（部分的エクスポート対応）
   static Future<void> exportToFile({
     required List<SavedSetting> savedSettings,
+    List<RunLog> runLogs = const [],
     required List<Car> cars,
     required Map<String, VisibilitySettings> visibilitySettings,
     required bool isEnglish,
@@ -159,6 +218,7 @@ class XmlService {
     try {
       final xmlContent = await exportToXml(
         savedSettings: savedSettings,
+        runLogs: runLogs,
         cars: cars,
         visibilitySettings: visibilitySettings,
         isEnglish: isEnglish,
@@ -381,7 +441,139 @@ class XmlService {
         }
       }
 
-      // 表示設定データを読み込み（インポートオプションで選択されている場合のみ）
+      // 走行ログデータを読み込み（インポートオプションで選択されている場合のみ）
+      final runLogs = <RunLog>[];
+      if (importOptions.includeRunLogs) {
+        final runLogsElement = root.findElements('runLogs').firstOrNull;
+        if (runLogsElement != null) {
+          for (final runLogElement in runLogsElement.findElements('runLog')) {
+            final id =
+                runLogElement.findElements('id').firstOrNull?.innerText ?? '';
+            final createdAtStr = runLogElement
+                    .findElements('createdAt')
+                    .firstOrNull
+                    ?.innerText ??
+                '';
+            final runAtStr =
+                runLogElement.findElements('runAt').firstOrNull?.innerText ??
+                    '';
+            final createdAt = DateTime.tryParse(createdAtStr) ?? DateTime.now();
+            final runAt = DateTime.tryParse(runAtStr) ?? createdAt;
+
+            final carElement = runLogElement.findElements('car').firstOrNull;
+            Car? car;
+            if (carElement != null) {
+              final carId =
+                  carElement.findElements('id').firstOrNull?.innerText ?? '';
+              final carName =
+                  carElement.findElements('name').firstOrNull?.innerText ?? '';
+              final manufacturerName = carElement
+                      .findElements('manufacturer')
+                      .firstOrNull
+                      ?.innerText ??
+                  '';
+              final category =
+                  carElement.findElements('category').firstOrNull?.innerText ??
+                      '';
+              final manufacturer = Manufacturer(
+                id: manufacturerName.toLowerCase(),
+                name: manufacturerName,
+                logoPath: '',
+              );
+              car = Car(
+                id: carId,
+                name: carName,
+                imageUrl: '',
+                manufacturer: manufacturer,
+                category: category,
+              );
+            }
+
+            final feelTagIds = <String>[];
+            final feelTagIdsElement =
+                runLogElement.findElements('feelTagIds').firstOrNull;
+            if (feelTagIdsElement != null) {
+              for (final tagElement in feelTagIdsElement.findElements('tag')) {
+                feelTagIds.add(tagElement.innerText);
+              }
+            }
+
+            final changes = <RunSettingChange>[];
+            final changesElement =
+                runLogElement.findElements('changes').firstOrNull;
+            if (changesElement != null) {
+              for (final changeElement
+                  in changesElement.findElements('change')) {
+                final beforeElement =
+                    changeElement.findElements('beforeValue').firstOrNull;
+                final afterElement =
+                    changeElement.findElements('afterValue').firstOrNull;
+                changes.add(
+                  RunSettingChange(
+                    settingKey: changeElement
+                            .findElements('settingKey')
+                            .firstOrNull
+                            ?.innerText ??
+                        '',
+                    settingLabel: changeElement
+                            .findElements('settingLabel')
+                            .firstOrNull
+                            ?.innerText ??
+                        '',
+                    beforeValue: beforeElement == null
+                        ? null
+                        : _parseXmlValue(beforeElement.innerText),
+                    afterValue: afterElement == null
+                        ? null
+                        : _parseXmlValue(afterElement.innerText),
+                  ),
+                );
+              }
+            }
+
+            if (car != null) {
+              runLogs.add(
+                RunLog(
+                  id: id,
+                  createdAt: createdAt,
+                  runAt: runAt,
+                  car: car,
+                  baseSettingId: _emptyToNull(runLogElement
+                      .findElements('baseSettingId')
+                      .firstOrNull
+                      ?.innerText),
+                  baseSettingName: _emptyToNull(runLogElement
+                      .findElements('baseSettingName')
+                      .firstOrNull
+                      ?.innerText),
+                  resultSettingId: _emptyToNull(runLogElement
+                      .findElements('resultSettingId')
+                      .firstOrNull
+                      ?.innerText),
+                  resultSettingName: _emptyToNull(runLogElement
+                      .findElements('resultSettingName')
+                      .firstOrNull
+                      ?.innerText),
+                  bestLapMillis: int.tryParse(runLogElement
+                              .findElements('bestLapMillis')
+                              .firstOrNull
+                              ?.innerText ??
+                          '') ??
+                      0,
+                  feelTagIds: feelTagIds,
+                  memo: runLogElement
+                          .findElements('memo')
+                          .firstOrNull
+                          ?.innerText ??
+                      '',
+                  changes: changes,
+                ),
+              );
+            }
+          }
+        }
+      }
+
       final visibilitySettings = <String, VisibilitySettings>{};
       if (importOptions.includeVisibilitySettings) {
         final visibilitySettingsElement =
@@ -419,6 +611,7 @@ class XmlService {
       return ImportResult(
         cars: cars,
         savedSettings: savedSettings,
+        runLogs: runLogs,
         visibilitySettings: visibilitySettings,
         metadata: ImportMetadata(
           version: version,
@@ -433,6 +626,26 @@ class XmlService {
   }
 
   // ファイルからXMLをインポート（部分的インポート対応）
+  static dynamic _parseXmlValue(String value) {
+    if (int.tryParse(value) != null) {
+      return int.parse(value);
+    }
+    if (double.tryParse(value) != null) {
+      return double.parse(value);
+    }
+    if (value.toLowerCase() == 'true' || value.toLowerCase() == 'false') {
+      return value.toLowerCase() == 'true';
+    }
+    return value;
+  }
+
+  static String? _emptyToNull(String? value) {
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+    return value;
+  }
+
   static Future<ImportResult> importFromFile(String filePath,
       {ExportImportOptions? options}) async {
     if (kIsWeb) {
@@ -453,12 +666,14 @@ class XmlService {
 class ImportResult {
   final List<Car> cars;
   final List<SavedSetting> savedSettings;
+  final List<RunLog> runLogs;
   final Map<String, VisibilitySettings> visibilitySettings;
   final ImportMetadata metadata;
 
   ImportResult({
     required this.cars,
     required this.savedSettings,
+    this.runLogs = const [],
     required this.visibilitySettings,
     required this.metadata,
   });

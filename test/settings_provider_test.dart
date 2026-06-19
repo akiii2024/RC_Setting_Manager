@@ -5,6 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:rc_setting_manager/models/car.dart';
 import 'package:rc_setting_manager/models/manufacturer.dart';
+import 'package:rc_setting_manager/models/run_log.dart';
 import 'package:rc_setting_manager/models/saved_setting.dart';
 import 'package:rc_setting_manager/providers/settings_provider.dart';
 
@@ -85,6 +86,77 @@ void main() {
       provider.savedSettings.map((setting) => setting.name),
       ['Race Setup (2)', 'Race Setup (1)', 'Race Setup'],
     );
+  });
+
+  test('saves run log without creating a result setting when unchanged',
+      () async {
+    final car = _buildCar();
+
+    SharedPreferences.setMockInitialValues({
+      'cars_settings': jsonEncode([car.toJson()]),
+    });
+
+    final provider = SettingsProvider();
+    await _waitForProvider(provider);
+
+    await provider.addSetting('Base Setup', car, const {'frontCamber': 1.0});
+    final baseSetting = provider.savedSettings.first;
+
+    final runLog = await provider.addRunLog(
+      runAt: DateTime(2026, 6, 19, 10, 0),
+      car: car,
+      baseSetting: baseSetting,
+      bestLapMillis: 13520,
+      feelTagIds: const ['stable'],
+      memo: 'Good',
+    );
+
+    expect(provider.runLogs, hasLength(1));
+    expect(runLog.resultSettingId, isNull);
+    expect(provider.savedSettings, hasLength(1));
+  });
+
+  test('saves run log changes and creates result setting', () async {
+    final car = _buildCar();
+
+    SharedPreferences.setMockInitialValues({
+      'cars_settings': jsonEncode([car.toJson()]),
+    });
+
+    final provider = SettingsProvider();
+    await _waitForProvider(provider);
+
+    await provider.addSetting('Base Setup', car, const {'frontCamber': 1.0});
+    final baseSetting = provider.savedSettings.first;
+
+    final runLog = await provider.addRunLog(
+      runAt: DateTime(2026, 6, 19, 10, 0),
+      car: car,
+      baseSetting: baseSetting,
+      bestLapMillis: 13520,
+      feelTagIds: const ['push'],
+      memo: 'Needs more front',
+      changes: const [
+        RunSettingChange(
+          settingKey: 'frontCamber',
+          settingLabel: 'Front Camber',
+          beforeValue: 1.0,
+          afterValue: 1.5,
+        ),
+      ],
+    );
+
+    expect(provider.runLogs, hasLength(1));
+    expect(runLog.resultSettingId, isNotNull);
+    expect(provider.savedSettings, hasLength(2));
+    expect(provider.savedSettings.first.settings['frontCamber'], 1.5);
+
+    final reloadedProvider = SettingsProvider();
+    await _waitForProvider(reloadedProvider);
+
+    expect(reloadedProvider.runLogs, hasLength(1));
+    expect(
+        reloadedProvider.runLogs.first.resultSettingId, runLog.resultSettingId);
   });
 
   test('uses next numeric suffix when updating to another setting name',

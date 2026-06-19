@@ -8,6 +8,7 @@ import 'car_selection_page.dart';
 import 'car_setting_page.dart';
 import 'history_page.dart';
 import 'my_garage_page.dart';
+import 'quick_run_log_page.dart';
 import 'tools_page.dart';
 
 const _blueShiftGradient = LinearGradient(
@@ -74,6 +75,60 @@ void _openCarEditor(BuildContext context, Car car) {
     MaterialPageRoute(
       builder: (context) => CarSettingPage(originalCar: car),
     ),
+  );
+}
+
+void _openQuickRunLog(BuildContext context) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const QuickRunLogPage(),
+    ),
+  );
+}
+
+void _showCreateActionSheet(BuildContext context, bool isEnglish) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (context) {
+      return SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.tune_rounded),
+                title: Text(_t(isEnglish, 'Create Setting', '設定作成')),
+                subtitle: Text(_t(
+                  isEnglish,
+                  'Create or edit a setup sheet.',
+                  'セッティングシートを作成・編集します。',
+                )),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openCarSelection(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.timer_rounded),
+                title: Text(_t(isEnglish, 'Run Memo', '走行メモ')),
+                subtitle: Text(_t(
+                  isEnglish,
+                  'Record lap time, feel, and setup changes.',
+                  'タイム、感触、変更点をすばやく記録します。',
+                )),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openQuickRunLog(context);
+                },
+              ),
+            ],
+          ),
+        ),
+      );
+    },
   );
 }
 
@@ -203,10 +258,8 @@ class _HomePageState extends State<HomePage> {
       ),
       floatingActionButton: _selectedIndex == 0 || _selectedIndex == 1
           ? _GradientFab(
-              tooltip: _t(isEnglish, 'Create a setting', '新しい設定を作成'),
-              onTap: () {
-                Navigator.pushNamed(context, '/car-selection');
-              },
+              tooltip: _t(isEnglish, 'Add', '追加'),
+              onTap: () => _showCreateActionSheet(context, isEnglish),
             )
           : null,
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,

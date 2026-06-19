@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/car.dart';
+import '../models/run_log.dart';
 import '../models/saved_setting.dart';
 import '../models/visibility_settings.dart';
 
@@ -91,6 +92,58 @@ class FirestoreService {
           .delete();
     } catch (e) {
       print('Error deleting setting: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> saveRunLog(RunLog runLog) async {
+    if (userCollection == null) {
+      throw Exception('User is not signed in.');
+    }
+
+    try {
+      await userCollection!
+          .doc('run_logs')
+          .collection('items')
+          .doc(runLog.id)
+          .set(runLog.toJson());
+    } catch (e) {
+      print('Error saving run log: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<RunLog>> getRunLogs() async {
+    if (userCollection == null) {
+      return [];
+    }
+
+    try {
+      final snapshot =
+          await userCollection!.doc('run_logs').collection('items').get();
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return RunLog.fromJson(data);
+      }).toList();
+    } catch (e) {
+      print('Error loading run logs: $e');
+      return [];
+    }
+  }
+
+  Future<void> deleteRunLog(String runLogId) async {
+    if (userCollection == null) {
+      throw Exception('User is not signed in.');
+    }
+
+    try {
+      await userCollection!
+          .doc('run_logs')
+          .collection('items')
+          .doc(runLogId)
+          .delete();
+    } catch (e) {
+      print('Error deleting run log: $e');
       rethrow;
     }
   }
@@ -209,6 +262,7 @@ class FirestoreService {
 
   Future<void> syncAllData({
     required List<SavedSetting> savedSettings,
+    required List<RunLog> runLogs,
     required List<Car> cars,
     required Map<String, VisibilitySettings> visibilitySettings,
     required bool isEnglish,
@@ -223,6 +277,10 @@ class FirestoreService {
       final existingSnapshot = await settingsCollection.get();
       final localSettingIds =
           savedSettings.map((setting) => setting.id).toSet();
+      final runLogsCollection =
+          userCollection!.doc('run_logs').collection('items');
+      final existingRunLogsSnapshot = await runLogsCollection.get();
+      final localRunLogIds = runLogs.map((runLog) => runLog.id).toSet();
       final batch = _firestore.batch();
 
       for (final doc in existingSnapshot.docs) {
@@ -231,8 +289,18 @@ class FirestoreService {
         }
       }
 
+      for (final doc in existingRunLogsSnapshot.docs) {
+        if (!localRunLogIds.contains(doc.id)) {
+          batch.delete(doc.reference);
+        }
+      }
+
       for (final setting in savedSettings) {
         batch.set(settingsCollection.doc(setting.id), setting.toJson());
+      }
+
+      for (final runLog in runLogs) {
+        batch.set(runLogsCollection.doc(runLog.id), runLog.toJson());
       }
 
       final carsJson = cars.map((car) => car.toJson()).toList();

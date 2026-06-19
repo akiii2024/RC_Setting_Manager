@@ -14,13 +14,19 @@ class PartialExportPage extends StatefulWidget {
 class _PartialExportPageState extends State<PartialExportPage> {
   bool _includeCars = true;
   bool _includeSavedSettings = true;
+  bool _includeRunLogs = true;
   bool _includeVisibilitySettings = true;
   bool _includeLanguageSettings = true;
   bool _isLoading = false;
 
   Future<void> _exportSelectedData() async {
-    if (!_includeCars && !_includeSavedSettings && !_includeVisibilitySettings && !_includeLanguageSettings) {
-      final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
+    if (!_includeCars &&
+        !_includeSavedSettings &&
+        !_includeRunLogs &&
+        !_includeVisibilitySettings &&
+        !_includeLanguageSettings) {
+      final settingsProvider =
+          Provider.of<SettingsProvider>(context, listen: false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -39,24 +45,28 @@ class _PartialExportPageState extends State<PartialExportPage> {
     });
 
     try {
-      final settingsProvider = Provider.of<SettingsProvider>(context, listen: false);
-      
+      final settingsProvider =
+          Provider.of<SettingsProvider>(context, listen: false);
+
       final options = ExportImportOptions(
         includeCars: _includeCars,
         includeSavedSettings: _includeSavedSettings,
+        includeRunLogs: _includeRunLogs,
         includeVisibilitySettings: _includeVisibilitySettings,
         includeLanguageSettings: _includeLanguageSettings,
       );
 
       final xmlContent = await XmlService.exportToXml(
         savedSettings: settingsProvider.savedSettings,
+        runLogs: settingsProvider.runLogs,
         cars: settingsProvider.cars,
         visibilitySettings: settingsProvider.visibilitySettings,
         isEnglish: settingsProvider.isEnglish,
         options: options,
       );
 
-      final fileName = 'rc_car_settings_partial_${DateTime.now().millisecondsSinceEpoch}.xml';
+      final fileName =
+          'rc_car_settings_partial_${DateTime.now().millisecondsSinceEpoch}.xml';
       await FileService.saveAndShareXml(xmlContent, fileName);
 
       if (mounted) {
@@ -122,7 +132,7 @@ class _PartialExportPageState extends State<PartialExportPage> {
                     CheckboxListTile(
                       title: Text(isEnglish ? 'Cars' : '車種'),
                       subtitle: Text(
-                        isEnglish 
+                        isEnglish
                             ? '${settingsProvider.cars.length} cars'
                             : '${settingsProvider.cars.length}台',
                       ),
@@ -136,7 +146,7 @@ class _PartialExportPageState extends State<PartialExportPage> {
                     CheckboxListTile(
                       title: Text(isEnglish ? 'Saved Settings' : '保存された設定'),
                       subtitle: Text(
-                        isEnglish 
+                        isEnglish
                             ? '${settingsProvider.savedSettings.length} settings'
                             : '${settingsProvider.savedSettings.length}件',
                       ),
@@ -148,9 +158,23 @@ class _PartialExportPageState extends State<PartialExportPage> {
                       },
                     ),
                     CheckboxListTile(
+                      title: Text(isEnglish ? 'Run Logs' : '走行ログ'),
+                      subtitle: Text(
+                        isEnglish
+                            ? '${settingsProvider.runLogs.length} logs'
+                            : '${settingsProvider.runLogs.length}件',
+                      ),
+                      value: _includeRunLogs,
+                      onChanged: (value) {
+                        setState(() {
+                          _includeRunLogs = value ?? false;
+                        });
+                      },
+                    ),
+                    CheckboxListTile(
                       title: Text(isEnglish ? 'Visibility Settings' : '表示設定'),
                       subtitle: Text(
-                        isEnglish 
+                        isEnglish
                             ? '${settingsProvider.visibilitySettings.length} cars configured'
                             : '${settingsProvider.visibilitySettings.length}台分設定済み',
                       ),
@@ -213,7 +237,8 @@ class _PartialExportPageState extends State<PartialExportPage> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.download),
-              label: Text(isEnglish ? 'Export Selected Data' : '選択されたデータをエクスポート'),
+              label:
+                  Text(isEnglish ? 'Export Selected Data' : '選択されたデータをエクスポート'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
               ),
@@ -226,12 +251,15 @@ class _PartialExportPageState extends State<PartialExportPage> {
 
   String _getExportSummary(bool isEnglish) {
     List<String> selectedItems = [];
-    
+
     if (_includeCars) {
       selectedItems.add(isEnglish ? 'Cars' : '車種');
     }
     if (_includeSavedSettings) {
       selectedItems.add(isEnglish ? 'Saved Settings' : '保存された設定');
+    }
+    if (_includeRunLogs) {
+      selectedItems.add(isEnglish ? 'Run Logs' : '走行ログ');
     }
     if (_includeVisibilitySettings) {
       selectedItems.add(isEnglish ? 'Visibility Settings' : '表示設定');
@@ -241,13 +269,13 @@ class _PartialExportPageState extends State<PartialExportPage> {
     }
 
     if (selectedItems.isEmpty) {
-      return isEnglish 
+      return isEnglish
           ? 'No data types selected for export.'
           : 'エクスポートするデータタイプが選択されていません。';
     }
 
     final itemsText = selectedItems.join(', ');
-    return isEnglish 
+    return isEnglish
         ? 'The following data will be exported: $itemsText'
         : '以下のデータがエクスポートされます: $itemsText';
   }

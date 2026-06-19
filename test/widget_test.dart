@@ -9,6 +9,7 @@ import 'package:rc_setting_manager/models/car.dart';
 import 'package:rc_setting_manager/models/manufacturer.dart';
 import 'package:rc_setting_manager/pages/home_page.dart';
 import 'package:rc_setting_manager/pages/login_page.dart';
+import 'package:rc_setting_manager/pages/quick_run_log_page.dart';
 import 'package:rc_setting_manager/pages/simple_import_page.dart';
 import 'package:rc_setting_manager/pages/tools_page.dart';
 import 'package:rc_setting_manager/providers/app_mode_provider.dart';
@@ -156,5 +157,40 @@ void main() {
     await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.byType(SimpleImportPage), findsOneWidget);
+  });
+
+  testWidgets('home add action opens quick run log and validates best lap',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'language_settings': true,
+      'cars_settings': jsonEncode([_testCar().toJson()]),
+    });
+
+    final provider = SettingsProvider();
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: const MaterialApp(home: HomePage()),
+      ),
+    );
+
+    await _pumpUntilInitialized(tester, provider);
+    await tester.pump();
+
+    await tester.tap(find.byTooltip('Add'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Run Memo'), findsOneWidget);
+
+    await tester.tap(find.text('Run Memo'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(QuickRunLogPage), findsOneWidget);
+
+    await tester.tap(find.text('Save Run Log'));
+    await tester.pump();
+
+    expect(find.text('Enter best lap as 13.52 or 0:13.52.'), findsOneWidget);
   });
 }
