@@ -2038,7 +2038,6 @@ class _CarSettingPageState extends State<CarSettingPage> {
     }
     final displayTitle = _paperCategoryTitle(category, isEnglish);
     final displaySubtitle = _paperCategorySubtitle(category, isEnglish);
-    final useTrf420xTopEditor = category == 'top' && _isTrf420x;
 
     showDialog(
       context: context,
@@ -2111,16 +2110,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
                       ),
                       const SizedBox(height: 16),
                     ],
-                    if (useTrf420xTopEditor)
-                      _buildTrf420xTopSettingsTab(
-                        showFavorite: showFavorite,
-                        showTitle: false,
-                      )
-                    else
-                      _buildPaperFieldGrid(
-                        categorySettings,
-                        showFavorite: showFavorite,
-                      ),
+                    _buildPaperFieldGrid(
+                      categorySettings,
+                      showFavorite: showFavorite,
+                    ),
                   ],
                 ),
               ),
@@ -2964,12 +2957,6 @@ class _CarSettingPageState extends State<CarSettingPage> {
                     child: _buildFrontSettingsTabForTRF420X(),
                   );
                 }
-                if (category == 'top' && _isTrf420x) {
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.all(16.0),
-                    child: _buildTrf420xTopSettingsTab(),
-                  );
-                }
                 return SingleChildScrollView(
                   padding: const EdgeInsets.all(16.0),
                   child: _buildCategorySettings(category),
@@ -3432,7 +3419,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(setting.label),
+          _buildSettingLabel(setting),
           const SizedBox(height: 8),
           GridSelector(
             rows: setting.constraints['rows'] as int,
@@ -3481,7 +3468,89 @@ class _CarSettingPageState extends State<CarSettingPage> {
     return key == 'frontDamperPistonHole' ||
         key == 'rearDamperPistonHole' ||
         key == 'frontDamperOilName' ||
-        key == 'rearDamperOilName';
+        key == 'rearDamperOilName' ||
+        key == 'ballastWeight';
+  }
+
+  Widget _buildSettingLabel(SettingItem setting) {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final guideText = _trf420xTopPositionGuideText(
+      setting.key,
+      isEnglish: settingsProvider.isEnglish,
+    );
+
+    if (guideText == null) {
+      return Text(setting.label);
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Flexible(child: Text(setting.label)),
+        const SizedBox(width: 4),
+        IconButton(
+          icon: const Icon(Icons.help_outline, size: 18),
+          onPressed: () {
+            _showTrf420xTopPositionGuide(
+              title: setting.label,
+              message: guideText,
+              isEnglish: settingsProvider.isEnglish,
+            );
+          },
+          tooltip: settingsProvider.isEnglish ? 'Position guide' : '位置ガイド',
+          constraints: const BoxConstraints.tightFor(width: 28, height: 28),
+          padding: EdgeInsets.zero,
+          visualDensity: VisualDensity.compact,
+        ),
+      ],
+    );
+  }
+
+  String? _trf420xTopPositionGuideText(
+    String key, {
+    required bool isEnglish,
+  }) {
+    if (!_isTrf420x) {
+      return null;
+    }
+
+    return switch (key) {
+      'ballastWeightA' => isEnglish ? 'Left front area' : '左前エリア',
+      'ballastWeightB' => isEnglish ? 'Left rear area' : '左後エリア',
+      'ballastWeightC' => isEnglish ? 'Center battery area' : '中央、バッテリー付近',
+      'topScrewPositions' =>
+        isEnglish ? '1 to 7 from left to right' : '左から右へ1〜7',
+      'rearSusHardness' => isEnglish ? 'Right center area' : '右中央エリア',
+      'frontSusArmSpacer' => isEnglish
+          ? 'Front suspension arm spacer is on the center-left side.'
+          : '中央左側のフロント側',
+      'rearSusArmSpacer' => isEnglish
+          ? 'Rear suspension arm spacer is on the right side.'
+          : '右側のリア側',
+      _ => null,
+    };
+  }
+
+  void _showTrf420xTopPositionGuide({
+    required String title,
+    required String message,
+    required bool isEnglish,
+  }) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(isEnglish ? 'Close' : '閉じる'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget? _buildTrf420xCompositeField(SettingItem setting) {
@@ -3856,644 +3925,6 @@ class _CarSettingPageState extends State<CarSettingPage> {
     );
   }
 
-  Widget _buildTrf420xTopSettingsTab({
-    bool showFavorite = true,
-    bool showTitle = true,
-  }) {
-    final settingsProvider = Provider.of<SettingsProvider>(context);
-    final isEnglish = settingsProvider.isEnglish;
-    final theme = Theme.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (showTitle) ...[
-          Text(
-            isEnglish ? 'Top settings' : 'トップ設定',
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 12),
-        ],
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: theme.colorScheme.outline.withValues(alpha: 0.28),
-            ),
-          ),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final isWide = constraints.maxWidth >= 760;
-              final leftFields = [
-                _buildTrf420xTopNumberField(
-                  settingKey: 'toeAngle',
-                  label: isEnglish ? 'Toe angle' : 'トー角 / Toe angle',
-                  unit: '°',
-                  showFavorite: showFavorite,
-                ),
-                _buildTrf420xTopSegmentedField(
-                  settingKey: 'steeringPivot',
-                  label: isEnglish
-                      ? 'Steering pivot'
-                      : 'ステアリングピボット / Steering pivot',
-                  options: const ['8.0mm', '8.5mm'],
-                  showFavorite: showFavorite,
-                ),
-                _buildTrf420xTopSegmentedField(
-                  settingKey: 'bumperPost',
-                  label: isEnglish ? 'Bumper post' : 'バンパーポスト / Bumper post',
-                  options: const ['B5', 'Op.'],
-                  showFavorite: showFavorite,
-                ),
-                _buildTrf420xTopNumberField(
-                  settingKey: 'lowerDeck',
-                  label: isEnglish ? 'Lower deck' : 'ロワデッキ / Lower deck',
-                  unit: 'mm',
-                  showFavorite: showFavorite,
-                ),
-                _buildTrf420xTopSegmentedField(
-                  settingKey: 'lowerDeckMaterial',
-                  label: isEnglish
-                      ? 'Lower deck material'
-                      : 'ロワデッキ材質 / Lower deck material',
-                  options: const ['Aluminum', 'Carbon'],
-                  showFavorite: showFavorite,
-                ),
-              ];
-              final centerFields = [
-                _buildTrf420xTopSegmentedField(
-                  settingKey: 'knuckleArmType',
-                  label: isEnglish ? 'Knuckle arm' : 'ナックルアーム / Knuckle arm',
-                  options: const ['Carbon', 'Plastic'],
-                  showFavorite: showFavorite,
-                ),
-                _buildTrf420xTopNumberField(
-                  settingKey: 'uprightSpacer',
-                  label: isEnglish
-                      ? 'Upright spacer'
-                      : 'アップライトスペーサー / Upright spacer',
-                  unit: 'mm',
-                  showFavorite: showFavorite,
-                ),
-                _buildTrf420xTopBallastField(
-                  isEnglish: isEnglish,
-                  showFavorite: showFavorite,
-                ),
-                _buildTrf420xTopScrewPositionsField(
-                  isEnglish: isEnglish,
-                  showFavorite: showFavorite,
-                ),
-                _buildTrf420xTopNumberField(
-                  settingKey: 'steeringSpacer',
-                  label: isEnglish
-                      ? 'Steering spacer'
-                      : 'ステアリングスペーサー / Steering spacer',
-                  unit: 'mm',
-                  showFavorite: showFavorite,
-                ),
-                _buildTrf420xTopNumberField(
-                  settingKey: 'frontSusArmSpacer',
-                  label: isEnglish
-                      ? 'F sus. arm spacer'
-                      : 'Fサスアームスペーサー / F sus. arm spacer',
-                  unit: 'mm',
-                  showFavorite: showFavorite,
-                ),
-              ];
-              final rightFields = [
-                _buildTrf420xTopSegmentedField(
-                  settingKey: 'rearSusType',
-                  label:
-                      isEnglish ? 'Rear sus. type' : 'リヤサスタイプ / Rear sus. type',
-                  options: const ['Normal', 'OP'],
-                  showFavorite: showFavorite,
-                ),
-                _buildTrf420xTopSegmentedField(
-                  settingKey: 'rearSusHardness',
-                  label: isEnglish ? 'Rear feel' : 'リヤ硬さ / Rear feel',
-                  options: const ['Hard', 'Soft'],
-                  showFavorite: showFavorite,
-                ),
-                _buildTrf420xTopNumberField(
-                  settingKey: 'rearSusArmSpacer',
-                  label: isEnglish
-                      ? 'R sus. arm spacer'
-                      : 'Rサスアームスペーサー / R sus. arm spacer',
-                  unit: 'mm',
-                  showFavorite: showFavorite,
-                ),
-              ];
-
-              if (!isWide) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildTrf420xTopPositionGuide(isEnglish: isEnglish),
-                    const SizedBox(height: 16),
-                    _buildResponsiveFieldWrap(
-                      [
-                        ...leftFields,
-                        ...centerFields,
-                        ...rightFields,
-                      ],
-                      minItemWidth: 230,
-                    ),
-                  ],
-                );
-              }
-
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    flex: 3,
-                    child: _buildTrf420xTopPositionGuide(isEnglish: isEnglish),
-                  ),
-                  const SizedBox(width: 18),
-                  Expanded(
-                    flex: 7,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          flex: 2,
-                          child: _buildTrf420xTopColumn(
-                            isEnglish ? 'Front left' : '左側 / Front left',
-                            leftFields,
-                          ),
-                        ),
-                        const SizedBox(width: 18),
-                        Expanded(
-                          flex: 3,
-                          child: _buildTrf420xTopColumn(
-                            isEnglish
-                                ? 'Center chassis'
-                                : '中央 / Center chassis',
-                            centerFields,
-                          ),
-                        ),
-                        const SizedBox(width: 18),
-                        Expanded(
-                          flex: 2,
-                          child: _buildTrf420xTopColumn(
-                            isEnglish ? 'Rear right' : '右側 / Rear right',
-                            rightFields,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTrf420xTopPositionGuide({required bool isEnglish}) {
-    final theme = Theme.of(context);
-
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color:
-            theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.24),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: theme.colorScheme.outline.withValues(alpha: 0.35),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            isEnglish ? 'Position guide' : '位置ガイド',
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 10),
-          _buildTrf420xTopGuideItem(
-            isEnglish ? 'Ballast A' : 'バラスト A',
-            isEnglish ? 'Left front area' : '左前側',
-          ),
-          _buildTrf420xTopGuideItem(
-            isEnglish ? 'Ballast B' : 'バラスト B',
-            isEnglish ? 'Left rear area' : '左後側',
-          ),
-          _buildTrf420xTopGuideItem(
-            isEnglish ? 'Ballast C' : 'バラスト C',
-            isEnglish ? 'Center battery area' : '中央（バッテリー付近）',
-          ),
-          _buildTrf420xTopGuideItem(
-            isEnglish ? 'Screws' : 'ビス位置',
-            isEnglish ? '1 to 7 from left to right' : '左から1〜7',
-          ),
-          _buildTrf420xTopGuideItem(
-            isEnglish ? 'Rear feel' : 'リヤ硬さ',
-            isEnglish ? 'Right center area' : '右中央',
-          ),
-          _buildTrf420xTopGuideItem(
-            isEnglish ? 'Arm spacers' : 'サスアームスペーサー',
-            isEnglish ? 'Front on center-left, rear on right' : 'Fは中央左、Rは右下',
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTrf420xTopGuideItem(String label, String value) {
-    final theme = Theme.of(context);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 92,
-            child: Text(
-              label,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodySmall?.copyWith(
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              value,
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.72),
-                height: 1.25,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTrf420xTopColumn(String title, List<Widget> children) {
-    final theme = Theme.of(context);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: theme.textTheme.titleSmall?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const Divider(height: 18),
-        ..._withVerticalSpacing(children, 12),
-      ],
-    );
-  }
-
-  List<Widget> _withVerticalSpacing(List<Widget> children, double spacing) {
-    final spaced = <Widget>[];
-    for (var i = 0; i < children.length; i++) {
-      if (i > 0) {
-        spaced.add(SizedBox(height: spacing));
-      }
-      spaced.add(children[i]);
-    }
-    return spaced;
-  }
-
-  Widget _buildTrf420xTopFieldShell({
-    required String settingKey,
-    required String label,
-    required Widget child,
-    bool showFavorite = true,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: Text(
-                label,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                  height: 1.15,
-                ),
-              ),
-            ),
-            if (showFavorite) _buildTrf420xTopFavoriteButton(settingKey),
-          ],
-        ),
-        const SizedBox(height: 6),
-        child,
-      ],
-    );
-  }
-
-  Widget _buildTrf420xTopFavoriteButton(String key) {
-    final settingsProvider = Provider.of<SettingsProvider>(context);
-    final favoriteKeys =
-        settingsProvider.getFavoriteSettings(widget.originalCar.id);
-    final isFavorite = favoriteKeys.contains(key);
-
-    return IconButton(
-      icon: Icon(
-        isFavorite ? Icons.star : Icons.star_border,
-        color: isFavorite ? Colors.amber : null,
-        size: 20,
-      ),
-      onPressed: () {
-        settingsProvider.toggleFavoriteSetting(
-          widget.originalCar.id,
-          key,
-          !isFavorite,
-        );
-      },
-      tooltip: settingsProvider.isEnglish
-          ? (isFavorite ? 'Remove from favorites' : 'Add to favorites')
-          : (isFavorite ? 'よく使う項目から削除' : 'よく使う項目に追加'),
-      constraints: const BoxConstraints.tightFor(width: 32, height: 32),
-      padding: EdgeInsets.zero,
-      visualDensity: VisualDensity.compact,
-    );
-  }
-
-  Widget _buildTrf420xTopNumberField({
-    required String settingKey,
-    required String label,
-    String? unit,
-    List<String> aliases = const [],
-    bool showFavorite = true,
-  }) {
-    return _buildTrf420xTopFieldShell(
-      settingKey: settingKey,
-      label: label,
-      showFavorite: showFavorite,
-      child: _buildTrf420xTopNumberInput(
-        settingKey: settingKey,
-        aliases: aliases,
-        unit: unit,
-      ),
-    );
-  }
-
-  Widget _buildTrf420xTopNumberInput({
-    required String settingKey,
-    List<String> aliases = const [],
-    String? unit,
-  }) {
-    return SizedBox(
-      height: 42,
-      child: TextFormField(
-        decoration: InputDecoration(
-          border: const OutlineInputBorder(),
-          isDense: true,
-          suffixText: unit,
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 10,
-            vertical: 10,
-          ),
-        ),
-        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-        initialValue: _settingTextForKey(settingKey, aliases: aliases),
-        onChanged: (value) {
-          _updateTextSettingWithAliases(settingKey, aliases, value);
-        },
-      ),
-    );
-  }
-
-  Widget _buildTrf420xTopSegmentedField({
-    required String settingKey,
-    required String label,
-    required List<String> options,
-    bool showFavorite = true,
-  }) {
-    return _buildTrf420xTopFieldShell(
-      settingKey: settingKey,
-      label: label,
-      showFavorite: showFavorite,
-      child: _buildTrf420xTopSegmentedControl(
-        settingKey: settingKey,
-        options: options,
-      ),
-    );
-  }
-
-  Widget _buildTrf420xTopSegmentedControl({
-    required String settingKey,
-    required List<String> options,
-  }) {
-    final theme = Theme.of(context);
-    final selectedValue = _settingTextForKey(settingKey);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final segmentWidth = constraints.maxWidth.isFinite
-            ? ((constraints.maxWidth - (options.length - 1)) / options.length)
-                .clamp(64.0, 132.0)
-                .toDouble()
-            : 96.0;
-
-        return ToggleButtons(
-          isSelected: options.map((option) => selectedValue == option).toList(),
-          constraints: BoxConstraints(
-            minHeight: 38,
-            minWidth: segmentWidth,
-          ),
-          borderRadius: BorderRadius.circular(8),
-          selectedColor: theme.colorScheme.onPrimary,
-          fillColor: theme.colorScheme.primary,
-          color: theme.colorScheme.onSurface,
-          onPressed: (index) {
-            setState(() {
-              settings[settingKey] = options[index];
-            });
-          },
-          children: options.map((option) {
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                option,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontSize: 12),
-              ),
-            );
-          }).toList(),
-        );
-      },
-    );
-  }
-
-  Widget _buildTrf420xTopBallastField({
-    required bool isEnglish,
-    required bool showFavorite,
-  }) {
-    return _buildTrf420xTopFieldShell(
-      settingKey: 'ballastWeight',
-      label: isEnglish ? 'Ballast weight' : 'バランスウェイト / Ballast weight',
-      showFavorite: showFavorite,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final fields = [
-            _buildTrf420xTopInlineNumberInput(
-              settingKey: 'ballastWeightA',
-              aliases: const ['ballastWeight'],
-              label: isEnglish ? 'A left front' : 'A 左前',
-              unit: 'g',
-            ),
-            _buildTrf420xTopInlineNumberInput(
-              settingKey: 'ballastWeightB',
-              label: isEnglish ? 'B left rear' : 'B 左後',
-              unit: 'g',
-            ),
-            _buildTrf420xTopInlineNumberInput(
-              settingKey: 'ballastWeightC',
-              label: isEnglish ? 'C center' : 'C 中央',
-              unit: 'g',
-            ),
-          ];
-
-          if (constraints.maxWidth < 360) {
-            return Column(
-              children: _withVerticalSpacing(fields, 8),
-            );
-          }
-
-          return Row(
-            children: fields
-                .map(
-                  (field) => Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: field,
-                    ),
-                  ),
-                )
-                .toList(),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildTrf420xTopInlineNumberInput({
-    required String settingKey,
-    required String label,
-    String? unit,
-    List<String> aliases = const [],
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 4),
-        _buildTrf420xTopNumberInput(
-          settingKey: settingKey,
-          aliases: aliases,
-          unit: unit,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildTrf420xTopScrewPositionsField({
-    required bool isEnglish,
-    required bool showFavorite,
-  }) {
-    const settingKey = 'topScrewPositions';
-    final theme = Theme.of(context);
-    final selectedCols = _getGridValue(settingKey)
-        .where((point) => point.row == 0)
-        .map((point) => point.col)
-        .toSet();
-
-    return _buildTrf420xTopFieldShell(
-      settingKey: settingKey,
-      label: isEnglish
-          ? 'Screw positions (left to right)'
-          : 'ビス位置（左から1〜7） / Screw positions',
-      showFavorite: showFavorite,
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: List.generate(7, (index) {
-          final isSelected = selectedCols.contains(index);
-          return Semantics(
-            button: true,
-            selected: isSelected,
-            label: 'Screw position ${index + 1}',
-            child: InkWell(
-              borderRadius: BorderRadius.circular(999),
-              onTap: () {
-                setState(() {
-                  final updatedCols = {...selectedCols};
-                  if (isSelected) {
-                    updatedCols.remove(index);
-                  } else {
-                    updatedCols.add(index);
-                  }
-                  final orderedCols = updatedCols.toList()..sort();
-                  settings[settingKey] =
-                      orderedCols.map((col) => Point(0, col).toJson()).toList();
-                });
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                width: 28,
-                height: 28,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: isSelected
-                        ? theme.colorScheme.primary
-                        : theme.colorScheme.outline,
-                    width: isSelected ? 2 : 1,
-                  ),
-                  color: isSelected
-                      ? theme.colorScheme.primary.withValues(alpha: 0.16)
-                      : theme.colorScheme.surface,
-                ),
-                child: isSelected
-                    ? Icon(
-                        Icons.check_rounded,
-                        size: 16,
-                        color: theme.colorScheme.primary,
-                      )
-                    : null,
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-
   List<Point> _getGridValue(String key) {
     final value = settings[key];
     if (value == null) return [];
@@ -4513,7 +3944,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(setting.label),
+        _buildSettingLabel(setting),
         const SizedBox(height: 8),
         TextFormField(
           key:
@@ -4569,7 +4000,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(setting.label),
+        _buildSettingLabel(setting),
         const SizedBox(height: 8),
         TextFormField(
           key:
@@ -4615,7 +4046,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(setting.label),
+        _buildSettingLabel(setting),
         const SizedBox(height: 8),
         Autocomplete<String>(
           key: ValueKey('${setting.key}_suggested_$initialText'),
@@ -4694,7 +4125,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(setting.label),
+        _buildSettingLabel(setting),
         const SizedBox(height: 8),
         DropdownButtonFormField<String>(
           decoration: const InputDecoration(
@@ -4796,7 +4227,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(setting.label),
+        _buildSettingLabel(setting),
         Row(
           children: [
             Text(min.toString()),
