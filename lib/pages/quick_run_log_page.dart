@@ -29,6 +29,11 @@ class QuickRunLogPage extends StatefulWidget {
 
 class _QuickRunLogPageState extends State<QuickRunLogPage> {
   final TextEditingController _bestLapController = TextEditingController();
+  final TextEditingController _airTempController = TextEditingController();
+  final TextEditingController _humidityController = TextEditingController();
+  final TextEditingController _trackTempController = TextEditingController();
+  final TextEditingController _trackConditionController =
+      TextEditingController();
   final TextEditingController _memoController = TextEditingController();
   final List<RunSettingChange> _changes = [];
   final Set<String> _selectedFeelTagIds = {};
@@ -40,6 +45,10 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
   @override
   void dispose() {
     _bestLapController.dispose();
+    _airTempController.dispose();
+    _humidityController.dispose();
+    _trackTempController.dispose();
+    _trackConditionController.dispose();
     _memoController.dispose();
     super.dispose();
   }
@@ -177,6 +186,9 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
   Future<void> _saveRunLog(SettingsProvider provider, bool isEnglish) async {
     final car = _selectedCar;
     final bestLapMillis = parseBestLapMillis(_bestLapController.text);
+    final airTempC = _parseOptionalNumber(_airTempController.text);
+    final humidityPercent = _parseOptionalNumber(_humidityController.text);
+    final trackTempC = _parseOptionalNumber(_trackTempController.text);
 
     if (car == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -201,6 +213,37 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
       return;
     }
 
+    if (_isInvalidOptionalNumber(_airTempController.text, airTempC) ||
+        _isInvalidOptionalNumber(_humidityController.text, humidityPercent) ||
+        _isInvalidOptionalNumber(_trackTempController.text, trackTempC)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_t(
+            isEnglish,
+            'Enter condition values as numbers.',
+            'コンディションの数値は数字で入力してください。',
+          )),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
+
+    if (humidityPercent != null &&
+        (humidityPercent < 0 || humidityPercent > 100)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_t(
+            isEnglish,
+            'Humidity must be between 0 and 100.',
+            '湿度は0〜100の範囲で入力してください。',
+          )),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return;
+    }
+
     setState(() {
       _isSaving = true;
     });
@@ -211,6 +254,10 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
         car: car,
         baseSetting: _selectedBaseSetting,
         bestLapMillis: bestLapMillis,
+        airTempC: airTempC,
+        humidityPercent: humidityPercent,
+        trackTempC: trackTempC,
+        trackCondition: _trackConditionController.text,
         feelTagIds: _selectedFeelTagIds.toList(),
         memo: _memoController.text,
         changes: List<RunSettingChange>.from(_changes),
@@ -237,6 +284,18 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
         });
       }
     }
+  }
+
+  double? _parseOptionalNumber(String input) {
+    final normalized = input.trim().replaceAll(',', '.');
+    if (normalized.isEmpty) {
+      return null;
+    }
+    return double.tryParse(normalized);
+  }
+
+  bool _isInvalidOptionalNumber(String input, double? parsed) {
+    return input.trim().isNotEmpty && parsed == null;
   }
 
   @override
@@ -343,6 +402,75 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
                               onChanged: (value) {
                                 _selectBaseSetting(provider, value ?? '');
                               },
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      _SectionCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _t(isEnglish, 'Conditions', 'コンディション'),
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: _airTempController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                decimal: true,
+                                signed: true,
+                              ),
+                              decoration: InputDecoration(
+                                labelText: _t(isEnglish, 'Air Temp', '気温'),
+                                suffixText: '°C',
+                                prefixIcon: const Icon(Icons.thermostat),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _humidityController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                decimal: true,
+                              ),
+                              decoration: InputDecoration(
+                                labelText: _t(isEnglish, 'Humidity', '湿度'),
+                                suffixText: '%',
+                                prefixIcon: const Icon(Icons.water_drop),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _trackTempController,
+                              keyboardType:
+                                  const TextInputType.numberWithOptions(
+                                decimal: true,
+                                signed: true,
+                              ),
+                              decoration: InputDecoration(
+                                labelText: _t(isEnglish, 'Track Temp', '路面温度'),
+                                suffixText: '°C',
+                                prefixIcon: const Icon(Icons.device_thermostat),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _trackConditionController,
+                              decoration: InputDecoration(
+                                labelText:
+                                    _t(isEnglish, 'Track Condition', '路面状態'),
+                                hintText: _t(
+                                  isEnglish,
+                                  'Low grip, high grip, dusty...',
+                                  'ローグリップ、ハイグリップ、埃っぽいなど',
+                                ),
+                                prefixIcon: const Icon(Icons.route),
+                              ),
                             ),
                           ],
                         ),

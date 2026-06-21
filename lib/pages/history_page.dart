@@ -26,8 +26,16 @@ enum _HistoryView {
   runLogs,
 }
 
+enum _RunLogSort {
+  newest,
+  fastest,
+}
+
 class _HistoryPageState extends State<HistoryPage> {
   _HistoryView _selectedView = _HistoryView.settings;
+  _RunLogSort _runLogSort = _RunLogSort.newest;
+  String? _runLogCarId;
+  String? _runLogTagId;
 
   @override
   Widget build(BuildContext context) {
@@ -38,11 +46,12 @@ class _HistoryPageState extends State<HistoryPage> {
             : settingsProvider.savedSettings
                 .where((setting) => setting.car.id == widget.filterCar!.id)
                 .toList(growable: false);
-        final runLogs = widget.filterCar == null
+        final sourceRunLogs = widget.filterCar == null
             ? settingsProvider.runLogs
             : settingsProvider.runLogs
                 .where((runLog) => runLog.car.id == widget.filterCar!.id)
                 .toList(growable: false);
+        final runLogs = _applyRunLogFilters(sourceRunLogs);
         final isEnglish = settingsProvider.isEnglish;
 
         return Column(
@@ -73,12 +82,54 @@ class _HistoryPageState extends State<HistoryPage> {
             Expanded(
               child: _selectedView == _HistoryView.settings
                   ? _buildSettingsView(context, savedSettings, isEnglish)
-                  : _buildRunLogsView(context, runLogs, isEnglish),
+                  : _buildRunLogsView(
+                      context,
+                      runLogs,
+                      sourceRunLogs,
+                      settingsProvider,
+                      isEnglish,
+                    ),
             ),
           ],
         );
       },
     );
+  }
+
+  List<RunLog> _applyRunLogFilters(List<RunLog> sourceRunLogs) {
+    var filtered = sourceRunLogs.where((runLog) {
+      if (widget.filterCar == null &&
+          _runLogCarId != null &&
+          runLog.car.id != _runLogCarId) {
+        return false;
+      }
+      if (_runLogTagId != null && !runLog.feelTagIds.contains(_runLogTagId)) {
+        return false;
+      }
+      return true;
+    }).toList(growable: false);
+
+    filtered = List<RunLog>.from(filtered);
+    if (_runLogSort == _RunLogSort.fastest) {
+      filtered.sort((a, b) {
+        final aHasTime = a.bestLapMillis > 0;
+        final bHasTime = b.bestLapMillis > 0;
+        if (aHasTime != bHasTime) {
+          return aHasTime ? -1 : 1;
+        }
+        if (aHasTime && bHasTime) {
+          final lapComparison = a.bestLapMillis.compareTo(b.bestLapMillis);
+          if (lapComparison != 0) {
+            return lapComparison;
+          }
+        }
+        return b.runAt.compareTo(a.runAt);
+      });
+    } else {
+      filtered.sort((a, b) => b.runAt.compareTo(a.runAt));
+    }
+
+    return filtered;
   }
 
   Widget _buildSettingsView(
@@ -118,9 +169,11 @@ class _HistoryPageState extends State<HistoryPage> {
   Widget _buildRunLogsView(
     BuildContext context,
     List<RunLog> runLogs,
+    List<RunLog> sourceRunLogs,
+    SettingsProvider settingsProvider,
     bool isEnglish,
   ) {
-    if (runLogs.isEmpty) {
+    if (sourceRunLogs.isEmpty) {
       return _buildEmptyState(
         context,
         icon: Icons.timer_rounded,
@@ -135,14 +188,154 @@ class _HistoryPageState extends State<HistoryPage> {
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.only(top: 8, bottom: 24),
-      itemCount: runLogs.length,
-      itemBuilder: (context, index) {
-        final runLog = runLogs[index];
-        return _buildRunLogItem(context, runLog, isEnglish);
-      },
+    return Column(
+      children: [
+        _buildRunLogControls(
+          context,
+          sourceRunLogs,
+          isEnglish,
+        ),
+        Expanded(
+          child: runLogs.isEmpty
+              ? _buildEmptyState(
+                  context,
+                  icon: Icons.filter_alt_off_rounded,
+                  title: isEnglish ? 'No matching run logs' : '条件に合う走行ログがありません',
+                  message: isEnglish
+                      ? 'Change the car, tag, or sort filters.'
+                      : '車種やタグの絞り込み条件を変更してください。',
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.only(top: 8, bottom: 24),
+                  itemCount: runLogs.length,
+                  itemBuilder: (context, index) {
+                    final runLog = runLogs[index];
+                    return _buildRunLogItem(
+                      context,
+                      runLog,
+                      settingsProvider,
+                      isEnglish,
+                    );
+                  },
+                ),
+        ),
+      ],
     );
+  }
+
+  Widget _buildRunLogControls(
+    BuildContext context,
+    List<RunLog> sourceRunLogs,
+    bool isEnglish,
+  ) {
+    final cars = _uniqueCarsFromRunLogs(sourceRunLogs);
+    final tagIds =
+        sourceRunLogs.expand((runLog) => runLog.feelTagIds).toSet().toList()
+          ..sort(
+            (a, b) => runFeelTagLabel(a, isEnglish).compareTo(
+              runFeelTagLabel(b, isEnglish),
+            ),
+          );
+    final selectedCarValue =
+        cars.any((car) => car.id == _runLogCarId) ? (_runLogCarId ?? '') : '';
+    final selectedTagValue =
+        tagIds.contains(_runLogTagId) ? (_runLogTagId ?? '') : '';
+
+    return Card(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          children: [
+            SegmentedButton<_RunLogSort>(
+              segments: [
+                ButtonSegment<_RunLogSort>(
+                  value: _RunLogSort.newest,
+                  icon: const Icon(Icons.schedule_rounded),
+                  label: Text(isEnglish ? 'Newest' : '新しい順'),
+                ),
+                ButtonSegment<_RunLogSort>(
+                  value: _RunLogSort.fastest,
+                  icon: const Icon(Icons.speed_rounded),
+                  label: Text(isEnglish ? 'Fastest' : 'タイム順'),
+                ),
+              ],
+              selected: {_runLogSort},
+              onSelectionChanged: (selection) {
+                setState(() {
+                  _runLogSort = selection.first;
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+            if (widget.filterCar == null) ...[
+              DropdownButtonFormField<String>(
+                initialValue: selectedCarValue,
+                decoration: InputDecoration(
+                  labelText: isEnglish ? 'Car' : '車種',
+                  prefixIcon: const Icon(Icons.directions_car_rounded),
+                ),
+                items: [
+                  DropdownMenuItem<String>(
+                    value: '',
+                    child: Text(isEnglish ? 'All cars' : 'すべての車種'),
+                  ),
+                  ...cars.map(
+                    (car) => DropdownMenuItem<String>(
+                      value: car.id,
+                      child: Text(car.name),
+                    ),
+                  ),
+                ],
+                onChanged: (value) {
+                  setState(() {
+                    _runLogCarId =
+                        value == null || value.isEmpty ? null : value;
+                  });
+                },
+              ),
+              const SizedBox(height: 12),
+            ],
+            DropdownButtonFormField<String>(
+              initialValue: selectedTagValue,
+              decoration: InputDecoration(
+                labelText: isEnglish ? 'Feel tag' : 'フィーリングタグ',
+                prefixIcon: const Icon(Icons.sell_rounded),
+              ),
+              items: [
+                DropdownMenuItem<String>(
+                  value: '',
+                  child: Text(isEnglish ? 'All tags' : 'すべてのタグ'),
+                ),
+                ...tagIds.map(
+                  (tagId) => DropdownMenuItem<String>(
+                    value: tagId,
+                    child: Text(runFeelTagLabel(tagId, isEnglish)),
+                  ),
+                ),
+              ],
+              onChanged: (value) {
+                setState(() {
+                  _runLogTagId = value == null || value.isEmpty ? null : value;
+                });
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Car> _uniqueCarsFromRunLogs(List<RunLog> runLogs) {
+    final seen = <String>{};
+    final cars = <Car>[];
+    for (final runLog in runLogs) {
+      if (seen.add(runLog.car.id)) {
+        cars.add(runLog.car);
+      }
+    }
+    cars.sort((a, b) => a.name.compareTo(b.name));
+    return cars;
   }
 
   Widget _buildEmptyState(
@@ -244,6 +437,19 @@ class _HistoryPageState extends State<HistoryPage> {
                         fontSize: 16,
                       ),
                     ),
+                    if (setting.kind == SavedSettingKind.runResult) ...[
+                      const SizedBox(height: 6),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Chip(
+                          avatar: const Icon(Icons.timer_rounded, size: 16),
+                          visualDensity: VisualDensity.compact,
+                          label: Text(
+                            isEnglish ? 'Run result' : '走行結果',
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 4),
                     Row(
                       children: [
@@ -303,6 +509,7 @@ class _HistoryPageState extends State<HistoryPage> {
   Widget _buildRunLogItem(
     BuildContext context,
     RunLog runLog,
+    SettingsProvider settingsProvider,
     bool isEnglish,
   ) {
     final theme = Theme.of(context);
@@ -310,6 +517,10 @@ class _HistoryPageState extends State<HistoryPage> {
     final feelLabels = runLog.feelTagIds
         .map((id) => runFeelTagLabel(id, isEnglish))
         .join(', ');
+    final conditionText = formatRunConditions(runLog, isEnglish);
+    final linkedSetting = _findLinkedSetting(settingsProvider, runLog);
+    final linkedSettingName =
+        runLog.resultSettingName ?? runLog.baseSettingName;
 
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -347,7 +558,28 @@ class _HistoryPageState extends State<HistoryPage> {
                           color: colorScheme.onSurfaceVariant,
                         ),
                       ),
+                      if (conditionText.isNotEmpty) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          conditionText,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
                     ],
+                  ),
+                ),
+                IconButton(
+                  tooltip: isEnglish ? 'Delete run log' : '走行ログを削除',
+                  icon: const Icon(Icons.delete_outline_rounded),
+                  onPressed: () => _confirmDeleteRunLog(
+                    context,
+                    settingsProvider,
+                    runLog,
+                    isEnglish,
                   ),
                 ),
               ],
@@ -370,18 +602,25 @@ class _HistoryPageState extends State<HistoryPage> {
                 style: theme.textTheme.bodyMedium,
               ),
             ],
-            if (runLog.resultSettingName != null ||
-                runLog.changes.isNotEmpty) ...[
+            if (linkedSettingName != null || runLog.changes.isNotEmpty) ...[
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
                 children: [
-                  if (runLog.resultSettingName != null)
-                    Chip(
-                      avatar: const Icon(Icons.tune_rounded, size: 18),
-                      label: Text(runLog.resultSettingName!),
-                    ),
+                  if (linkedSettingName != null)
+                    linkedSetting == null
+                        ? Chip(
+                            avatar: const Icon(Icons.tune_rounded, size: 18),
+                            label: Text(linkedSettingName),
+                          )
+                        : ActionChip(
+                            avatar:
+                                const Icon(Icons.open_in_new_rounded, size: 18),
+                            label: Text(linkedSettingName),
+                            onPressed: () =>
+                                _openSavedSetting(context, linkedSetting),
+                          ),
                   if (runLog.changes.isNotEmpty)
                     Chip(
                       avatar: const Icon(Icons.edit_rounded, size: 18),
@@ -396,6 +635,84 @@ class _HistoryPageState extends State<HistoryPage> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  SavedSetting? _findLinkedSetting(
+    SettingsProvider settingsProvider,
+    RunLog runLog,
+  ) {
+    final settingIds = [
+      runLog.resultSettingId,
+      runLog.baseSettingId,
+    ].whereType<String>();
+
+    for (final settingId in settingIds) {
+      for (final setting in settingsProvider.savedSettings) {
+        if (setting.id == settingId) {
+          return setting;
+        }
+      }
+    }
+    return null;
+  }
+
+  void _openSavedSetting(BuildContext context, SavedSetting setting) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CarSettingPage(
+          originalCar: setting.car,
+          savedSettings: setting.settings,
+          settingName: setting.name,
+          savedSettingId: setting.id,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmDeleteRunLog(
+    BuildContext context,
+    SettingsProvider settingsProvider,
+    RunLog runLog,
+    bool isEnglish,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(isEnglish ? 'Delete run log?' : '走行ログを削除しますか？'),
+        content: Text(
+          isEnglish
+              ? 'This removes only the run log. Linked saved setups remain.'
+              : '削除されるのは走行ログのみです。紐づく保存セットは残ります。',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(isEnglish ? 'Delete' : '削除'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true || !mounted) {
+      return;
+    }
+
+    await settingsProvider.deleteRunLog(runLog.id);
+    if (!mounted) {
+      return;
+    }
+
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(isEnglish ? 'Run log deleted.' : '走行ログを削除しました。'),
       ),
     );
   }

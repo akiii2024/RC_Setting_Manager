@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rc_setting_manager/models/car.dart';
 import 'package:rc_setting_manager/models/manufacturer.dart';
 import 'package:rc_setting_manager/models/run_log.dart';
+import 'package:rc_setting_manager/models/saved_setting.dart';
 import 'package:rc_setting_manager/services/xml_service.dart';
 
 void main() {
@@ -61,6 +62,10 @@ void main() {
             resultSettingId: 'result-1',
             resultSettingName: 'Result',
             bestLapMillis: 13520,
+            airTempC: 23.5,
+            humidityPercent: 55,
+            trackTempC: 34.0,
+            trackCondition: 'Dusty',
             feelTagIds: const ['stable'],
             memo: 'Good balance',
             changes: const [
@@ -81,8 +86,47 @@ void main() {
 
     expect(result.runLogs, hasLength(1));
     expect(result.runLogs.first.bestLapMillis, 13520);
+    expect(result.runLogs.first.airTempC, 23.5);
+    expect(result.runLogs.first.humidityPercent, 55);
+    expect(result.runLogs.first.trackTempC, 34.0);
+    expect(result.runLogs.first.trackCondition, 'Dusty');
     expect(result.runLogs.first.feelTagIds, ['stable']);
     expect(result.runLogs.first.changes.single.afterValue, 1.5);
+  });
+
+  test('exports and imports saved setting run result metadata', () async {
+    final car = Car(
+      id: 'tamiya/trf421',
+      name: 'TRF421',
+      imageUrl: '',
+      manufacturer: manufacturer,
+      category: 'touring',
+    );
+
+    final result = await XmlService.importFromXml(
+      await XmlService.exportToXml(
+        savedSettings: [
+          SavedSetting(
+            id: 'result-1',
+            name: 'Run result',
+            createdAt: DateTime(2026, 6, 19, 12, 5),
+            car: car,
+            settings: const {'frontCamber': 1.5},
+            kind: SavedSettingKind.runResult,
+            sourceRunLogId: 'run-1',
+            parentSettingId: 'base-1',
+          ),
+        ],
+        cars: [car],
+        visibilitySettings: const {},
+        isEnglish: true,
+      ),
+    );
+
+    expect(result.savedSettings, hasLength(1));
+    expect(result.savedSettings.first.kind, SavedSettingKind.runResult);
+    expect(result.savedSettings.first.sourceRunLogId, 'run-1');
+    expect(result.savedSettings.first.parentSettingId, 'base-1');
   });
 
   test('imports legacy xml without garage fields', () async {

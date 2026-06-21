@@ -519,6 +519,9 @@ class SettingsProvider extends ChangeNotifier {
           createdAt: updatedSetting.createdAt,
           car: updatedSetting.car,
           settings: updatedSetting.settings,
+          kind: updatedSetting.kind,
+          sourceRunLogId: updatedSetting.sourceRunLogId,
+          parentSettingId: updatedSetting.parentSettingId,
         );
 
         _savedSettings[index] = settingToSave;
@@ -721,7 +724,13 @@ class SettingsProvider extends ChangeNotifier {
 
   // 設定追加時にFirebaseにも保存
   Future<SavedSetting> addSetting(
-      String name, Car car, Map<String, dynamic> settings) async {
+    String name,
+    Car car,
+    Map<String, dynamic> settings, {
+    SavedSettingKind kind = SavedSettingKind.manual,
+    String? sourceRunLogId,
+    String? parentSettingId,
+  }) async {
     final uniqueName = _createUniqueSettingName(name);
     final newSetting = SavedSetting(
       id: DateTime.now().microsecondsSinceEpoch.toString(),
@@ -729,6 +738,9 @@ class SettingsProvider extends ChangeNotifier {
       createdAt: DateTime.now(),
       car: car,
       settings: settings,
+      kind: kind,
+      sourceRunLogId: sourceRunLogId,
+      parentSettingId: parentSettingId,
     );
 
     _savedSettings.insert(0, newSetting);
@@ -767,6 +779,10 @@ class SettingsProvider extends ChangeNotifier {
     required Car car,
     SavedSetting? baseSetting,
     required int bestLapMillis,
+    double? airTempC,
+    double? humidityPercent,
+    double? trackTempC,
+    String trackCondition = '',
     required List<String> feelTagIds,
     String memo = '',
     List<RunSettingChange> changes = const [],
@@ -778,6 +794,8 @@ class SettingsProvider extends ChangeNotifier {
             change.afterValue.toString().trim().isNotEmpty)
         .toList(growable: false);
 
+    final now = DateTime.now();
+    final runLogId = now.microsecondsSinceEpoch.toString();
     SavedSetting? resultSetting;
     if (effectiveChanges.isNotEmpty) {
       final resultSettings = baseSetting != null
@@ -792,12 +810,14 @@ class SettingsProvider extends ChangeNotifier {
         _buildRunSettingName(runAt, car),
         car,
         resultSettings,
+        kind: SavedSettingKind.runResult,
+        sourceRunLogId: runLogId,
+        parentSettingId: baseSetting?.id,
       );
     }
 
-    final now = DateTime.now();
     final runLog = RunLog(
-      id: now.microsecondsSinceEpoch.toString(),
+      id: runLogId,
       createdAt: now,
       runAt: runAt,
       car: car,
@@ -806,6 +826,10 @@ class SettingsProvider extends ChangeNotifier {
       resultSettingId: resultSetting?.id,
       resultSettingName: resultSetting?.name,
       bestLapMillis: bestLapMillis,
+      airTempC: airTempC,
+      humidityPercent: humidityPercent,
+      trackTempC: trackTempC,
+      trackCondition: trackCondition.trim(),
       feelTagIds: List<String>.from(feelTagIds),
       memo: memo.trim(),
       changes: effectiveChanges,

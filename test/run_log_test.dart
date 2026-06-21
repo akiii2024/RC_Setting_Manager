@@ -31,6 +31,10 @@ void main() {
       resultSettingId: 'result-1',
       resultSettingName: 'Result',
       bestLapMillis: 13520,
+      airTempC: 22.5,
+      humidityPercent: 48,
+      trackTempC: 31.2,
+      trackCondition: 'High grip',
       feelTagIds: const ['stable', 'push'],
       memo: 'Good balance',
       changes: const [
@@ -48,6 +52,10 @@ void main() {
     expect(decoded.id, 'run-1');
     expect(decoded.car.id, 'tamiya/trf421');
     expect(decoded.bestLapMillis, 13520);
+    expect(decoded.airTempC, 22.5);
+    expect(decoded.humidityPercent, 48);
+    expect(decoded.trackTempC, 31.2);
+    expect(decoded.trackCondition, 'High grip');
     expect(decoded.feelTagIds, ['stable', 'push']);
     expect(decoded.changes.single.settingKey, 'frontCamber');
     expect(decoded.changes.single.afterValue, 1.5);

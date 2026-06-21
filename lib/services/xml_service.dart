@@ -107,6 +107,11 @@ class XmlService {
               builder.element('name', nest: setting.name);
               builder.element('createdAt',
                   nest: setting.createdAt.toIso8601String());
+              builder.element('kind', nest: setting.kind.name);
+              builder.element('sourceRunLogId',
+                  nest: setting.sourceRunLogId ?? '');
+              builder.element('parentSettingId',
+                  nest: setting.parentSettingId ?? '');
 
               // 車種情報
               builder.element('car', nest: () {
@@ -159,6 +164,15 @@ class XmlService {
                   nest: runLog.resultSettingName ?? '');
               builder.element('bestLapMillis',
                   nest: runLog.bestLapMillis.toString());
+              builder.element('conditions', nest: () {
+                builder.element('airTempC',
+                    nest: runLog.airTempC?.toString() ?? '');
+                builder.element('humidityPercent',
+                    nest: runLog.humidityPercent?.toString() ?? '');
+                builder.element('trackTempC',
+                    nest: runLog.trackTempC?.toString() ?? '');
+                builder.element('trackCondition', nest: runLog.trackCondition);
+              });
               builder.element('memo', nest: runLog.memo);
 
               builder.element('feelTagIds', nest: () {
@@ -435,6 +449,16 @@ class XmlService {
                 createdAt: createdAt,
                 car: car,
                 settings: settings,
+                kind: _parseSavedSettingKind(
+                    settingElement.findElements('kind').firstOrNull?.innerText),
+                sourceRunLogId: _emptyToNull(settingElement
+                    .findElements('sourceRunLogId')
+                    .firstOrNull
+                    ?.innerText),
+                parentSettingId: _emptyToNull(settingElement
+                    .findElements('parentSettingId')
+                    .firstOrNull
+                    ?.innerText),
               ));
             }
           }
@@ -531,6 +555,9 @@ class XmlService {
               }
             }
 
+            final conditionsElement =
+                runLogElement.findElements('conditions').firstOrNull;
+
             if (car != null) {
               runLogs.add(
                 RunLog(
@@ -560,6 +587,23 @@ class XmlService {
                               ?.innerText ??
                           '') ??
                       0,
+                  airTempC: _readOptionalDouble(
+                    conditionsElement,
+                    'airTempC',
+                  ),
+                  humidityPercent: _readOptionalDouble(
+                    conditionsElement,
+                    'humidityPercent',
+                  ),
+                  trackTempC: _readOptionalDouble(
+                    conditionsElement,
+                    'trackTempC',
+                  ),
+                  trackCondition: conditionsElement
+                          ?.findElements('trackCondition')
+                          .firstOrNull
+                          ?.innerText ??
+                      '',
                   feelTagIds: feelTagIds,
                   memo: runLogElement
                           .findElements('memo')
@@ -626,6 +670,25 @@ class XmlService {
   }
 
   // ファイルからXMLをインポート（部分的インポート対応）
+  static SavedSettingKind _parseSavedSettingKind(String? value) {
+    if (value != null) {
+      for (final kind in SavedSettingKind.values) {
+        if (kind.name == value) {
+          return kind;
+        }
+      }
+    }
+    return SavedSettingKind.manual;
+  }
+
+  static double? _readOptionalDouble(XmlElement? parent, String elementName) {
+    final value = parent?.findElements(elementName).firstOrNull?.innerText;
+    if (value == null || value.trim().isEmpty) {
+      return null;
+    }
+    return double.tryParse(value.trim().replaceAll(',', '.'));
+  }
+
   static dynamic _parseXmlValue(String value) {
     if (int.tryParse(value) != null) {
       return int.parse(value);

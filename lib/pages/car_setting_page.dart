@@ -2813,12 +2813,22 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
     if (_isEditing && widget.savedSettingId != null) {
       // Update existing setting
+      SavedSetting? existingSetting;
+      for (final setting in settingsProvider.savedSettings) {
+        if (setting.id == widget.savedSettingId) {
+          existingSetting = setting;
+          break;
+        }
+      }
       final updatedSetting = SavedSetting(
         id: widget.savedSettingId!,
         name: _settingNameController.text,
         createdAt: DateTime.now(),
         car: widget.originalCar,
         settings: settings,
+        kind: existingSetting?.kind ?? SavedSettingKind.manual,
+        sourceRunLogId: existingSetting?.sourceRunLogId,
+        parentSettingId: existingSetting?.parentSettingId,
       );
 
       await settingsProvider.updateSetting(updatedSetting);
@@ -2916,12 +2926,22 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
     if (_isEditing && widget.savedSettingId != null) {
       // Update existing setting
+      SavedSetting? existingSetting;
+      for (final setting in settingsProvider.savedSettings) {
+        if (setting.id == widget.savedSettingId) {
+          existingSetting = setting;
+          break;
+        }
+      }
       final updatedSetting = SavedSetting(
         id: widget.savedSettingId!,
         name: _settingNameController.text,
         createdAt: DateTime.now(),
         car: widget.originalCar,
         settings: settings,
+        kind: existingSetting?.kind ?? SavedSettingKind.manual,
+        sourceRunLogId: existingSetting?.sourceRunLogId,
+        parentSettingId: existingSetting?.parentSettingId,
       );
 
       await settingsProvider.updateSetting(updatedSetting);

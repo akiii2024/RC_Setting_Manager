@@ -1,3 +1,5 @@
+import '../models/run_log.dart';
+
 int? parseBestLapMillis(String input) {
   final normalized = input.trim().replaceAll(',', '.');
   if (normalized.isEmpty) {
@@ -47,4 +49,38 @@ String formatBestLapMillis(int millis) {
   }
 
   return totalSeconds.toStringAsFixed(2);
+}
+
+String formatRunConditions(RunLog runLog, bool isEnglish) {
+  final parts = <String>[];
+
+  if (runLog.airTempC != null) {
+    parts.add(
+      '${isEnglish ? "Air" : "気温"} ${_formatNumber(runLog.airTempC!)}°C',
+    );
+  }
+  if (runLog.humidityPercent != null) {
+    parts.add(
+      '${isEnglish ? "Humidity" : "湿度"} ${_formatNumber(runLog.humidityPercent!)}%',
+    );
+  }
+  if (runLog.trackTempC != null) {
+    parts.add(
+      '${isEnglish ? "Track" : "路面"} ${_formatNumber(runLog.trackTempC!)}°C',
+    );
+  }
+
+  final trackCondition = runLog.trackCondition.trim();
+  if (trackCondition.isNotEmpty) {
+    parts.add(trackCondition);
+  }
+
+  return parts.join(' / ');
+}
+
+String _formatNumber(double value) {
+  if (value == value.roundToDouble()) {
+    return value.toInt().toString();
+  }
+  return value.toStringAsFixed(1);
 }

@@ -107,11 +107,19 @@ void main() {
       car: car,
       baseSetting: baseSetting,
       bestLapMillis: 13520,
+      airTempC: 24,
+      humidityPercent: 50,
+      trackTempC: 36.5,
+      trackCondition: 'High grip',
       feelTagIds: const ['stable'],
       memo: 'Good',
     );
 
     expect(provider.runLogs, hasLength(1));
+    expect(runLog.airTempC, 24);
+    expect(runLog.humidityPercent, 50);
+    expect(runLog.trackTempC, 36.5);
+    expect(runLog.trackCondition, 'High grip');
     expect(runLog.resultSettingId, isNull);
     expect(provider.savedSettings, hasLength(1));
   });
@@ -149,7 +157,11 @@ void main() {
     expect(provider.runLogs, hasLength(1));
     expect(runLog.resultSettingId, isNotNull);
     expect(provider.savedSettings, hasLength(2));
-    expect(provider.savedSettings.first.settings['frontCamber'], 1.5);
+    final resultSetting = provider.savedSettings.first;
+    expect(resultSetting.settings['frontCamber'], 1.5);
+    expect(resultSetting.kind, SavedSettingKind.runResult);
+    expect(resultSetting.sourceRunLogId, runLog.id);
+    expect(resultSetting.parentSettingId, baseSetting.id);
 
     final reloadedProvider = SettingsProvider();
     await _waitForProvider(reloadedProvider);
@@ -157,6 +169,11 @@ void main() {
     expect(reloadedProvider.runLogs, hasLength(1));
     expect(
         reloadedProvider.runLogs.first.resultSettingId, runLog.resultSettingId);
+    expect(
+        reloadedProvider.savedSettings.first.kind, SavedSettingKind.runResult);
+    expect(reloadedProvider.savedSettings.first.sourceRunLogId, runLog.id);
+    expect(
+        reloadedProvider.savedSettings.first.parentSettingId, baseSetting.id);
   });
 
   test('uses next numeric suffix when updating to another setting name',
