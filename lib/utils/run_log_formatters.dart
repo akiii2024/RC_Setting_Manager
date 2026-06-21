@@ -64,6 +64,10 @@ String formatRunConditions(RunLog runLog, bool isEnglish) {
       '${isEnglish ? "Humidity" : "湿度"} ${_formatNumber(runLog.humidityPercent!)}%',
     );
   }
+  final weatherCondition = runLog.weatherCondition.trim();
+  if (weatherCondition.isNotEmpty) {
+    parts.add('${isEnglish ? "Weather" : "天候"} $weatherCondition');
+  }
   if (runLog.trackTempC != null) {
     parts.add(
       '${isEnglish ? "Track" : "路面"} ${_formatNumber(runLog.trackTempC!)}°C',
@@ -72,7 +76,7 @@ String formatRunConditions(RunLog runLog, bool isEnglish) {
 
   final trackCondition = runLog.trackCondition.trim();
   if (trackCondition.isNotEmpty) {
-    parts.add(trackCondition);
+    parts.add('${isEnglish ? "Track condition" : "路面状況"} $trackCondition');
   }
 
   return parts.join(' / ');

@@ -14,6 +14,7 @@ import 'package:rc_setting_manager/pages/simple_import_page.dart';
 import 'package:rc_setting_manager/pages/tools_page.dart';
 import 'package:rc_setting_manager/providers/app_mode_provider.dart';
 import 'package:rc_setting_manager/providers/settings_provider.dart';
+import 'package:rc_setting_manager/services/weather_service.dart';
 
 Future<void> _pumpUntilInitialized(
   WidgetTester tester,
@@ -192,5 +193,61 @@ void main() {
     await tester.pump();
 
     expect(find.text('Enter best lap as 13.52 or 0:13.52.'), findsOneWidget);
+  });
+
+  testWidgets('quick run log fills weather conditions automatically',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'language_settings': true,
+      'cars_settings': jsonEncode([_testCar().toJson()]),
+    });
+
+    final provider = SettingsProvider();
+    final weather = WeatherData(
+      temperature: 24.6,
+      humidity: 58,
+      description: 'Sunny',
+      feelsLike: 25.1,
+      pressure: 1012,
+      visibility: 9000,
+      windSpeed: 2.4,
+      windDirection: 120,
+      cloudiness: 15,
+      cityName: 'Test Track',
+    );
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: MaterialApp(
+          home: QuickRunLogPage(
+            weatherFetcher: ({bool forceRefresh = false}) async => weather,
+          ),
+        ),
+      ),
+    );
+
+    await _pumpUntilInitialized(tester, provider);
+    await tester.pump();
+    await tester.pump();
+
+    expect(find.text('24.6'), findsOneWidget);
+    expect(find.text('58'), findsOneWidget);
+    expect(find.text('Sunny'), findsAtLeastNWidgets(1));
+    expect(find.textContaining('24.6 C / 58%'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Very good'));
+    await tester.pump();
+    await tester.tap(find.text('Very good'));
+    await tester.enterText(find.byType(TextField).at(4), 'dusty');
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.pump();
+    await tester.enterText(find.bySemanticsLabel('Best Lap'), '13.52');
+    await tester.tap(find.text('Save Run Log'));
+    await tester.pump();
+
+    expect(provider.runLogs, hasLength(1));
+    expect(provider.runLogs.first.weatherCondition, 'Sunny');
+    expect(provider.runLogs.first.trackCondition, 'Very good - dusty');
   });
 }

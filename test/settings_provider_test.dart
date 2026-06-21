@@ -109,6 +109,7 @@ void main() {
       bestLapMillis: 13520,
       airTempC: 24,
       humidityPercent: 50,
+      weatherCondition: 'Sunny',
       trackTempC: 36.5,
       trackCondition: 'High grip',
       feelTagIds: const ['stable'],
@@ -118,6 +119,7 @@ void main() {
     expect(provider.runLogs, hasLength(1));
     expect(runLog.airTempC, 24);
     expect(runLog.humidityPercent, 50);
+    expect(runLog.weatherCondition, 'Sunny');
     expect(runLog.trackTempC, 36.5);
     expect(runLog.trackCondition, 'High grip');
     expect(runLog.resultSettingId, isNull);

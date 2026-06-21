@@ -169,6 +169,8 @@ class XmlService {
                     nest: runLog.airTempC?.toString() ?? '');
                 builder.element('humidityPercent',
                     nest: runLog.humidityPercent?.toString() ?? '');
+                builder.element('weatherCondition',
+                    nest: runLog.weatherCondition);
                 builder.element('trackTempC',
                     nest: runLog.trackTempC?.toString() ?? '');
                 builder.element('trackCondition', nest: runLog.trackCondition);
@@ -595,6 +597,11 @@ class XmlService {
                     conditionsElement,
                     'humidityPercent',
                   ),
+                  weatherCondition: conditionsElement
+                          ?.findElements('weatherCondition')
+                          .firstOrNull
+                          ?.innerText ??
+                      '',
                   trackTempC: _readOptionalDouble(
                     conditionsElement,
                     'trackTempC',

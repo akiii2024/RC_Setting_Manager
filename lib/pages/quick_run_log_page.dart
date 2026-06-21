@@ -8,10 +8,15 @@ import '../models/car_setting_definition.dart';
 import '../models/run_log.dart';
 import '../models/saved_setting.dart';
 import '../providers/settings_provider.dart';
+import '../services/weather_service.dart';
 import '../utils/run_log_formatters.dart';
 import 'car_setting_page.dart';
 
 String _t(bool isEnglish, String en, String ja) => isEnglish ? en : ja;
+
+typedef WeatherFetcher = Future<WeatherData?> Function({
+  bool forceRefresh,
+});
 
 T? _firstOrNull<T>(Iterable<T> values) {
   for (final value in values) {
@@ -21,7 +26,12 @@ T? _firstOrNull<T>(Iterable<T> values) {
 }
 
 class QuickRunLogPage extends StatefulWidget {
-  const QuickRunLogPage({super.key});
+  const QuickRunLogPage({
+    super.key,
+    this.weatherFetcher,
+  });
+
+  final WeatherFetcher? weatherFetcher;
 
   @override
   State<QuickRunLogPage> createState() => _QuickRunLogPageState();
@@ -31,6 +41,8 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
   final TextEditingController _bestLapController = TextEditingController();
   final TextEditingController _airTempController = TextEditingController();
   final TextEditingController _humidityController = TextEditingController();
+  final TextEditingController _weatherConditionController =
+      TextEditingController();
   final TextEditingController _trackTempController = TextEditingController();
   final TextEditingController _trackConditionController =
       TextEditingController();
@@ -40,17 +52,103 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
 
   Car? _selectedCar;
   SavedSetting? _selectedBaseSetting;
+  String? _selectedTrackCondition;
   bool _isSaving = false;
+  bool _isWeatherLoading = false;
+  bool _hasWeatherError = false;
+  bool _hasWeatherAttempted = false;
+  bool _hasRequestedInitialWeather = false;
+  WeatherData? _currentWeather;
 
   @override
   void dispose() {
     _bestLapController.dispose();
     _airTempController.dispose();
     _humidityController.dispose();
+    _weatherConditionController.dispose();
     _trackTempController.dispose();
     _trackConditionController.dispose();
     _memoController.dispose();
     super.dispose();
+  }
+
+  Future<WeatherData?> _fetchWeather({bool forceRefresh = false}) {
+    final fetcher =
+        widget.weatherFetcher ?? WeatherService.instance.getCurrentWeather;
+    return fetcher(forceRefresh: forceRefresh);
+  }
+
+  void _scheduleInitialWeatherFetch() {
+    if (_hasRequestedInitialWeather) {
+      return;
+    }
+
+    _hasRequestedInitialWeather = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadWeather(overwriteExisting: false);
+      }
+    });
+  }
+
+  Future<void> _loadWeather({
+    required bool overwriteExisting,
+    bool forceRefresh = false,
+  }) async {
+    if (_isWeatherLoading || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isWeatherLoading = true;
+      _hasWeatherAttempted = true;
+      _hasWeatherError = false;
+    });
+
+    WeatherData? weather;
+    try {
+      weather = await _fetchWeather(forceRefresh: forceRefresh);
+    } catch (error) {
+      debugPrint('Run log weather fetch failed: $error');
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isWeatherLoading = false;
+      _currentWeather = weather;
+      _hasWeatherError = weather == null;
+      if (weather != null) {
+        _applyWeatherToInputs(
+          weather,
+          overwriteExisting: overwriteExisting,
+        );
+      }
+    });
+  }
+
+  void _applyWeatherToInputs(
+    WeatherData weather, {
+    required bool overwriteExisting,
+  }) {
+    if (overwriteExisting || _airTempController.text.trim().isEmpty) {
+      _airTempController.text = weather.temperature.toStringAsFixed(1);
+    }
+    if (overwriteExisting || _humidityController.text.trim().isEmpty) {
+      _humidityController.text = weather.humidity.toString();
+    }
+    if (overwriteExisting || _weatherConditionController.text.trim().isEmpty) {
+      _weatherConditionController.text = weather.description;
+    }
+  }
+
+  Future<void> _refreshWeather() {
+    return _loadWeather(
+      overwriteExisting: true,
+      forceRefresh: true,
+    );
   }
 
   void _ensureInitialSelection(SettingsProvider provider) {
@@ -101,6 +199,38 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
       _selectedBaseSetting = selected;
       _changes.clear();
     });
+  }
+
+  String _trackConditionLabel(String value, bool isEnglish) {
+    switch (value) {
+      case 'very_good':
+        return _t(isEnglish, 'Very good', 'とても良い');
+      case 'good':
+        return _t(isEnglish, 'Good', '良い');
+      case 'normal':
+        return _t(isEnglish, 'Normal', '普通');
+      case 'bad':
+        return _t(isEnglish, 'Bad', '悪い');
+      case 'very_bad':
+        return _t(isEnglish, 'Very bad', 'とても悪い');
+      default:
+        return value;
+    }
+  }
+
+  String _buildTrackConditionText(bool isEnglish) {
+    final selected = _selectedTrackCondition == null
+        ? ''
+        : _trackConditionLabel(_selectedTrackCondition!, isEnglish);
+    final note = _trackConditionController.text.trim();
+
+    if (selected.isEmpty) {
+      return note;
+    }
+    if (note.isEmpty) {
+      return selected;
+    }
+    return '$selected - $note';
   }
 
   Future<void> _addChange(SettingsProvider provider, bool isEnglish) async {
@@ -256,8 +386,9 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
         bestLapMillis: bestLapMillis,
         airTempC: airTempC,
         humidityPercent: humidityPercent,
+        weatherCondition: _weatherConditionController.text,
         trackTempC: trackTempC,
-        trackCondition: _trackConditionController.text,
+        trackCondition: _buildTrackConditionText(isEnglish),
         feelTagIds: _selectedFeelTagIds.toList(),
         memo: _memoController.text,
         changes: List<RunSettingChange>.from(_changes),
@@ -298,6 +429,104 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
     return input.trim().isNotEmpty && parsed == null;
   }
 
+  Widget _buildWeatherStatus(bool isEnglish) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final weather = _currentWeather;
+
+    final Color backgroundColor;
+    final Color borderColor;
+    final Widget leading;
+    final String title;
+    final String message;
+
+    if (_isWeatherLoading || !_hasWeatherAttempted) {
+      backgroundColor = colorScheme.surfaceContainerLow;
+      borderColor = colorScheme.outlineVariant.withValues(alpha: 0.45);
+      leading = Icon(
+        Icons.cloud_sync,
+        color: colorScheme.primary,
+      );
+      title = _t(isEnglish, 'Loading weather', '天気情報を取得中');
+      message = _t(
+        isEnglish,
+        'Current air temperature and humidity will be filled automatically.',
+        '現在の気温と湿度を自動入力します。',
+      );
+    } else if (_hasWeatherError || weather == null) {
+      backgroundColor = colorScheme.errorContainer.withValues(alpha: 0.35);
+      borderColor = colorScheme.error.withValues(alpha: 0.35);
+      leading = Icon(
+        Icons.cloud_off,
+        color: colorScheme.error,
+      );
+      title = _t(
+        isEnglish,
+        'Weather unavailable',
+        '天気情報を取得できません',
+      );
+      message = _t(
+        isEnglish,
+        'Use manual input or retry when location and network are available.',
+        '位置情報と通信を確認して再取得するか、手動で入力してください。',
+      );
+    } else {
+      backgroundColor = colorScheme.primaryContainer.withValues(alpha: 0.35);
+      borderColor = colorScheme.primary.withValues(alpha: 0.30);
+      leading = Icon(
+        Icons.cloud_done,
+        color: colorScheme.primary,
+      );
+      title = _t(isEnglish, 'Current weather', '現在の天気');
+      message =
+          '${weather.temperature.toStringAsFixed(1)} C / ${weather.humidity}%'
+          ' - ${weather.description}'
+          '${weather.cityName.trim().isEmpty ? '' : ' (${weather.cityName})'}';
+    }
+
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: borderColor),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Row(
+          children: [
+            leading,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    message,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              onPressed: _isWeatherLoading ? null : _refreshWeather,
+              icon: const Icon(Icons.refresh),
+              tooltip: _t(isEnglish, 'Update weather', '天気情報を更新'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<SettingsProvider>(
@@ -311,6 +540,10 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
         final carSettings = selectedCar == null
             ? const <SavedSetting>[]
             : provider.getSavedSettingsForCar(selectedCar.id);
+
+        if (selectedCar != null) {
+          _scheduleInitialWeatherFetch();
+        }
 
         return Scaffold(
           appBar: AppBar(
@@ -417,6 +650,8 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
+                            const SizedBox(height: 12),
+                            _buildWeatherStatus(isEnglish),
                             const SizedBox(height: 16),
                             TextField(
                               controller: _airTempController,
@@ -446,6 +681,19 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
                             ),
                             const SizedBox(height: 12),
                             TextField(
+                              controller: _weatherConditionController,
+                              decoration: InputDecoration(
+                                labelText: _t(isEnglish, 'Weather', '天候'),
+                                hintText: _t(
+                                  isEnglish,
+                                  'Sunny, cloudy, rain...',
+                                  '晴れ、くもり、雨など',
+                                ),
+                                prefixIcon: const Icon(Icons.cloud),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
                               controller: _trackTempController,
                               keyboardType:
                                   const TextInputType.numberWithOptions(
@@ -459,15 +707,44 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
                               ),
                             ),
                             const SizedBox(height: 12),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                for (final value in const [
+                                  'very_good',
+                                  'good',
+                                  'normal',
+                                  'bad',
+                                  'very_bad',
+                                ])
+                                  ChoiceChip(
+                                    label: Text(
+                                      _trackConditionLabel(value, isEnglish),
+                                    ),
+                                    selected: _selectedTrackCondition == value,
+                                    onSelected: (selected) {
+                                      setState(() {
+                                        _selectedTrackCondition =
+                                            selected ? value : null;
+                                      });
+                                    },
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
                             TextField(
                               controller: _trackConditionController,
                               decoration: InputDecoration(
-                                labelText:
-                                    _t(isEnglish, 'Track Condition', '路面状態'),
+                                labelText: _t(
+                                  isEnglish,
+                                  'Track Condition Note',
+                                  '路面状況メモ',
+                                ),
                                 hintText: _t(
                                   isEnglish,
                                   'Low grip, high grip, dusty...',
-                                  'ローグリップ、ハイグリップ、埃っぽいなど',
+                                  'グリップ感、ほこり、荒れ具合など',
                                 ),
                                 prefixIcon: const Icon(Icons.route),
                               ),

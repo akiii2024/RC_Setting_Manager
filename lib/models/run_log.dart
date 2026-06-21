@@ -44,6 +44,7 @@ class RunLog {
   final int bestLapMillis;
   final double? airTempC;
   final double? humidityPercent;
+  final String weatherCondition;
   final double? trackTempC;
   final String trackCondition;
   final List<String> feelTagIds;
@@ -62,6 +63,7 @@ class RunLog {
     required this.bestLapMillis,
     this.airTempC,
     this.humidityPercent,
+    this.weatherCondition = '',
     this.trackTempC,
     this.trackCondition = '',
     required this.feelTagIds,
@@ -81,6 +83,7 @@ class RunLog {
     int? bestLapMillis,
     double? airTempC,
     double? humidityPercent,
+    String? weatherCondition,
     double? trackTempC,
     String? trackCondition,
     List<String>? feelTagIds,
@@ -99,6 +102,7 @@ class RunLog {
       bestLapMillis: bestLapMillis ?? this.bestLapMillis,
       airTempC: airTempC ?? this.airTempC,
       humidityPercent: humidityPercent ?? this.humidityPercent,
+      weatherCondition: weatherCondition ?? this.weatherCondition,
       trackTempC: trackTempC ?? this.trackTempC,
       trackCondition: trackCondition ?? this.trackCondition,
       feelTagIds: feelTagIds ?? this.feelTagIds,
@@ -120,6 +124,7 @@ class RunLog {
       bestLapMillis: json['bestLapMillis'] as int? ?? 0,
       airTempC: _nullableDouble(json['airTempC']),
       humidityPercent: _nullableDouble(json['humidityPercent']),
+      weatherCondition: json['weatherCondition'] as String? ?? '',
       trackTempC: _nullableDouble(json['trackTempC']),
       trackCondition: json['trackCondition'] as String? ?? '',
       feelTagIds: json['feelTagIds'] != null
@@ -150,6 +155,7 @@ class RunLog {
       'bestLapMillis': bestLapMillis,
       'airTempC': airTempC,
       'humidityPercent': humidityPercent,
+      'weatherCondition': weatherCondition,
       'trackTempC': trackTempC,
       'trackCondition': trackCondition,
       'feelTagIds': feelTagIds,

@@ -64,6 +64,7 @@ void main() {
             bestLapMillis: 13520,
             airTempC: 23.5,
             humidityPercent: 55,
+            weatherCondition: 'Sunny',
             trackTempC: 34.0,
             trackCondition: 'Dusty',
             feelTagIds: const ['stable'],
@@ -88,6 +89,7 @@ void main() {
     expect(result.runLogs.first.bestLapMillis, 13520);
     expect(result.runLogs.first.airTempC, 23.5);
     expect(result.runLogs.first.humidityPercent, 55);
+    expect(result.runLogs.first.weatherCondition, 'Sunny');
     expect(result.runLogs.first.trackTempC, 34.0);
     expect(result.runLogs.first.trackCondition, 'Dusty');
     expect(result.runLogs.first.feelTagIds, ['stable']);

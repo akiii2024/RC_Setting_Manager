@@ -33,6 +33,7 @@ void main() {
       bestLapMillis: 13520,
       airTempC: 22.5,
       humidityPercent: 48,
+      weatherCondition: 'Sunny',
       trackTempC: 31.2,
       trackCondition: 'High grip',
       feelTagIds: const ['stable', 'push'],
@@ -54,6 +55,7 @@ void main() {
     expect(decoded.bestLapMillis, 13520);
     expect(decoded.airTempC, 22.5);
     expect(decoded.humidityPercent, 48);
+    expect(decoded.weatherCondition, 'Sunny');
     expect(decoded.trackTempC, 31.2);
     expect(decoded.trackCondition, 'High grip');
     expect(decoded.feelTagIds, ['stable', 'push']);
