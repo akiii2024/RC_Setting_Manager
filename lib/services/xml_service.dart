@@ -164,6 +164,7 @@ class XmlService {
                   nest: runLog.resultSettingName ?? '');
               builder.element('bestLapMillis',
                   nest: runLog.bestLapMillis.toString());
+              builder.element('trackName', nest: runLog.trackName);
               builder.element('conditions', nest: () {
                 builder.element('airTempC',
                     nest: runLog.airTempC?.toString() ?? '');
@@ -589,6 +590,11 @@ class XmlService {
                               ?.innerText ??
                           '') ??
                       0,
+                  trackName: runLogElement
+                          .findElements('trackName')
+                          .firstOrNull
+                          ?.innerText ??
+                      '',
                   airTempC: _readOptionalDouble(
                     conditionsElement,
                     'airTempC',

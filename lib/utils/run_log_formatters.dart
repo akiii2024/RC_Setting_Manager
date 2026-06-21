@@ -54,6 +54,11 @@ String formatBestLapMillis(int millis) {
 String formatRunConditions(RunLog runLog, bool isEnglish) {
   final parts = <String>[];
 
+  final trackName = runLog.trackName.trim();
+  if (trackName.isNotEmpty) {
+    parts.add('${isEnglish ? "Course" : "コース"} $trackName');
+  }
+
   if (runLog.airTempC != null) {
     parts.add(
       '${isEnglish ? "Air" : "気温"} ${_formatNumber(runLog.airTempC!)}°C',

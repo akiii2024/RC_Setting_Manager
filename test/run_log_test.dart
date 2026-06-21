@@ -26,6 +26,7 @@ void main() {
       createdAt: DateTime(2026, 6, 19, 12, 0),
       runAt: DateTime(2026, 6, 19, 11, 55),
       car: car,
+      trackName: 'Test Course',
       baseSettingId: 'base-1',
       baseSettingName: 'Base',
       resultSettingId: 'result-1',
@@ -52,6 +53,7 @@ void main() {
 
     expect(decoded.id, 'run-1');
     expect(decoded.car.id, 'tamiya/trf421');
+    expect(decoded.trackName, 'Test Course');
     expect(decoded.bestLapMillis, 13520);
     expect(decoded.airTempC, 22.5);
     expect(decoded.humidityPercent, 48);

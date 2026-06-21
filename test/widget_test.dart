@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:rc_setting_manager/models/car.dart';
 import 'package:rc_setting_manager/models/manufacturer.dart';
+import 'package:rc_setting_manager/models/track_location.dart';
 import 'package:rc_setting_manager/pages/home_page.dart';
 import 'package:rc_setting_manager/pages/login_page.dart';
 import 'package:rc_setting_manager/pages/quick_run_log_page.dart';
@@ -45,6 +46,26 @@ Car _testCar({bool isInGarage = false, bool suppressGaragePrompt = false}) {
     category: 'touring',
     isInGarage: isInGarage,
     suppressGaragePrompt: suppressGaragePrompt,
+  );
+}
+
+TrackLocation _testTrack({
+  String name = 'Test Course',
+  String prefecture = 'Tokyo',
+  String address = '1-2-3 Test',
+}) {
+  return TrackLocation(
+    name: name,
+    latitude: 35.0,
+    longitude: 139.0,
+    radius: 1000,
+    prefecture: prefecture,
+    address: address,
+    type: 'indoor',
+    surfaceType: 'carpet',
+    description: 'Indoor carpet course',
+    website: 'https://example.com',
+    phone: '000-0000-0000',
   );
 }
 
@@ -239,7 +260,8 @@ void main() {
     await tester.ensureVisible(find.text('Very good'));
     await tester.pump();
     await tester.tap(find.text('Very good'));
-    await tester.enterText(find.byType(TextField).at(4), 'dusty');
+    await tester.enterText(
+        find.bySemanticsLabel('Track Condition Note'), 'dusty');
     await tester.drag(find.byType(ListView), const Offset(0, -500));
     await tester.pump();
     await tester.enterText(find.bySemanticsLabel('Best Lap'), '13.52');
@@ -249,5 +271,117 @@ void main() {
     expect(provider.runLogs, hasLength(1));
     expect(provider.runLogs.first.weatherCondition, 'Sunny');
     expect(provider.runLogs.first.trackCondition, 'Very good - dusty');
+  });
+
+  testWidgets('quick run log saves selected course name from database',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'language_settings': true,
+      'cars_settings': jsonEncode([_testCar().toJson()]),
+    });
+
+    final provider = SettingsProvider();
+    final track = _testTrack(name: 'Test Course Alpha');
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: MaterialApp(
+          home: QuickRunLogPage(
+            weatherFetcher: ({bool forceRefresh = false}) async => null,
+            trackSearchLoader: () async => [track],
+          ),
+        ),
+      ),
+    );
+
+    await _pumpUntilInitialized(tester, provider);
+    await tester.pump();
+    await tester.enterText(find.bySemanticsLabel('Course Name'), 'Alpha');
+    await tester.pump();
+    await tester.tap(find.text('Test Course Alpha'));
+    await tester.pump();
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.pump();
+    await tester.enterText(find.bySemanticsLabel('Best Lap'), '13.52');
+    await tester.tap(find.text('Save Run Log'));
+    await tester.pump();
+
+    expect(provider.runLogs, hasLength(1));
+    expect(provider.runLogs.first.trackName, 'Test Course Alpha');
+  });
+
+  testWidgets('quick run log saves free text course name',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'language_settings': true,
+      'cars_settings': jsonEncode([_testCar().toJson()]),
+    });
+
+    final provider = SettingsProvider();
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: MaterialApp(
+          home: QuickRunLogPage(
+            weatherFetcher: ({bool forceRefresh = false}) async => null,
+            trackSearchLoader: () async => const [],
+          ),
+        ),
+      ),
+    );
+
+    await _pumpUntilInitialized(tester, provider);
+    await tester.pump();
+    await tester.enterText(find.bySemanticsLabel('Course Name'), 'Parking Lot');
+    await tester.pump();
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.pump();
+    await tester.enterText(find.bySemanticsLabel('Best Lap'), '13.52');
+    await tester.tap(find.text('Save Run Log'));
+    await tester.pump();
+
+    expect(provider.runLogs, hasLength(1));
+    expect(provider.runLogs.first.trackName, 'Parking Lot');
+  });
+
+  testWidgets('quick run log fills course name from current location',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'language_settings': true,
+      'cars_settings': jsonEncode([_testCar().toJson()]),
+    });
+
+    final provider = SettingsProvider();
+    final track = _testTrack(name: 'Nearest Course');
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: MaterialApp(
+          home: QuickRunLogPage(
+            weatherFetcher: ({bool forceRefresh = false}) async => null,
+            trackFinder: () async => track,
+          ),
+        ),
+      ),
+    );
+
+    await _pumpUntilInitialized(tester, provider);
+    await tester.pump();
+    await tester.tap(find.byTooltip('Use current location'));
+    await tester.pump();
+
+    expect(find.text('Nearest Course'), findsOneWidget);
+
+    await tester.drag(find.byType(ListView), const Offset(0, -500));
+    await tester.pump();
+    await tester.enterText(find.bySemanticsLabel('Best Lap'), '13.52');
+    await tester.tap(find.text('Save Run Log'));
+    await tester.pump();
+
+    expect(provider.runLogs, hasLength(1));
+    expect(provider.runLogs.first.trackName, 'Nearest Course');
   });
 }

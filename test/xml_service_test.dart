@@ -57,6 +57,7 @@ void main() {
             createdAt: DateTime(2026, 6, 19, 12, 0),
             runAt: DateTime(2026, 6, 19, 11, 55),
             car: car,
+            trackName: 'Test Course',
             baseSettingId: 'base-1',
             baseSettingName: 'Base',
             resultSettingId: 'result-1',
@@ -87,6 +88,7 @@ void main() {
 
     expect(result.runLogs, hasLength(1));
     expect(result.runLogs.first.bestLapMillis, 13520);
+    expect(result.runLogs.first.trackName, 'Test Course');
     expect(result.runLogs.first.airTempC, 23.5);
     expect(result.runLogs.first.humidityPercent, 55);
     expect(result.runLogs.first.weatherCondition, 'Sunny');

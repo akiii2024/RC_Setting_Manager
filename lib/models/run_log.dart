@@ -37,6 +37,7 @@ class RunLog {
   final DateTime createdAt;
   final DateTime runAt;
   final Car car;
+  final String trackName;
   final String? baseSettingId;
   final String? baseSettingName;
   final String? resultSettingId;
@@ -56,6 +57,7 @@ class RunLog {
     required this.createdAt,
     required this.runAt,
     required this.car,
+    this.trackName = '',
     this.baseSettingId,
     this.baseSettingName,
     this.resultSettingId,
@@ -76,6 +78,7 @@ class RunLog {
     DateTime? createdAt,
     DateTime? runAt,
     Car? car,
+    String? trackName,
     String? baseSettingId,
     String? baseSettingName,
     String? resultSettingId,
@@ -95,6 +98,7 @@ class RunLog {
       createdAt: createdAt ?? this.createdAt,
       runAt: runAt ?? this.runAt,
       car: car ?? this.car,
+      trackName: trackName ?? this.trackName,
       baseSettingId: baseSettingId ?? this.baseSettingId,
       baseSettingName: baseSettingName ?? this.baseSettingName,
       resultSettingId: resultSettingId ?? this.resultSettingId,
@@ -117,6 +121,7 @@ class RunLog {
       createdAt: DateTime.parse(json['createdAt'] as String),
       runAt: DateTime.parse(json['runAt'] as String),
       car: Car.fromJson(json['car'] as Map<String, dynamic>),
+      trackName: json['trackName'] as String? ?? '',
       baseSettingId: json['baseSettingId'] as String?,
       baseSettingName: json['baseSettingName'] as String?,
       resultSettingId: json['resultSettingId'] as String?,
@@ -148,6 +153,7 @@ class RunLog {
       'createdAt': createdAt.toIso8601String(),
       'runAt': runAt.toIso8601String(),
       'car': car.toJson(),
+      'trackName': trackName,
       'baseSettingId': baseSettingId,
       'baseSettingName': baseSettingName,
       'resultSettingId': resultSettingId,

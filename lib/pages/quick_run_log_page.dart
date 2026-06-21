@@ -7,7 +7,10 @@ import '../models/car.dart';
 import '../models/car_setting_definition.dart';
 import '../models/run_log.dart';
 import '../models/saved_setting.dart';
+import '../models/track_location.dart';
 import '../providers/settings_provider.dart';
+import '../services/location_service.dart';
+import '../services/track_location_service.dart';
 import '../services/weather_service.dart';
 import '../utils/run_log_formatters.dart';
 import 'car_setting_page.dart';
@@ -17,6 +20,9 @@ String _t(bool isEnglish, String en, String ja) => isEnglish ? en : ja;
 typedef WeatherFetcher = Future<WeatherData?> Function({
   bool forceRefresh,
 });
+
+typedef TrackFinder = Future<TrackLocation?> Function();
+typedef TrackSearchLoader = Future<List<TrackLocation>> Function();
 
 T? _firstOrNull<T>(Iterable<T> values) {
   for (final value in values) {
@@ -29,9 +35,13 @@ class QuickRunLogPage extends StatefulWidget {
   const QuickRunLogPage({
     super.key,
     this.weatherFetcher,
+    this.trackFinder,
+    this.trackSearchLoader,
   });
 
   final WeatherFetcher? weatherFetcher;
+  final TrackFinder? trackFinder;
+  final TrackSearchLoader? trackSearchLoader;
 
   @override
   State<QuickRunLogPage> createState() => _QuickRunLogPageState();
@@ -39,6 +49,7 @@ class QuickRunLogPage extends StatefulWidget {
 
 class _QuickRunLogPageState extends State<QuickRunLogPage> {
   final TextEditingController _bestLapController = TextEditingController();
+  final TextEditingController _trackNameController = TextEditingController();
   final TextEditingController _airTempController = TextEditingController();
   final TextEditingController _humidityController = TextEditingController();
   final TextEditingController _weatherConditionController =
@@ -52,8 +63,15 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
 
   Car? _selectedCar;
   SavedSetting? _selectedBaseSetting;
+  TrackLocation? _selectedCourse;
+  List<TrackLocation> _courseDatabase = [];
+  List<TrackLocation> _courseSuggestions = [];
   String? _selectedTrackCondition;
   bool _isSaving = false;
+  bool _isCourseDatabaseLoading = false;
+  bool _isFindingCourse = false;
+  bool _hasLoadedCourseDatabase = false;
+  int _courseSearchGeneration = 0;
   bool _isWeatherLoading = false;
   bool _hasWeatherError = false;
   bool _hasWeatherAttempted = false;
@@ -63,6 +81,7 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
   @override
   void dispose() {
     _bestLapController.dispose();
+    _trackNameController.dispose();
     _airTempController.dispose();
     _humidityController.dispose();
     _weatherConditionController.dispose();
@@ -148,6 +167,207 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
     return _loadWeather(
       overwriteExisting: true,
       forceRefresh: true,
+    );
+  }
+
+  Future<TrackLocation?> _findNearestCourse() {
+    final finder =
+        widget.trackFinder ?? LocationService.instance.findNearestTrack;
+    return finder();
+  }
+
+  Future<List<TrackLocation>> _loadCourseDatabase() {
+    final loader = widget.trackSearchLoader ??
+        TrackLocationService.instance.loadTrackLocations;
+    return loader();
+  }
+
+  Future<void> _ensureCourseDatabaseLoaded() async {
+    if (_hasLoadedCourseDatabase || _isCourseDatabaseLoading) {
+      return;
+    }
+
+    setState(() {
+      _isCourseDatabaseLoading = true;
+    });
+
+    try {
+      final tracks = await _loadCourseDatabase();
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _courseDatabase = tracks;
+        _hasLoadedCourseDatabase = true;
+      });
+    } catch (error) {
+      debugPrint('Course database load failed: $error');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isCourseDatabaseLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handleCourseNameChanged(String value) async {
+    final generation = ++_courseSearchGeneration;
+    final query = value.trim();
+
+    if (_selectedCourse != null && _selectedCourse!.name != query) {
+      setState(() {
+        _selectedCourse = null;
+      });
+    }
+
+    if (query.isEmpty) {
+      setState(() {
+        _courseSuggestions = [];
+      });
+      return;
+    }
+
+    await _ensureCourseDatabaseLoaded();
+    if (!mounted || generation != _courseSearchGeneration) {
+      return;
+    }
+
+    setState(() {
+      _courseSuggestions = _filterCourseSuggestions(query);
+    });
+  }
+
+  List<TrackLocation> _filterCourseSuggestions(String query) {
+    final normalizedQuery = query.toLowerCase();
+    return _courseDatabase
+        .where(
+          (track) =>
+              track.name.toLowerCase().contains(normalizedQuery) ||
+              track.prefecture.toLowerCase().contains(normalizedQuery) ||
+              track.address.toLowerCase().contains(normalizedQuery),
+        )
+        .take(5)
+        .toList(growable: false);
+  }
+
+  void _selectCourse(TrackLocation track) {
+    setState(() {
+      _selectedCourse = track;
+      _trackNameController.text = track.name;
+      _courseSuggestions = [];
+      _courseSearchGeneration++;
+    });
+    FocusScope.of(context).unfocus();
+  }
+
+  Future<void> _fillCourseFromCurrentLocation(bool isEnglish) async {
+    if (_isFindingCourse) {
+      return;
+    }
+
+    setState(() {
+      _isFindingCourse = true;
+    });
+
+    TrackLocation? track;
+    try {
+      track = await _findNearestCourse();
+    } catch (error) {
+      debugPrint('Nearest course fetch failed: $error');
+    }
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _isFindingCourse = false;
+    });
+
+    if (track == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_t(
+            isEnglish,
+            'No nearby course was found.',
+            '近くのコースが見つかりませんでした。',
+          )),
+        ),
+      );
+      return;
+    }
+
+    _selectCourse(track);
+  }
+
+  String _trackTypeLabel(TrackLocation track, bool isEnglish) {
+    return track.type == 'indoor'
+        ? _t(isEnglish, 'Indoor', '屋内')
+        : _t(isEnglish, 'Outdoor', '屋外');
+  }
+
+  String _surfaceTypeLabel(TrackLocation track, bool isEnglish) {
+    return track.surfaceType == 'carpet'
+        ? _t(isEnglish, 'Carpet', 'カーペット')
+        : _t(isEnglish, 'Asphalt', 'アスファルト');
+  }
+
+  void _showCourseDetails(TrackLocation track, bool isEnglish) {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        final details = <Widget>[
+          _CourseDetailRow(
+            label: _t(isEnglish, 'Prefecture', '都道府県'),
+            value: track.prefecture,
+          ),
+          _CourseDetailRow(
+            label: _t(isEnglish, 'Address', '住所'),
+            value: track.address,
+          ),
+          _CourseDetailRow(
+            label: _t(isEnglish, 'Type', 'タイプ'),
+            value: _trackTypeLabel(track, isEnglish),
+          ),
+          _CourseDetailRow(
+            label: _t(isEnglish, 'Surface', '路面'),
+            value: _surfaceTypeLabel(track, isEnglish),
+          ),
+          if (track.description != null && track.description!.trim().isNotEmpty)
+            _CourseDetailRow(
+              label: _t(isEnglish, 'Description', '説明'),
+              value: track.description!.trim(),
+            ),
+          if (track.website != null && track.website!.trim().isNotEmpty)
+            _CourseDetailRow(
+              label: _t(isEnglish, 'Website', 'Webサイト'),
+              value: track.website!.trim(),
+            ),
+          if (track.phone != null && track.phone!.trim().isNotEmpty)
+            _CourseDetailRow(
+              label: _t(isEnglish, 'Phone', '電話番号'),
+              value: track.phone!.trim(),
+            ),
+        ];
+
+        return AlertDialog(
+          title: Text(track.name),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: details,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(_t(isEnglish, 'Close', '閉じる')),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -383,6 +603,7 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
         runAt: DateTime.now(),
         car: car,
         baseSetting: _selectedBaseSetting,
+        trackName: _trackNameController.text,
         bestLapMillis: bestLapMillis,
         airTempC: airTempC,
         humidityPercent: humidityPercent,
@@ -527,6 +748,110 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
     );
   }
 
+  Widget _buildCourseNameField(bool isEnglish) {
+    final selectedCourse = _selectedCourse;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextField(
+          controller: _trackNameController,
+          decoration: InputDecoration(
+            labelText: _t(isEnglish, 'Course Name', 'コース名'),
+            hintText: _t(
+              isEnglish,
+              'Type or select a course',
+              '入力または候補から選択',
+            ),
+            prefixIcon: const Icon(Icons.place_outlined),
+            suffixIcon: SizedBox(
+              width: selectedCourse == null ? 48 : 96,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (selectedCourse != null)
+                    IconButton(
+                      tooltip: _t(
+                        isEnglish,
+                        'Course details',
+                        'コース詳細',
+                      ),
+                      icon: const Icon(Icons.info_outline),
+                      onPressed: () =>
+                          _showCourseDetails(selectedCourse, isEnglish),
+                    ),
+                  _isFindingCourse
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : IconButton(
+                          tooltip: _t(
+                            isEnglish,
+                            'Use current location',
+                            '現在地から入力',
+                          ),
+                          icon: const Icon(Icons.my_location),
+                          onPressed: () =>
+                              _fillCourseFromCurrentLocation(isEnglish),
+                        ),
+                ],
+              ),
+            ),
+          ),
+          onChanged: _handleCourseNameChanged,
+        ),
+        if (_isCourseDatabaseLoading) ...[
+          const SizedBox(height: 8),
+          Text(
+            _t(isEnglish, 'Searching courses...', 'コースを検索中...'),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+        if (_courseSuggestions.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          _buildCourseSuggestions(isEnglish),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildCourseSuggestions(bool isEnglish) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: colorScheme.outlineVariant.withValues(alpha: 0.6),
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          for (var index = 0; index < _courseSuggestions.length; index++) ...[
+            if (index > 0)
+              Divider(
+                height: 1,
+                color: colorScheme.outlineVariant.withValues(alpha: 0.45),
+              ),
+            _CourseSuggestionRow(
+              track: _courseSuggestions[index],
+              onSelect: () => _selectCourse(_courseSuggestions[index]),
+              onDetails: () =>
+                  _showCourseDetails(_courseSuggestions[index], isEnglish),
+              detailTooltip: _t(isEnglish, 'Course details', 'コース詳細'),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Consumer<SettingsProvider>(
@@ -636,6 +961,8 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
                                 _selectBaseSetting(provider, value ?? '');
                               },
                             ),
+                            const SizedBox(height: 12),
+                            _buildCourseNameField(isEnglish),
                           ],
                         ),
                       ),
@@ -897,6 +1224,78 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
           ),
         );
       },
+    );
+  }
+}
+
+class _CourseSuggestionRow extends StatelessWidget {
+  final TrackLocation track;
+  final VoidCallback onSelect;
+  final VoidCallback onDetails;
+  final String detailTooltip;
+
+  const _CourseSuggestionRow({
+    required this.track,
+    required this.onSelect,
+    required this.onDetails,
+    required this.detailTooltip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onSelect,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                track.name,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            IconButton(
+              visualDensity: VisualDensity.compact,
+              tooltip: detailTooltip,
+              icon: const Icon(Icons.info_outline, size: 20),
+              onPressed: onDetails,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CourseDetailRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _CourseDetailRow({
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 2),
+          SelectableText(value),
+        ],
+      ),
     );
   }
 }
