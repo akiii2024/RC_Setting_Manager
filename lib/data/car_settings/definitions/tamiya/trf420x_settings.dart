@@ -1,4 +1,5 @@
 import '../../../../models/car_setting_definition.dart';
+import '../../../motor_name_options.dart';
 import '../../common/basic_settings.dart';
 
 // TRF420X固有の設定
@@ -714,7 +715,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'other',
     label: 'モーター',
     defaultValue: '',
-    options: ['10.5T', '13.5T', '17.5T', '21.5T'],
+    options: motorNameOptions,
   ),
   SettingItem(
     key: 'spurGear',

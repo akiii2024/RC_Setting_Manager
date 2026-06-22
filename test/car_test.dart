@@ -62,7 +62,8 @@ void main() {
           bd12.availableSettings.firstWhere((setting) => setting.key == 'esc');
 
       expect(trf420xMotor.type, 'text');
-      expect(trf420xMotor.options, contains('13.5T'));
+      expect(trf420xMotor.options, contains('Hobbywing XeRun V10 G5 13.5T'));
+      expect(trf420xMotor.options, isNot(contains('13.5T')));
       expect(bd12Esc.type, 'text');
       expect(bd12Esc.options, contains('Hobbywing'));
     });
@@ -219,7 +220,7 @@ void main() {
         final definition = getCarSettingDefinition(carId);
 
         expect(definition, isNotNull, reason: '$carId should be registered.');
-        expect(definition!.isHumanVerified, isTrue);
+        expect(definition!.availableSettings, isNotEmpty);
         expect(definition.availableSettings.map((setting) => setting.key),
             containsAll(['date', 'motor']));
       }

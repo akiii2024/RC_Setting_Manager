@@ -240,7 +240,57 @@ void main() {
 
     expect(
       provider.getCarAvailableSettings('tamiya/trf421'),
-      containsAll(['frontUpperArmSpacer', 'motor', 'additive']),
+      containsAll(['frontUpperArmSpacerIn', 'motor', 'additive']),
+    );
+  });
+
+  test('merges saved motor names into suggestions without turn-only values',
+      () async {
+    final car = _buildCar();
+    final savedSettings = [
+      SavedSetting(
+        id: 'setting-1',
+        name: 'Custom Motor Setup',
+        createdAt: DateTime(2026, 6, 1),
+        car: car,
+        settings: const {'motor': 'Custom Brand XYZ 17.5T'},
+      ),
+      SavedSetting(
+        id: 'setting-2',
+        name: 'Duplicate Custom Motor Setup',
+        createdAt: DateTime(2026, 6, 2),
+        car: car,
+        settings: const {'motor': 'Custom Brand XYZ 17.5T'},
+      ),
+      SavedSetting(
+        id: 'setting-3',
+        name: 'Legacy Turn Setup',
+        createdAt: DateTime(2026, 6, 3),
+        car: car,
+        settings: const {'motor': '13.5T'},
+      ),
+    ];
+
+    SharedPreferences.setMockInitialValues({
+      'cars_settings': jsonEncode([car.toJson()]),
+      'saved_settings':
+          jsonEncode(savedSettings.map((setting) => setting.toJson()).toList()),
+    });
+
+    final provider = SettingsProvider();
+    await _waitForProvider(provider);
+
+    final suggestions = provider.getSuggestionsForSetting(
+      'motor',
+      const ['Hobbywing XeRun V10 G5 13.5T', '13.5T'],
+    );
+
+    expect(suggestions, contains('Hobbywing XeRun V10 G5 13.5T'));
+    expect(suggestions, contains('Custom Brand XYZ 17.5T'));
+    expect(suggestions, isNot(contains('13.5T')));
+    expect(
+      suggestions.where((option) => option == 'Custom Brand XYZ 17.5T'),
+      hasLength(1),
     );
   });
 

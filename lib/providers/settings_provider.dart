@@ -6,6 +6,7 @@ import '../models/car.dart';
 import '../models/manufacturer.dart';
 import '../models/visibility_settings.dart';
 import '../data/car_settings_definitions.dart';
+import '../data/motor_name_options.dart';
 import '../services/firestore_service.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -352,6 +353,25 @@ class SettingsProvider extends ChangeNotifier {
             .map((setting) => setting.key)
             .toList(growable: false) ??
         [];
+  }
+
+  List<String> getSuggestionsForSetting(
+    String key,
+    List<String>? baseOptions,
+  ) {
+    final base = baseOptions ?? const <String>[];
+    if (key != 'motor') {
+      return List<String>.from(base);
+    }
+
+    final savedMotorNames = _savedSettings
+        .map((setting) => setting.settings['motor'])
+        .whereType<String>();
+
+    return normalizeMotorNameOptions([
+      ...base,
+      ...savedMotorNames,
+    ]);
   }
 
   Future<void> setGarageMembership(String carId, bool value) async {

@@ -4098,7 +4098,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   Widget _buildTextField(SettingItem setting) {
-    if (setting.options != null && setting.options!.isNotEmpty) {
+    if (_suggestionsForSetting(setting).isNotEmpty) {
       return _buildSuggestedTextField(setting);
     }
 
@@ -4147,6 +4147,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
   Widget _buildSuggestedTextField(SettingItem setting) {
     final initialText = settings[setting.key]?.toString() ?? '';
+    final suggestions = _suggestionsForSetting(setting);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -4159,10 +4160,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
           optionsBuilder: (TextEditingValue value) {
             final query = value.text.trim().toLowerCase();
             if (query.isEmpty) {
-              return setting.options!;
+              return suggestions;
             }
 
-            return setting.options!.where(
+            return suggestions.where(
               (option) => option.toLowerCase().contains(query),
             );
           },
@@ -4183,7 +4184,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
               decoration: InputDecoration(
                 border: const OutlineInputBorder(),
                 suffixIcon: const Icon(Icons.arrow_drop_down_rounded),
-                hintText: setting.options?.first,
+                hintText: suggestions.isNotEmpty ? suggestions.first : null,
               ),
               onChanged: (value) {
                 setState(() {
@@ -4195,6 +4196,15 @@ class _CarSettingPageState extends State<CarSettingPage> {
           },
         ),
       ],
+    );
+  }
+
+  List<String> _suggestionsForSetting(SettingItem setting) {
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    return settingsProvider.getSuggestionsForSetting(
+      setting.key,
+      setting.options,
     );
   }
 

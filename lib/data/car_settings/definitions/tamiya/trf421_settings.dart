@@ -1,4 +1,5 @@
 import '../../../../models/car_setting_definition.dart';
+import '../../../motor_name_options.dart';
 import '../../common/basic_settings.dart';
 import '../common/setting_item_helpers.dart';
 
@@ -392,7 +393,7 @@ final List<SettingItem> trf421SpecificSettings = [
     key: 'motor',
     category: 'other',
     label: 'モーター',
-    options: const ['10.5T', '13.5T', '17.5T', '21.5T'],
+    options: motorNameOptions,
   ),
   numberSetting(
     key: 'spurGear',

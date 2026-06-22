@@ -1,4 +1,5 @@
 import '../../../../models/car_setting_definition.dart';
+import '../../../motor_name_options.dart';
 import '../common/setting_item_helpers.dart';
 
 List<SettingItem> _masterSpeedSideSettings({
@@ -336,7 +337,7 @@ List<SettingItem> masterSpeedSpecificSettings({required bool isMs2}) {
       key: 'motor',
       category: 'other',
       label: 'モーター',
-      options: const ['10.5T', '13.5T', '17.5T', '21.5T'],
+      options: motorNameOptions,
     ),
     numberSetting(
       key: 'spurGear',
