@@ -1,5 +1,6 @@
 import '../../../../models/car_setting_definition.dart';
 import '../../../motor_name_options.dart';
+import '../../../setting_name_options.dart';
 import '../../common/basic_settings.dart';
 import '../common/setting_item_helpers.dart';
 
@@ -336,6 +337,7 @@ final List<SettingItem> bd11SpecificSettings = [
   textSetting(
     key: 'battery',
     category: 'other',
+    options: batteryNameOptions,
     label: 'バッテリー',
   ),
   textSetting(
@@ -347,6 +349,7 @@ final List<SettingItem> bd11SpecificSettings = [
   textSetting(
     key: 'body',
     category: 'other',
+    options: bodyNameOptions,
     label: 'ボディ',
   ),
   textSetting(
@@ -365,11 +368,13 @@ final List<SettingItem> bd11SpecificSettings = [
   textSetting(
     key: 'frontTire',
     category: 'other',
+    options: tireNameOptions,
     label: 'フロント タイヤ',
   ),
   textSetting(
     key: 'rearTire',
     category: 'other',
+    options: tireNameOptions,
     label: 'リア タイヤ',
   ),
   textSetting(

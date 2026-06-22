@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:rc_setting_manager/models/car.dart';
 import 'package:rc_setting_manager/models/manufacturer.dart';
+import 'package:rc_setting_manager/models/owned_part.dart';
 import 'package:rc_setting_manager/models/run_log.dart';
 import 'package:rc_setting_manager/models/saved_setting.dart';
 import 'package:rc_setting_manager/services/xml_service.dart';
@@ -98,6 +99,37 @@ void main() {
     expect(result.runLogs.first.changes.single.afterValue, 1.5);
   });
 
+  test('exports and imports owned parts', () async {
+    final result = await XmlService.importFromXml(
+      await XmlService.exportToXml(
+        savedSettings: const [],
+        ownedParts: [
+          OwnedPart(
+            id: 'part-1',
+            category: 'motor',
+            name: 'Custom Motor 17.5T',
+            createdAt: DateTime(2026, 6, 20, 12, 0),
+          ),
+          OwnedPart(
+            id: 'part-2',
+            category: 'tire',
+            name: 'Custom Tire 32',
+            createdAt: DateTime(2026, 6, 20, 13, 0),
+          ),
+        ],
+        cars: const [],
+        visibilitySettings: const {},
+        isEnglish: true,
+      ),
+    );
+
+    expect(result.ownedParts, hasLength(2));
+    expect(result.ownedParts.first.category, 'motor');
+    expect(result.ownedParts.first.name, 'Custom Motor 17.5T');
+    expect(result.ownedParts.last.category, 'tire');
+    expect(result.ownedParts.last.name, 'Custom Tire 32');
+  });
+
   test('exports and imports saved setting run result metadata', () async {
     final car = Car(
       id: 'tamiya/trf421',
@@ -163,5 +195,6 @@ void main() {
     expect(result.cars.first.isInGarage, isFalse);
     expect(result.cars.first.suppressGaragePrompt, isFalse);
     expect(result.runLogs, isEmpty);
+    expect(result.ownedParts, isEmpty);
   });
 }

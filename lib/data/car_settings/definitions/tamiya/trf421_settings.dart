@@ -1,5 +1,6 @@
 import '../../../../models/car_setting_definition.dart';
 import '../../../motor_name_options.dart';
+import '../../../setting_name_options.dart';
 import '../../common/basic_settings.dart';
 import '../common/setting_item_helpers.dart';
 
@@ -418,11 +419,13 @@ final List<SettingItem> trf421SpecificSettings = [
   textSetting(
     key: 'battery',
     category: 'other',
+    options: batteryNameOptions,
     label: 'バッテリー',
   ),
   textSetting(
     key: 'body',
     category: 'other',
+    options: bodyNameOptions,
     label: 'ボディ',
   ),
   numberSetting(
@@ -457,6 +460,7 @@ final List<SettingItem> trf421SpecificSettings = [
   textSetting(
     key: 'tire',
     category: 'other',
+    options: tireNameOptions,
     label: 'タイヤ',
   ),
   textSetting(

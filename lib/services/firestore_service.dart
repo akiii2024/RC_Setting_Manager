@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/car.dart';
+import '../models/owned_part.dart';
 import '../models/run_log.dart';
 import '../models/saved_setting.dart';
 import '../models/visibility_settings.dart';
@@ -184,6 +185,46 @@ class FirestoreService {
     }
   }
 
+  Future<void> saveOwnedParts(List<OwnedPart> ownedParts) async {
+    if (userCollection == null) {
+      throw Exception('User is not signed in.');
+    }
+
+    try {
+      final ownedPartsJson = ownedParts.map((part) => part.toJson()).toList();
+      await userCollection!
+          .doc('owned_parts')
+          .set({'ownedParts': ownedPartsJson});
+    } catch (e) {
+      print('Error saving owned parts: $e');
+      rethrow;
+    }
+  }
+
+  Future<List<OwnedPart>> getOwnedParts() async {
+    if (userCollection == null) {
+      return [];
+    }
+
+    try {
+      final snapshot = await userCollection!.doc('owned_parts').get();
+      if (!snapshot.exists) {
+        return [];
+      }
+
+      final data = snapshot.data() as Map<String, dynamic>;
+      final ownedPartsData = data['ownedParts'] as List<dynamic>? ?? [];
+      return ownedPartsData
+          .map((partData) => OwnedPart.fromJson(
+                Map<String, dynamic>.from(partData as Map),
+              ))
+          .toList();
+    } catch (e) {
+      print('Error loading owned parts: $e');
+      return [];
+    }
+  }
+
   Future<void> saveVisibilitySettings(
       Map<String, VisibilitySettings> visibilitySettings) async {
     if (userCollection == null) {
@@ -264,6 +305,7 @@ class FirestoreService {
     required List<SavedSetting> savedSettings,
     required List<RunLog> runLogs,
     required List<Car> cars,
+    required List<OwnedPart> ownedParts,
     required Map<String, VisibilitySettings> visibilitySettings,
     required bool isEnglish,
   }) async {
@@ -305,6 +347,10 @@ class FirestoreService {
 
       final carsJson = cars.map((car) => car.toJson()).toList();
       batch.set(userCollection!.doc('cars'), {'cars': carsJson});
+
+      final ownedPartsJson = ownedParts.map((part) => part.toJson()).toList();
+      batch.set(
+          userCollection!.doc('owned_parts'), {'ownedParts': ownedPartsJson});
 
       final visibilityJson = <String, dynamic>{};
       visibilitySettings.forEach((key, value) {

@@ -1,5 +1,6 @@
 import '../../../../models/car_setting_definition.dart';
 import '../../../motor_name_options.dart';
+import '../../../setting_name_options.dart';
 import '../common/setting_item_helpers.dart';
 
 List<SettingItem> _masterSpeedSideSettings({
@@ -362,6 +363,7 @@ List<SettingItem> masterSpeedSpecificSettings({required bool isMs2}) {
     textSetting(
       key: 'battery',
       category: 'other',
+      options: batteryNameOptions,
       label: 'バッテリー',
     ),
     textSetting(
@@ -373,6 +375,7 @@ List<SettingItem> masterSpeedSpecificSettings({required bool isMs2}) {
     textSetting(
       key: 'body',
       category: 'other',
+      options: bodyNameOptions,
       label: 'ボディ',
     ),
     textSetting(
@@ -399,6 +402,7 @@ List<SettingItem> masterSpeedSpecificSettings({required bool isMs2}) {
     textSetting(
       key: 'tire',
       category: 'other',
+      options: tireNameOptions,
       label: 'タイヤ',
     ),
     textSetting(

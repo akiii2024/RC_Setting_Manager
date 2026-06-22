@@ -51,19 +51,32 @@ void main() {
   });
 
   group('car setting definitions', () {
-    test('power fields expose suggested options while remaining text fields',
+    test('equipment fields expose suggested options while remaining text fields',
         () {
       final trf420x = getCarSettingDefinition('tamiya/trf420x')!;
       final bd12 = getCarSettingDefinition('yokomo/bd12')!;
 
       final trf420xMotor = trf420x.availableSettings
           .firstWhere((setting) => setting.key == 'motor');
+      final trf420xBattery = trf420x.availableSettings
+          .firstWhere((setting) => setting.key == 'battery');
+      final trf420xBody = trf420x.availableSettings
+          .firstWhere((setting) => setting.key == 'body');
+      final trf420xTire = trf420x.availableSettings
+          .firstWhere((setting) => setting.key == 'tire');
       final bd12Esc =
           bd12.availableSettings.firstWhere((setting) => setting.key == 'esc');
 
       expect(trf420xMotor.type, 'text');
       expect(trf420xMotor.options, contains('Hobbywing XeRun V10 G5 13.5T'));
       expect(trf420xMotor.options, isNot(contains('13.5T')));
+      expect(trf420xBattery.type, 'text');
+      expect(trf420xBattery.options,
+          contains('SUNPADOW Competition Short-Pack LiPo 6000mAh 7.6V 100C'));
+      expect(trf420xBody.type, 'text');
+      expect(trf420xBody.options, contains('ZooRacing Wolverine MAX 190mm'));
+      expect(trf420xTire.type, 'text');
+      expect(trf420xTire.options, contains('Rush VR3 32S'));
       expect(bd12Esc.type, 'text');
       expect(bd12Esc.options, contains('Hobbywing'));
     });

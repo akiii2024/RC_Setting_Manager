@@ -4,9 +4,10 @@ import '../models/saved_setting.dart';
 import '../models/run_log.dart';
 import '../models/car.dart';
 import '../models/manufacturer.dart';
+import '../models/owned_part.dart';
 import '../models/visibility_settings.dart';
 import '../data/car_settings_definitions.dart';
-import '../data/motor_name_options.dart';
+import '../data/setting_name_options.dart';
 import '../services/firestore_service.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,6 +15,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class SettingsProvider extends ChangeNotifier {
   List<SavedSetting> _savedSettings = [];
   List<RunLog> _runLogs = [];
+  List<OwnedPart> _ownedParts = [];
   Map<String, VisibilitySettings> _visibilitySettings = {};
   bool _isEnglish = false;
   bool _usePaperStyleEditor = false;
@@ -23,6 +25,7 @@ class SettingsProvider extends ChangeNotifier {
 
   final String _savedSettingsKey = 'saved_settings';
   final String _runLogsKey = 'run_logs';
+  final String _ownedPartsKey = 'owned_parts';
   final String _visibilitySettingsKey = 'visibility_settings';
   final String _languageKey = 'language_settings';
   final String _carsKey = 'cars_settings';
@@ -33,6 +36,7 @@ class SettingsProvider extends ChangeNotifier {
 
   List<SavedSetting> get savedSettings => _savedSettings;
   List<RunLog> get runLogs => _runLogs;
+  List<OwnedPart> get ownedParts => List.unmodifiable(_ownedParts);
   Map<String, VisibilitySettings> get visibilitySettings => _visibilitySettings;
   bool get isEnglish => _isEnglish;
   List<Car> get cars => _cars;
@@ -64,6 +68,7 @@ class SettingsProvider extends ChangeNotifier {
       await _loadCars();
       await _loadSettings();
       await _loadRunLogs();
+      await _loadOwnedParts();
       await _loadVisibilitySettings();
       await _loadLanguageSettings();
       await _loadEditorLayoutSettings();
@@ -357,21 +362,224 @@ class SettingsProvider extends ChangeNotifier {
 
   List<String> getSuggestionsForSetting(
     String key,
-    List<String>? baseOptions,
-  ) {
-    final base = baseOptions ?? const <String>[];
-    if (key != 'motor') {
+    List<String>? baseOptions, {
+    String query = '',
+  }) {
+    final suggestionCategory = _suggestionCategoryForKey(key);
+    final base = [
+      ...?baseOptions,
+      ...defaultNameOptionsForSetting(key),
+    ];
+
+    if (!settingNameSuggestionKeys.contains(key)) {
       return List<String>.from(base);
     }
 
-    final savedMotorNames = _savedSettings
-        .map((setting) => setting.settings['motor'])
-        .whereType<String>();
+    final ownedNames = suggestionCategory == null
+        ? const <String>[]
+        : getOwnedPartsByCategory(suggestionCategory)
+            .map((part) => part.name)
+            .toList(growable: false);
+    final normalizedOwnedNames = normalizeSettingNameOptions(key, ownedNames);
+    final normalizedQuery = query.trim().toLowerCase();
 
-    return normalizeMotorNameOptions([
+    if (normalizedQuery.isEmpty && normalizedOwnedNames.isNotEmpty) {
+      return normalizedOwnedNames;
+    }
+
+    final historyKeys = historyKeysForSettingSuggestions(key);
+    final savedNames = _savedSettings.expand(
+      (setting) => historyKeys
+          .map((historyKey) => setting.settings[historyKey])
+          .whereType<String>(),
+    );
+
+    final suggestions = normalizeSettingNameOptions(key, [
+      ...normalizedOwnedNames,
       ...base,
-      ...savedMotorNames,
+      ...savedNames,
     ]);
+
+    if (normalizedQuery.isEmpty) {
+      return suggestions;
+    }
+
+    return suggestions
+        .where((option) => option.toLowerCase().contains(normalizedQuery))
+        .toList(growable: false);
+  }
+
+  String? _suggestionCategoryForKey(String key) {
+    if (key == 'frontTire' || key == 'rearTire') {
+      return 'tire';
+    }
+    return ownedPartCategories.contains(key) ? key : null;
+  }
+
+  List<OwnedPart> getOwnedPartsByCategory(String category) {
+    final parts = _ownedParts
+        .where((part) => part.category == category)
+        .toList(growable: false);
+    parts.sort((a, b) => a.name.compareTo(b.name));
+    return parts;
+  }
+
+  Future<OwnedPart?> addOwnedPart(String category, String name) async {
+    final normalizedName = name.trim();
+    if (!ownedPartCategories.contains(category) || normalizedName.isEmpty) {
+      return null;
+    }
+
+    final existing = _findOwnedPartByName(category, normalizedName);
+    if (existing != null) {
+      return existing;
+    }
+
+    final now = DateTime.now();
+    final part = OwnedPart(
+      id: now.microsecondsSinceEpoch.toString(),
+      category: category,
+      name: normalizedName,
+      createdAt: now,
+    );
+    _ownedParts.add(part);
+    await _persistOwnedParts();
+    return part;
+  }
+
+  Future<bool> updateOwnedPart(
+    String id, {
+    required String category,
+    required String name,
+  }) async {
+    final normalizedName = name.trim();
+    if (!ownedPartCategories.contains(category) || normalizedName.isEmpty) {
+      return false;
+    }
+
+    final index = _ownedParts.indexWhere((part) => part.id == id);
+    if (index == -1) {
+      return false;
+    }
+
+    final duplicate = _findOwnedPartByName(
+      category,
+      normalizedName,
+      excludeId: id,
+    );
+    if (duplicate != null) {
+      return false;
+    }
+
+    _ownedParts[index] = _ownedParts[index].copyWith(
+      category: category,
+      name: normalizedName,
+    );
+    await _persistOwnedParts();
+    return true;
+  }
+
+  Future<void> deleteOwnedPart(String id) async {
+    _ownedParts.removeWhere((part) => part.id == id);
+    await _persistOwnedParts();
+  }
+
+  List<OwnedPartImportCandidate> getOwnedPartImportCandidatesFromHistory() {
+    final candidates = <OwnedPartImportCandidate>[];
+    final seen = <String>{};
+
+    void addCandidate(String category, dynamic value) {
+      if (value is! String) {
+        return;
+      }
+      final name = value.trim();
+      if (name.isEmpty) {
+        return;
+      }
+      final normalized = normalizeSettingNameOptions(category, [name]);
+      if (normalized.isEmpty) {
+        return;
+      }
+      final normalizedName = normalized.first;
+      if (_findOwnedPartByName(category, normalizedName) != null) {
+        return;
+      }
+      final identity =
+          '${category.toLowerCase()}::${normalizedName.toLowerCase()}';
+      if (seen.add(identity)) {
+        candidates.add(
+          OwnedPartImportCandidate(
+            category: category,
+            name: normalizedName,
+          ),
+        );
+      }
+    }
+
+    for (final setting in _savedSettings) {
+      addCandidate('motor', setting.settings['motor']);
+      addCandidate('battery', setting.settings['battery']);
+      addCandidate('body', setting.settings['body']);
+      addCandidate('tire', setting.settings['tire']);
+      addCandidate('tire', setting.settings['frontTire']);
+      addCandidate('tire', setting.settings['rearTire']);
+    }
+
+    candidates.sort((a, b) {
+      final categoryCompare = a.category.compareTo(b.category);
+      if (categoryCompare != 0) {
+        return categoryCompare;
+      }
+      return a.name.compareTo(b.name);
+    });
+    return candidates;
+  }
+
+  Future<void> importOwnedPartsFromHistory(
+    List<OwnedPartImportCandidate> selectedCandidates,
+  ) async {
+    var changed = false;
+
+    for (final candidate in selectedCandidates) {
+      final category = candidate.category;
+      final name = candidate.name.trim();
+      if (!ownedPartCategories.contains(category) || name.isEmpty) {
+        continue;
+      }
+      if (_findOwnedPartByName(category, name) != null) {
+        continue;
+      }
+      final now = DateTime.now();
+      _ownedParts.add(
+        OwnedPart(
+          id: '${now.microsecondsSinceEpoch}-${_ownedParts.length}',
+          category: category,
+          name: name,
+          createdAt: now,
+        ),
+      );
+      changed = true;
+    }
+
+    if (changed) {
+      await _persistOwnedParts();
+    }
+  }
+
+  OwnedPart? _findOwnedPartByName(
+    String category,
+    String name, {
+    String? excludeId,
+  }) {
+    final normalizedName = name.trim().toLowerCase();
+    for (final part in _ownedParts) {
+      if (part.category == category &&
+          part.id != excludeId &&
+          part.name.trim().toLowerCase() == normalizedName) {
+        return part;
+      }
+    }
+    return null;
   }
 
   Future<void> setGarageMembership(String carId, bool value) async {
@@ -425,6 +633,26 @@ class SettingsProvider extends ChangeNotifier {
     } catch (e) {
       print('Error loading run logs: $e');
       _runLogs = [];
+    }
+  }
+
+  Future<void> _loadOwnedParts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final ownedPartsJson = prefs.getString(_ownedPartsKey);
+
+      if (ownedPartsJson != null) {
+        final List<dynamic> decoded = jsonDecode(ownedPartsJson);
+        _ownedParts = decoded
+            .map((item) => OwnedPart.fromJson(Map<String, dynamic>.from(
+                  item as Map,
+                )))
+            .toList();
+        _ownedParts.sort((a, b) => a.name.compareTo(b.name));
+      }
+    } catch (e) {
+      print('Error loading owned parts: $e');
+      _ownedParts = [];
     }
   }
 
@@ -494,6 +722,31 @@ class SettingsProvider extends ChangeNotifier {
     } catch (e) {
       print('Error saving run logs: $e');
     }
+  }
+
+  Future<void> _saveOwnedParts() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final ownedPartsJson =
+          jsonEncode(_ownedParts.map((part) => part.toJson()).toList());
+      await prefs.setString(_ownedPartsKey, ownedPartsJson);
+    } catch (e) {
+      print('Error saving owned parts: $e');
+    }
+  }
+
+  Future<void> _persistOwnedParts() async {
+    await _saveOwnedParts();
+
+    if (_isOnlineMode && _firestoreService != null) {
+      try {
+        await _firestoreService!.saveOwnedParts(_ownedParts);
+      } catch (e) {
+        print('Firebase owned parts save error: $e');
+      }
+    }
+
+    notifyListeners();
   }
 
   Future<void> _saveVisibilitySettings() async {
@@ -691,6 +944,7 @@ class SettingsProvider extends ChangeNotifier {
         savedSettings: _savedSettings,
         runLogs: _runLogs,
         cars: _cars,
+        ownedParts: _ownedParts,
         visibilitySettings: _visibilitySettings,
         isEnglish: _isEnglish,
       );
@@ -712,6 +966,7 @@ class SettingsProvider extends ChangeNotifier {
 
       _runLogs = await _firestoreService!.getRunLogs();
       _runLogs.sort((a, b) => b.runAt.compareTo(a.runAt));
+      _ownedParts = await _firestoreService!.getOwnedParts();
 
       // 車種リストを読み込み
       _cars = await _firestoreService!.getCars();
@@ -725,6 +980,7 @@ class SettingsProvider extends ChangeNotifier {
 
       await _saveSettings();
       await _saveRunLogs();
+      await _saveOwnedParts();
       await _saveCars();
       await _saveVisibilitySettings();
       await _saveLanguageSettings();
@@ -1018,6 +1274,7 @@ class SettingsProvider extends ChangeNotifier {
     required List<Car> cars,
     required List<SavedSetting> savedSettings,
     List<RunLog> runLogs = const [],
+    List<OwnedPart> ownedParts = const [],
     required Map<String, VisibilitySettings> visibilitySettings,
   }) async {
     try {
@@ -1025,6 +1282,7 @@ class SettingsProvider extends ChangeNotifier {
       _cars = cars;
       _savedSettings = savedSettings;
       _runLogs = runLogs;
+      _ownedParts = ownedParts;
       _runLogs.sort((a, b) => b.runAt.compareTo(a.runAt));
       _visibilitySettings = visibilitySettings;
 
@@ -1032,6 +1290,7 @@ class SettingsProvider extends ChangeNotifier {
       await _saveCars();
       await _saveSettings();
       await _saveRunLogs();
+      await _saveOwnedParts();
       await _saveVisibilitySettings();
 
       // オンラインモードの場合はFirebaseにも同期
@@ -1041,6 +1300,7 @@ class SettingsProvider extends ChangeNotifier {
             savedSettings: _savedSettings,
             runLogs: _runLogs,
             cars: _cars,
+            ownedParts: _ownedParts,
             visibilitySettings: _visibilitySettings,
             isEnglish: _isEnglish,
           );
@@ -1061,6 +1321,7 @@ class SettingsProvider extends ChangeNotifier {
     List<Car>? cars,
     List<SavedSetting>? savedSettings,
     List<RunLog>? runLogs,
+    List<OwnedPart>? ownedParts,
     Map<String, VisibilitySettings>? visibilitySettings,
     bool? isEnglish,
   }) async {
@@ -1082,6 +1343,11 @@ class SettingsProvider extends ChangeNotifier {
         await _saveRunLogs();
       }
 
+      if (ownedParts != null) {
+        _ownedParts = ownedParts;
+        await _saveOwnedParts();
+      }
+
       if (visibilitySettings != null) {
         _visibilitySettings = visibilitySettings;
         await _saveVisibilitySettings();
@@ -1099,6 +1365,7 @@ class SettingsProvider extends ChangeNotifier {
             savedSettings: _savedSettings,
             runLogs: _runLogs,
             cars: _cars,
+            ownedParts: _ownedParts,
             visibilitySettings: _visibilitySettings,
             isEnglish: _isEnglish,
           );

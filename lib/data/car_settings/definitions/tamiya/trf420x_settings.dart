@@ -1,5 +1,6 @@
 import '../../../../models/car_setting_definition.dart';
 import '../../../motor_name_options.dart';
+import '../../../setting_name_options.dart';
 import '../../common/basic_settings.dart';
 
 // TRF420X固有の設定
@@ -741,6 +742,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'other',
     label: 'バッテリー',
     defaultValue: '',
+    options: batteryNameOptions,
   ),
   SettingItem(
     key: 'body',
@@ -748,6 +750,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'other',
     label: 'ボディ',
     defaultValue: '',
+    options: bodyNameOptions,
   ),
   SettingItem(
     key: 'bodyWeight',
@@ -789,6 +792,7 @@ final List<SettingItem> trf420xSpecificSettings = [
     category: 'other',
     label: 'タイヤ',
     defaultValue: '',
+    options: tireNameOptions,
   ),
   SettingItem(
     key: 'wheel',

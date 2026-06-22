@@ -15,6 +15,7 @@ class _PartialExportPageState extends State<PartialExportPage> {
   bool _includeCars = true;
   bool _includeSavedSettings = true;
   bool _includeRunLogs = true;
+  bool _includeOwnedParts = true;
   bool _includeVisibilitySettings = true;
   bool _includeLanguageSettings = true;
   bool _isLoading = false;
@@ -23,6 +24,7 @@ class _PartialExportPageState extends State<PartialExportPage> {
     if (!_includeCars &&
         !_includeSavedSettings &&
         !_includeRunLogs &&
+        !_includeOwnedParts &&
         !_includeVisibilitySettings &&
         !_includeLanguageSettings) {
       final settingsProvider =
@@ -52,6 +54,7 @@ class _PartialExportPageState extends State<PartialExportPage> {
         includeCars: _includeCars,
         includeSavedSettings: _includeSavedSettings,
         includeRunLogs: _includeRunLogs,
+        includeOwnedParts: _includeOwnedParts,
         includeVisibilitySettings: _includeVisibilitySettings,
         includeLanguageSettings: _includeLanguageSettings,
       );
@@ -59,6 +62,7 @@ class _PartialExportPageState extends State<PartialExportPage> {
       final xmlContent = await XmlService.exportToXml(
         savedSettings: settingsProvider.savedSettings,
         runLogs: settingsProvider.runLogs,
+        ownedParts: settingsProvider.ownedParts,
         cars: settingsProvider.cars,
         visibilitySettings: settingsProvider.visibilitySettings,
         isEnglish: settingsProvider.isEnglish,
@@ -172,6 +176,17 @@ class _PartialExportPageState extends State<PartialExportPage> {
                       },
                     ),
                     CheckboxListTile(
+                      title: const Text('Owned Parts'),
+                      subtitle:
+                          Text('${settingsProvider.ownedParts.length} parts'),
+                      value: _includeOwnedParts,
+                      onChanged: (value) {
+                        setState(() {
+                          _includeOwnedParts = value ?? false;
+                        });
+                      },
+                    ),
+                    CheckboxListTile(
                       title: Text(isEnglish ? 'Visibility Settings' : '表示設定'),
                       subtitle: Text(
                         isEnglish
@@ -260,6 +275,9 @@ class _PartialExportPageState extends State<PartialExportPage> {
     }
     if (_includeRunLogs) {
       selectedItems.add(isEnglish ? 'Run Logs' : '走行ログ');
+    }
+    if (_includeOwnedParts) {
+      selectedItems.add('Owned Parts');
     }
     if (_includeVisibilitySettings) {
       selectedItems.add(isEnglish ? 'Visibility Settings' : '表示設定');

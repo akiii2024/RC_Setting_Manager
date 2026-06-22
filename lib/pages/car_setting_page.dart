@@ -4158,13 +4158,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
           key: ValueKey('${setting.key}_suggested_$initialText'),
           initialValue: TextEditingValue(text: initialText),
           optionsBuilder: (TextEditingValue value) {
-            final query = value.text.trim().toLowerCase();
-            if (query.isEmpty) {
-              return suggestions;
-            }
-
-            return suggestions.where(
-              (option) => option.toLowerCase().contains(query),
+            return _suggestionsForSetting(
+              setting,
+              query: value.text,
             );
           },
           onSelected: (value) {
@@ -4199,12 +4195,16 @@ class _CarSettingPageState extends State<CarSettingPage> {
     );
   }
 
-  List<String> _suggestionsForSetting(SettingItem setting) {
+  List<String> _suggestionsForSetting(
+    SettingItem setting, {
+    String query = '',
+  }) {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
     return settingsProvider.getSuggestionsForSetting(
       setting.key,
       setting.options,
+      query: query,
     );
   }
 

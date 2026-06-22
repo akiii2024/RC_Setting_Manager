@@ -28,6 +28,7 @@ class _ImportExportPageState extends State<ImportExportPage> {
       final xmlContent = await XmlService.exportToXml(
         savedSettings: settingsProvider.savedSettings,
         runLogs: settingsProvider.runLogs,
+        ownedParts: settingsProvider.ownedParts,
         cars: settingsProvider.cars,
         visibilitySettings: settingsProvider.visibilitySettings,
         isEnglish: settingsProvider.isEnglish,

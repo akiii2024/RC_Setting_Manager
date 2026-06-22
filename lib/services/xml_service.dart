@@ -7,6 +7,7 @@ import '../models/run_log.dart';
 import '../models/saved_setting.dart';
 import '../models/car.dart';
 import '../models/manufacturer.dart';
+import '../models/owned_part.dart';
 import '../models/visibility_settings.dart';
 
 // エクスポート・インポートのデータタイプ
@@ -14,6 +15,7 @@ enum DataType {
   cars,
   savedSettings,
   runLogs,
+  ownedParts,
   visibilitySettings,
   languageSettings,
 }
@@ -23,6 +25,7 @@ class ExportImportOptions {
   final bool includeCars;
   final bool includeSavedSettings;
   final bool includeRunLogs;
+  final bool includeOwnedParts;
   final bool includeVisibilitySettings;
   final bool includeLanguageSettings;
 
@@ -30,6 +33,7 @@ class ExportImportOptions {
     this.includeCars = true,
     this.includeSavedSettings = true,
     this.includeRunLogs = true,
+    this.includeOwnedParts = true,
     this.includeVisibilitySettings = true,
     this.includeLanguageSettings = true,
   });
@@ -39,6 +43,7 @@ class ExportImportOptions {
     if (includeCars) types.add(DataType.cars);
     if (includeSavedSettings) types.add(DataType.savedSettings);
     if (includeRunLogs) types.add(DataType.runLogs);
+    if (includeOwnedParts) types.add(DataType.ownedParts);
     if (includeVisibilitySettings) types.add(DataType.visibilitySettings);
     if (includeLanguageSettings) types.add(DataType.languageSettings);
     return types;
@@ -50,6 +55,7 @@ class XmlService {
   static Future<String> exportToXml({
     required List<SavedSetting> savedSettings,
     List<RunLog> runLogs = const [],
+    List<OwnedPart> ownedParts = const [],
     required List<Car> cars,
     required Map<String, VisibilitySettings> visibilitySettings,
     required bool isEnglish,
@@ -201,6 +207,20 @@ class XmlService {
         });
       }
 
+      if (exportOptions.includeOwnedParts) {
+        builder.element('ownedParts', nest: () {
+          for (final part in ownedParts) {
+            builder.element('ownedPart', nest: () {
+              builder.element('id', nest: part.id);
+              builder.element('category', nest: part.category);
+              builder.element('name', nest: part.name);
+              builder.element('createdAt',
+                  nest: part.createdAt.toIso8601String());
+            });
+          }
+        });
+      }
+
       if (exportOptions.includeVisibilitySettings) {
         builder.element('visibilitySettings', nest: () {
           visibilitySettings.forEach((carId, visibility) {
@@ -227,6 +247,7 @@ class XmlService {
   static Future<void> exportToFile({
     required List<SavedSetting> savedSettings,
     List<RunLog> runLogs = const [],
+    List<OwnedPart> ownedParts = const [],
     required List<Car> cars,
     required Map<String, VisibilitySettings> visibilitySettings,
     required bool isEnglish,
@@ -236,6 +257,7 @@ class XmlService {
       final xmlContent = await exportToXml(
         savedSettings: savedSettings,
         runLogs: runLogs,
+        ownedParts: ownedParts,
         cars: cars,
         visibilitySettings: visibilitySettings,
         isEnglish: isEnglish,
@@ -469,6 +491,40 @@ class XmlService {
       }
 
       // 走行ログデータを読み込み（インポートオプションで選択されている場合のみ）
+      final ownedParts = <OwnedPart>[];
+      if (importOptions.includeOwnedParts) {
+        final ownedPartsElement = root.findElements('ownedParts').firstOrNull;
+        if (ownedPartsElement != null) {
+          for (final partElement
+              in ownedPartsElement.findElements('ownedPart')) {
+            final id =
+                partElement.findElements('id').firstOrNull?.innerText ?? '';
+            final category =
+                partElement.findElements('category').firstOrNull?.innerText ??
+                    '';
+            final name =
+                partElement.findElements('name').firstOrNull?.innerText ?? '';
+            final createdAtStr =
+                partElement.findElements('createdAt').firstOrNull?.innerText ??
+                    '';
+            final createdAt = DateTime.tryParse(createdAtStr) ?? DateTime.now();
+
+            if (id.isNotEmpty &&
+                ownedPartCategories.contains(category) &&
+                name.trim().isNotEmpty) {
+              ownedParts.add(
+                OwnedPart(
+                  id: id,
+                  category: category,
+                  name: name.trim(),
+                  createdAt: createdAt,
+                ),
+              );
+            }
+          }
+        }
+      }
+
       final runLogs = <RunLog>[];
       if (importOptions.includeRunLogs) {
         final runLogsElement = root.findElements('runLogs').firstOrNull;
@@ -669,6 +725,7 @@ class XmlService {
         cars: cars,
         savedSettings: savedSettings,
         runLogs: runLogs,
+        ownedParts: ownedParts,
         visibilitySettings: visibilitySettings,
         metadata: ImportMetadata(
           version: version,
@@ -743,6 +800,7 @@ class ImportResult {
   final List<Car> cars;
   final List<SavedSetting> savedSettings;
   final List<RunLog> runLogs;
+  final List<OwnedPart> ownedParts;
   final Map<String, VisibilitySettings> visibilitySettings;
   final ImportMetadata metadata;
 
@@ -750,6 +808,7 @@ class ImportResult {
     required this.cars,
     required this.savedSettings,
     this.runLogs = const [],
+    this.ownedParts = const [],
     required this.visibilitySettings,
     required this.metadata,
   });

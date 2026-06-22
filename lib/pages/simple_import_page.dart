@@ -17,6 +17,7 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
   bool _includeCars = true;
   bool _includeSavedSettings = true;
   bool _includeRunLogs = true;
+  bool _includeOwnedParts = true;
   bool _includeVisibilitySettings = true;
   bool _includeLanguageSettings = false;
   bool _isLoading = false;
@@ -99,6 +100,8 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
           _previewData!.savedSettings.isNotEmpty;
       _includeRunLogs =
           exportedTypes.contains('runLogs') && _previewData!.runLogs.isNotEmpty;
+      _includeOwnedParts = exportedTypes.contains('ownedParts') &&
+          _previewData!.ownedParts.isNotEmpty;
       _includeVisibilitySettings =
           exportedTypes.contains('visibilitySettings') &&
               _previewData!.visibilitySettings.isNotEmpty;
@@ -115,6 +118,7 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
     if (!_includeCars &&
         !_includeSavedSettings &&
         !_includeRunLogs &&
+        !_includeOwnedParts &&
         !_includeVisibilitySettings &&
         !_includeLanguageSettings) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -143,6 +147,7 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
         savedSettings:
             _includeSavedSettings ? _previewData!.savedSettings : null,
         runLogs: _includeRunLogs ? _previewData!.runLogs : null,
+        ownedParts: _includeOwnedParts ? _previewData!.ownedParts : null,
         visibilitySettings: _includeVisibilitySettings
             ? _previewData!.visibilitySettings
             : null,
@@ -217,6 +222,9 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
                   if (_includeRunLogs)
                     Text(
                         '• ${isEnglish ? "Run Logs" : "走行ログ"} (${_previewData!.runLogs.length} ${isEnglish ? "items" : "件"})'),
+                  if (_includeOwnedParts)
+                    Text(
+                        '• Owned Parts (${_previewData!.ownedParts.length} parts)'),
                   if (_includeVisibilitySettings)
                     Text(
                         '• ${isEnglish ? "Visibility Settings" : "表示設定"} (${_previewData!.visibilitySettings.length} ${isEnglish ? "cars" : "台分"})'),
@@ -585,6 +593,19 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
                               ? (value) {
                                   setState(() {
                                     _includeRunLogs = value ?? false;
+                                  });
+                                }
+                              : null,
+                        ),
+                        CheckboxListTile(
+                          title: const Text('Owned Parts'),
+                          subtitle: Text(
+                              '${_previewData!.ownedParts.length} parts available'),
+                          value: _includeOwnedParts,
+                          onChanged: _previewData!.ownedParts.isNotEmpty
+                              ? (value) {
+                                  setState(() {
+                                    _includeOwnedParts = value ?? false;
                                   });
                                 }
                               : null,
