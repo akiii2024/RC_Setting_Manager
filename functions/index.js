@@ -273,6 +273,7 @@ exports.generateGeminiContent = onCall(
     {
       region,
       secrets: [geminiApiKey],
+      invoker: "public",
       enforceAppCheck: true,
       timeoutSeconds: 120,
       memory: "1GiB",
@@ -285,6 +286,7 @@ exports.getCurrentWeather = onCall(
     {
       region,
       secrets: [openWeatherApiKey],
+      invoker: "public",
       enforceAppCheck: true,
       timeoutSeconds: 30,
       maxInstances: 10,
@@ -296,6 +298,7 @@ exports.validateOpenWeatherApiKey = onCall(
     {
       region,
       secrets: [openWeatherApiKey],
+      invoker: "public",
       enforceAppCheck: true,
       timeoutSeconds: 30,
       maxInstances: 3,

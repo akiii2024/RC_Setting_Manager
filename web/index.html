@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <!--
     If you are serving your web app in a path other than the root, change the
@@ -66,16 +67,28 @@
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
     }
   </style>
 </head>
+
 <body>
   <div id="loading" class="loading">
     <div class="spinner"></div>
     <div>Loading RC Car Setting Manager...</div>
   </div>
+
+  <script>
+    if (["localhost", "127.0.0.1", "[::1]"].includes(location.hostname)) {
+      self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    }
+  </script>
 
   <script src="flutter_bootstrap.js" async></script>
   <script>
@@ -140,4 +153,5 @@
     });
   </script>
 </body>
+
 </html>
