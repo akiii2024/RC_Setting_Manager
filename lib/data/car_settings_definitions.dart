@@ -1,3 +1,4 @@
+import 'package:rc_setting_manager/utils/app_logger.dart';
 import '../models/car_setting_definition.dart';
 import 'car_settings/definitions/tamiya/trf420x_settings.dart' as trf420x;
 import 'car_settings/definitions/tamiya/trf421_settings.dart' as trf421;
@@ -20,8 +21,8 @@ final Map<String, CarSettingDefinition> carSettingsDefinitions = {
 
 // 車種IDから設定定義を取得する関数
 CarSettingDefinition? getCarSettingDefinition(String carId) {
-  print('Searching for car ID: $carId'); // デバッグ用ログ
-  print('Available definitions: ${carSettingsDefinitions.keys}'); // デバッグ用ログ
+  debugLog('Searching for car ID: $carId'); // デバッグ用ログ
+  debugLog('Available definitions: ${carSettingsDefinitions.keys}'); // デバッグ用ログ
   return carSettingsDefinitions[carId];
 }
 

@@ -63,7 +63,7 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
           ),
           if (manufacturers.isEmpty)
             Padding(
-              padding: EdgeInsets.only(top: 16),
+              padding: const EdgeInsets.only(top: 16),
               child: Center(
                 child: _EmptyState(isEnglish: isEnglish),
               ),

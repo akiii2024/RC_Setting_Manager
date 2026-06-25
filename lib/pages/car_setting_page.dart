@@ -1,3 +1,4 @@
+import 'package:rc_setting_manager/utils/app_logger.dart';
 import 'package:flutter/material.dart';
 import '../models/car.dart';
 
@@ -99,9 +100,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
   void initState() {
     super.initState();
     carName = widget.originalCar.name;
-    print('Car ID: ${widget.originalCar.id}'); // デバッグ用ログ
+    debugLog('Car ID: ${widget.originalCar.id}'); // デバッグ用ログ
     _carSettingDefinition = getCarSettingDefinition(widget.originalCar.id);
-    print('Car Setting Definition: $_carSettingDefinition'); // デバッグ用ログ
+    debugLog('Car Setting Definition: $_carSettingDefinition'); // デバッグ用ログ
 
     // 既存の設定を使用するか、新しい設定を作成
     if (widget.savedSettings != null) {
@@ -190,13 +191,13 @@ class _CarSettingPageState extends State<CarSettingPage> {
       final locationStatus = await locationService.getLocationStatus();
 
       if (locationStatus == LocationStatus.permissionDenied) {
-        print('位置情報の権限が拒否されています。手動でトラックを選択してください。');
+        debugLog('位置情報の権限が拒否されています。手動でトラックを選択してください。');
         if (mounted) _showLocationPermissionDialog();
         return;
       }
 
       if (locationStatus == LocationStatus.serviceDisabled) {
-        print('位置情報サービスが無効です。設定で有効にしてください。');
+        debugLog('位置情報サービスが無効です。設定で有効にしてください。');
         if (mounted) _showLocationServiceDialog();
         return;
       }
@@ -221,10 +222,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
           }
         });
       } else {
-        print('近くにトラックが見つかりませんでした。手動でトラックを選択してください。');
+        debugLog('近くにトラックが見つかりませんでした。手動でトラックを選択してください。');
       }
     } catch (e) {
-      print('位置情報取得エラー: $e');
+      debugLog('位置情報取得エラー: $e');
       // エラーが発生してもアプリは継続
     } finally {
       if (mounted) {
@@ -277,10 +278,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
       final weatherService = WeatherService.instance;
 
       // APIキーが設定されているかチェック
-      print(
+      debugLog(
           '[Weather Debug] Step 1: isApiKeyConfigured = ${weatherService.isApiKeyConfigured()}');
       if (!weatherService.isApiKeyConfigured()) {
-        print('[Weather Debug] FAILED at Step 1: APIキーが未設定 → モックデータ');
+        debugLog('[Weather Debug] FAILED at Step 1: APIキーが未設定 → モックデータ');
         final mockWeather = weatherService.getMockWeatherData();
         if (mounted) {
           setState(() {
@@ -292,11 +293,11 @@ class _CarSettingPageState extends State<CarSettingPage> {
       }
 
       // APIキーの有効性をテスト
-      print('[Weather Debug] Step 2: validateApiKey() を呼び出し中...');
+      debugLog('[Weather Debug] Step 2: validateApiKey() を呼び出し中...');
       final isValidApiKey = await weatherService.validateApiKey();
-      print('[Weather Debug] Step 2: validateApiKey() = $isValidApiKey');
+      debugLog('[Weather Debug] Step 2: validateApiKey() = $isValidApiKey');
       if (!isValidApiKey) {
-        print('[Weather Debug] FAILED at Step 2: APIキーが無効 → モックデータ');
+        debugLog('[Weather Debug] FAILED at Step 2: APIキーが無効 → モックデータ');
         final mockWeather = weatherService.getMockWeatherData();
         if (mounted) {
           setState(() {
@@ -307,11 +308,11 @@ class _CarSettingPageState extends State<CarSettingPage> {
         return;
       }
 
-      print('[Weather Debug] Step 3: getCurrentWeather() を呼び出し中...');
+      debugLog('[Weather Debug] Step 3: getCurrentWeather() を呼び出し中...');
       final weather = await weatherService.getCurrentWeather(
         forceRefresh: forceRefresh,
       );
-      print(
+      debugLog(
           '[Weather Debug] Step 3: getCurrentWeather() = ${weather?.toString() ?? 'null'}');
 
       if (weather != null && mounted) {
@@ -322,9 +323,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
         // 気温と湿度を自動入力
         _updateWeatherSettings(weather);
 
-        print('[Weather Debug] SUCCESS: 天気情報を取得しました: ${weather.toString()}');
+        debugLog('[Weather Debug] SUCCESS: 天気情報を取得しました: ${weather.toString()}');
       } else {
-        print(
+        debugLog(
             '[Weather Debug] FAILED at Step 3: weather=$weather, mounted=$mounted → モックデータ');
         final mockWeather = weatherService.getMockWeatherData();
         if (mounted) {
@@ -335,8 +336,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
         }
       }
     } catch (e, stackTrace) {
-      print('[Weather Debug] EXCEPTION: $e');
-      print('[Weather Debug] StackTrace: $stackTrace');
+      debugLog('[Weather Debug] EXCEPTION: $e');
+      debugLog('[Weather Debug] StackTrace: $stackTrace');
       final weatherService = WeatherService.instance;
       final mockWeather = weatherService.getMockWeatherData();
       if (mounted) {
@@ -382,7 +383,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
   // トラック情報から路面情報を更新
   void _updateSurfaceFromTrack(TrackLocation track) {
     final surfaceText = track.surfaceType == 'carpet' ? 'カーペット' : 'アスファルト';
-    print('路面情報を更新: ${track.name} -> $surfaceText'); // デバッグ用ログ
+    debugLog('路面情報を更新: ${track.name} -> $surfaceText'); // デバッグ用ログ
     settings['surface'] = surfaceText;
   }
 
@@ -3036,7 +3037,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Icon(
               Icons.star_border,
               size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withOpacity(0.3),
+              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
@@ -3046,7 +3047,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
-                color: Theme.of(context).colorScheme.onSurface.withOpacity(0.6),
+                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -3071,7 +3072,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
             padding: const EdgeInsets.only(bottom: 16.0),
             child: _buildSettingFieldWithFavorite(setting),
           );
-        }).toList(),
+        }),
       ],
     );
   }
@@ -3300,7 +3301,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
             children: [
               Icon(Icons.cloud_off,
                   color:
-                      Theme.of(context).colorScheme.onSurface.withOpacity(0.5)),
+                      Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -3319,7 +3320,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                           color: Theme.of(context)
                               .colorScheme
                               .onSurface
-                              .withOpacity(0.5)),
+                              .withValues(alpha: 0.5)),
                     ),
                   ],
                 ),
@@ -3445,7 +3446,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                                 color: Theme.of(context)
                                     .colorScheme
                                     .onSurface
-                                    .withOpacity(0.5)),
+                                    .withValues(alpha: 0.5)),
                           ),
                       ],
                     ),
@@ -4087,7 +4088,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                 Icons.cloud,
                 color: _currentWeather != null
                     ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
               ),
         onPressed: _isWeatherLoading ? null : _refreshWeather,
         tooltip: setting.key == 'airTemp' ? '現在の気温を取得' : '現在の湿度を取得',
@@ -4224,8 +4225,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
       // 無効な値があった場合は設定からも削除
       if (currentValue != null) {
         // デバッグ情報を出力
-        print('無効なドロップダウン値を検出: ${setting.key} = "$currentValue"');
-        print('利用可能なオプション: ${setting.options}');
+        debugLog('無効なドロップダウン値を検出: ${setting.key} = "$currentValue"');
+        debugLog('利用可能なオプション: ${setting.options}');
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) {
@@ -4246,7 +4247,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
           decoration: const InputDecoration(
             border: OutlineInputBorder(),
           ),
-          value: validValue,
+          initialValue: validValue,
           items: _buildSelectMenuItems(setting),
           onChanged: (value) {
             if (_isSelectGuideValue(value)) {
@@ -4436,7 +4437,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                 labelText: isEnglish ? 'Damper Position' : 'ダンパーポジション',
                 border: const OutlineInputBorder(),
               ),
-              value: settings['frontDamperPosition'] ?? 1,
+              initialValue: settings['frontDamperPosition'] ?? 1,
               items: [
                 _buildSelectGuideMenuItem<int>(
                   value: -1,
@@ -4744,7 +4745,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                         labelText: 'サスマウント前',
                         border: OutlineInputBorder(),
                       ),
-                      value: settings['frontSusMountFront'] == null ||
+                      initialValue: settings['frontSusMountFront'] == null ||
                               settings['frontSusMountFront'].toString().isEmpty
                           ? null
                           : settings['frontSusMountFront'],
@@ -4768,7 +4769,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                         labelText: 'サスマウント後',
                         border: OutlineInputBorder(),
                       ),
-                      value: settings['frontSusMountRear'] == null ||
+                      initialValue: settings['frontSusMountRear'] == null ||
                               settings['frontSusMountRear'].toString().isEmpty
                           ? null
                           : settings['frontSusMountRear'],
@@ -4822,7 +4823,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                         labelText: 'デフ種類',
                         border: OutlineInputBorder(),
                       ),
-                      value: settings['frontDrive'] == null ||
+                      initialValue: settings['frontDrive'] == null ||
                               settings['frontDrive'].toString().isEmpty
                           ? null
                           : settings['frontDrive'],
@@ -5274,7 +5275,7 @@ class _TrackSearchDialogState extends State<_TrackSearchDialog> {
         _isLoading = false;
       });
     } catch (e) {
-      print('トラック読み込みエラー: $e');
+      debugLog('トラック読み込みエラー: $e');
       setState(() {
         _isLoading = false;
       });
@@ -5326,7 +5327,7 @@ class _TrackSearchDialogState extends State<_TrackSearchDialog> {
 
               // 都道府県フィルター
               DropdownButtonFormField<String>(
-                value: _selectedPrefecture,
+                initialValue: _selectedPrefecture,
                 decoration: InputDecoration(
                   labelText: widget.isEnglish ? 'Prefecture' : '都道府県',
                   border: const OutlineInputBorder(),
@@ -5411,7 +5412,7 @@ class _TrackSearchDialogState extends State<_TrackSearchDialog> {
                                       color: Theme.of(context)
                                           .colorScheme
                                           .onSurface
-                                          .withOpacity(0.7),
+                                          .withValues(alpha: 0.7),
                                     ),
                                     const SizedBox(width: 4),
                                     Icon(
@@ -5950,7 +5951,7 @@ class _ChatBubble extends StatelessWidget {
               decoration: BoxDecoration(
                 color: message.isUser
                     ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.surfaceVariant,
+                    : Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
@@ -5973,11 +5974,11 @@ class _ChatBubble extends StatelessWidget {
                           ? Theme.of(context)
                               .colorScheme
                               .onPrimary
-                              .withOpacity(0.7)
+                              .withValues(alpha: 0.7)
                           : Theme.of(context)
                               .colorScheme
                               .onSurfaceVariant
-                              .withOpacity(0.7),
+                              .withValues(alpha: 0.7),
                     ),
                   ),
                 ],

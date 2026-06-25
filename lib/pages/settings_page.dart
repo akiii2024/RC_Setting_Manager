@@ -420,7 +420,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 16.0, vertical: 16.0),
                       ),
-                      value: _selectedCar,
+                      initialValue: _selectedCar,
                       items: _cars.map((car) {
                         return DropdownMenuItem<Car>(
                           value: car,
@@ -944,63 +944,53 @@ class _SettingsPageState extends State<SettingsPage> {
         return AlertDialog(
           title: Text(isEnglish ? 'Select Editor Layout' : '編集レイアウトを選択'),
           contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                title: Text(isEnglish ? 'App UI' : 'アプリUI'),
-                subtitle: Text(isEnglish
-                    ? 'Optimized for quick entry and tab navigation'
-                    : 'タブ中心で素早く入力する通常レイアウト'),
-                leading: Radio<bool>(
-                  value: false,
-                  groupValue: usePaperStyleEditor,
-                  onChanged: (bool? value) async {
-                    if (value != null) {
-                      await settingsProvider.setPaperStyleEditor(value);
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
-                      }
+          content: RadioGroup<bool>(
+            groupValue: usePaperStyleEditor,
+            onChanged: (value) async {
+              if (value == null) {
+                return;
+              }
+              await settingsProvider.setPaperStyleEditor(value);
+              if (context.mounted) {
+                Navigator.of(context).pop();
+              }
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: Text(isEnglish ? 'App UI' : 'アプリUI'),
+                  subtitle: Text(isEnglish
+                      ? 'Optimized for quick entry and tab navigation'
+                      : 'タブ中心で素早く入力する通常レイアウト'),
+                  leading: const Radio<bool>(value: false),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8.0, vertical: 4.0),
+                  onTap: () async {
+                    await settingsProvider.setPaperStyleEditor(false);
+                    if (context.mounted) {
+                      Navigator.of(context).pop();
                     }
                   },
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                onTap: () async {
-                  await settingsProvider.setPaperStyleEditor(false);
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-                  }
-                },
-              ),
-              const SizedBox(height: 8.0),
-              ListTile(
-                title: Text(isEnglish ? 'Paper UI' : '紙UI'),
-                subtitle: Text(isEnglish
-                    ? 'Closer to a real setup sheet for paper users'
-                    : '紙のセットアップシートに近い見た目'),
-                leading: Radio<bool>(
-                  value: true,
-                  groupValue: usePaperStyleEditor,
-                  onChanged: (bool? value) async {
-                    if (value != null) {
-                      await settingsProvider.setPaperStyleEditor(value);
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
-                      }
+                const SizedBox(height: 8.0),
+                ListTile(
+                  title: Text(isEnglish ? 'Paper UI' : '紙UI'),
+                  subtitle: Text(isEnglish
+                      ? 'Closer to a real setup sheet for paper users'
+                      : '紙のセットアップシートに近い見た目'),
+                  leading: const Radio<bool>(value: true),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8.0, vertical: 4.0),
+                  onTap: () async {
+                    await settingsProvider.setPaperStyleEditor(true);
+                    if (context.mounted) {
+                      Navigator.of(context).pop();
                     }
                   },
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                onTap: () async {
-                  await settingsProvider.setPaperStyleEditor(true);
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-                  }
-                },
-              ),
-            ],
+              ],
+            ),
           ),
           actions: [
             TextButton(
@@ -1030,53 +1020,44 @@ class _SettingsPageState extends State<SettingsPage> {
         return AlertDialog(
           title: Text(isEnglish ? 'Select Language' : '言語を選択'),
           contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                title: const Text('日本語'),
-                leading: Radio<bool>(
-                  value: false,
-                  groupValue: isEnglish,
-                  onChanged: (bool? value) {
-                    if (value != null && value == false) {
+          content: RadioGroup<bool>(
+            groupValue: isEnglish,
+            onChanged: (value) {
+              if (value != isEnglish) {
+                settingsProvider.toggleLanguage();
+              }
+              Navigator.of(context).pop();
+            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ListTile(
+                  title: const Text('日本語'),
+                  leading: const Radio<bool>(value: false),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8.0, vertical: 4.0),
+                  onTap: () {
+                    if (isEnglish) {
                       settingsProvider.toggleLanguage();
                       Navigator.of(context).pop();
                     }
                   },
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                onTap: () {
-                  if (isEnglish) {
-                    settingsProvider.toggleLanguage();
-                    Navigator.of(context).pop();
-                  }
-                },
-              ),
-              const SizedBox(height: 8.0),
-              ListTile(
-                title: const Text('English'),
-                leading: Radio<bool>(
-                  value: true,
-                  groupValue: isEnglish,
-                  onChanged: (bool? value) {
-                    if (value != null && value == true) {
+                const SizedBox(height: 8.0),
+                ListTile(
+                  title: const Text('English'),
+                  leading: const Radio<bool>(value: true),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 8.0, vertical: 4.0),
+                  onTap: () {
+                    if (!isEnglish) {
                       settingsProvider.toggleLanguage();
                       Navigator.of(context).pop();
                     }
                   },
                 ),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                onTap: () {
-                  if (!isEnglish) {
-                    settingsProvider.toggleLanguage();
-                    Navigator.of(context).pop();
-                  }
-                },
-              ),
-            ],
+              ],
+            ),
           ),
           actions: [
             TextButton(

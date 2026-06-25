@@ -1,3 +1,4 @@
+import 'package:rc_setting_manager/utils/app_logger.dart';
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -25,14 +26,14 @@ class LocationService {
       }
 
       if (permission == LocationPermission.deniedForever) {
-        print('位置情報の権限が永続的に拒否されています。設定から許可してください。');
+        debugLog('位置情報の権限が永続的に拒否されています。設定から許可してください。');
         return false;
       }
 
       return permission == LocationPermission.whileInUse ||
           permission == LocationPermission.always;
     } catch (e) {
-      print('権限確認エラー: $e');
+      debugLog('権限確認エラー: $e');
       return false;
     }
   }
@@ -50,7 +51,7 @@ class LocationService {
       return permission == LocationPermission.whileInUse ||
           permission == LocationPermission.always;
     } catch (e) {
-      print('Web位置情報権限エラー: $e');
+      debugLog('Web位置情報権限エラー: $e');
       return false;
     }
   }
@@ -81,7 +82,7 @@ class LocationService {
 
       return position;
     } catch (e) {
-      print('位置情報取得エラー: $e');
+      debugLog('位置情報取得エラー: $e');
       return null;
     }
   }
@@ -98,7 +99,7 @@ class LocationService {
       return TrackLocationService.instance
           .findNearestTrack(position.latitude, position.longitude);
     } catch (e) {
-      print('最寄りトラック検索エラー: $e');
+      debugLog('最寄りトラック検索エラー: $e');
       return null;
     }
   }

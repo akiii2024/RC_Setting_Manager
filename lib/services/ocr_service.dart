@@ -1,3 +1,4 @@
+import 'package:rc_setting_manager/utils/app_logger.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
@@ -76,9 +77,9 @@ class OCRService {
 
       return response['text'] as String?;
     } catch (e) {
-      print('Gemini OCR エラー: $e');
-      print('エラータイプ: ${e.runtimeType}');
-      print('スタックトレース: ${StackTrace.current}');
+      debugLog('Gemini OCR エラー: $e');
+      debugLog('エラータイプ: ${e.runtimeType}');
+      debugLog('スタックトレース: ${StackTrace.current}');
       return null;
     }
   }
@@ -114,7 +115,7 @@ class OCRService {
         );
         return image;
       } catch (e) {
-        print('Web環境でのカメラエラー: $e');
+        debugLog('Web環境でのカメラエラー: $e');
         throw UnsupportedError('Web環境でカメラが利用できません。ギャラリーをご利用ください。');
       }
     }
@@ -131,8 +132,8 @@ class OCRService {
       }
       return null;
     } catch (e) {
-      print('カメラからの画像取得エラー: $e');
-      print('エラータイプ: ${e.runtimeType}');
+      debugLog('カメラからの画像取得エラー: $e');
+      debugLog('エラータイプ: ${e.runtimeType}');
       return null;
     }
   }
@@ -155,8 +156,8 @@ class OCRService {
       }
       return null;
     } catch (e) {
-      print('ギャラリーからの画像取得エラー: $e');
-      print('エラータイプ: ${e.runtimeType}');
+      debugLog('ギャラリーからの画像取得エラー: $e');
+      debugLog('エラータイプ: ${e.runtimeType}');
       return null;
     }
   }
@@ -308,7 +309,7 @@ class OCRService {
     // まずローカルでの類似性チェックを試行
     final localMatch = _findLocalMatch(rawValue, availableOptions);
     if (localMatch != null) {
-      print('ローカルマッチング成功: "$rawValue" -> "$localMatch"');
+      debugLog('ローカルマッチング成功: "$rawValue" -> "$localMatch"');
       return localMatch;
     }
 
@@ -333,20 +334,20 @@ ${availableOptions.map((option) => '- $option').join('\n')}
       final result = (await _generateTextWithAI(prompt))?.trim();
 
       if (result == null || result.isEmpty || result == 'NO_MATCH') {
-        print('AIマッピング失敗: "$rawValue" -> オプション: $availableOptions');
+        debugLog('AIマッピング失敗: "$rawValue" -> オプション: $availableOptions');
         return null;
       }
 
       // 結果が利用可能なオプションに含まれているかチェック
       if (availableOptions.contains(result)) {
-        print('AIマッピング成功: "$rawValue" -> "$result"');
+        debugLog('AIマッピング成功: "$rawValue" -> "$result"');
         return result;
       } else {
-        print('AIマッピング結果が無効: "$rawValue" -> "$result" (利用不可)');
+        debugLog('AIマッピング結果が無効: "$rawValue" -> "$result" (利用不可)');
         return null;
       }
     } catch (e) {
-      print('AIマッピングエラー: $e');
+      debugLog('AIマッピングエラー: $e');
       return null;
     }
   }
@@ -375,7 +376,7 @@ ${settingDefinitions.map((setting) => '- ${setting.label} (キー: ${setting.key
       final result = (await _generateTextWithAI(prompt))?.trim();
 
       if (result == null || result.isEmpty || result == 'NO_MATCH') {
-        print(
+        debugLog(
             'AIラベルマッピング失敗: "$label" -> 利用可能項目: ${settingDefinitions.map((s) => s.label)}');
         return null;
       }
@@ -392,7 +393,7 @@ ${settingDefinitions.map((setting) => '- ${setting.label} (キー: ${setting.key
       );
 
       if (matchedSetting.key.isNotEmpty) {
-        print(
+        debugLog(
             'AIラベルマッピング成功: "$label" -> "${matchedSetting.label}" (${matchedSetting.key})');
         return matchedSetting.key;
       } else {
@@ -400,17 +401,17 @@ ${settingDefinitions.map((setting) => '- ${setting.label} (キー: ${setting.key
         for (final setting in settingDefinitions) {
           if (setting.label.contains(result) ||
               result.contains(setting.label)) {
-            print(
+            debugLog(
                 'AIラベルマッピング部分一致: "$label" -> "${setting.label}" (${setting.key})');
             return setting.key;
           }
         }
 
-        print('AIラベルマッピング結果が無効: "$label" -> "$result" (利用不可)');
+        debugLog('AIラベルマッピング結果が無効: "$label" -> "$result" (利用不可)');
         return null;
       }
     } catch (e) {
-      print('AIラベルマッピングエラー: $e');
+      debugLog('AIラベルマッピングエラー: $e');
       return null;
     }
   }
@@ -497,7 +498,7 @@ $availableSettings
 
                   if (settingDef.key.isNotEmpty) {
                     results.add({'key': settingDef.key, 'value': value});
-                    print(
+                    debugLog(
                         'バッチAIラベルマッピング成功: "${parts[0].trim()}" -> "$matchedLabel" (${settingDef.key})');
                   }
                 }
@@ -505,14 +506,14 @@ $availableSettings
             }
           }
         } catch (e) {
-          print('バッチAIラベルマッピングのJSONパースエラー: $e');
+          debugLog('バッチAIラベルマッピングのJSONパースエラー: $e');
           // フォールバック：従来の個別処理
           return await _mapMultipleLabelsWithAIFallback(
               unmatchedItems, settingDefinitions);
         }
       }
     } catch (e) {
-      print('バッチAIラベルマッピングエラー: $e');
+      debugLog('バッチAIラベルマッピングエラー: $e');
       // フォールバック：従来の個別処理
       return await _mapMultipleLabelsWithAIFallback(
           unmatchedItems, settingDefinitions);
@@ -536,7 +537,7 @@ $availableSettings
         if (mappedKey != null && mappedKey.isNotEmpty) {
           results.add({'key': mappedKey, 'value': value});
         } else {
-          print('AIラベルマッピング失敗: "$label" = "$value"');
+          debugLog('AIラベルマッピング失敗: "$label" = "$value"');
         }
       }
     }
@@ -614,19 +615,19 @@ $itemsText
                 final originalValue = originalEntry.value.first;
 
                 mappedValues[key] = mappedValue;
-                print(
+                debugLog(
                     'バッチAI値マッピング成功: "$originalValue" -> "$mappedValue" (キー: $key)');
               }
             }
           }
         } catch (e) {
-          print('バッチAI値マッピングのJSONパースエラー: $e');
+          debugLog('バッチAI値マッピングのJSONパースエラー: $e');
           // フォールバック：従来の個別処理
           return await _mapMultipleValuesWithAIFallback(valuesToMap);
         }
       }
     } catch (e) {
-      print('バッチAI値マッピングエラー: $e');
+      debugLog('バッチAI値マッピングエラー: $e');
       // フォールバック：従来の個別処理
       return await _mapMultipleValuesWithAIFallback(valuesToMap);
     }
@@ -755,14 +756,14 @@ $itemsText
     for (final entry in labelToKeyMap.entries) {
       if (_isLabelMatch(label, entry.key)) {
         matchedKey = entry.value;
-        print('従来マッチング成功: "$label" -> "${entry.key}" (${entry.value})');
+        debugLog('従来マッチング成功: "$label" -> "${entry.key}" (${entry.value})');
         break;
       }
     }
 
     // 従来のマッチングで見つからない場合、AIマッピングを後で実行するため記録
     if (matchedKey == null) {
-      print('従来マッチング失敗、AIマッピング候補: "$label" = "$value"');
+      debugLog('従来マッチング失敗、AIマッピング候補: "$label" = "$value"');
       // 一時的にラベルをキーとして保存（後でAIマッピングで修正）
       extractedSettings['_unmatched_${extractedSettings.length}'] =
           '$label:$value';

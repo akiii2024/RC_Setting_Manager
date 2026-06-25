@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:rc_setting_manager/utils/app_logger.dart';
 
 import '../data/car_settings_definitions.dart';
 import '../data/run_feel_tags.dart';
@@ -128,7 +129,7 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
     try {
       weather = await _fetchWeather(forceRefresh: forceRefresh);
     } catch (error) {
-      debugPrint('Run log weather fetch failed: $error');
+      debugLog('Run log weather fetch failed: $error');
     }
 
     if (!mounted) {
@@ -201,7 +202,7 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
         _hasLoadedCourseDatabase = true;
       });
     } catch (error) {
-      debugPrint('Course database load failed: $error');
+      debugLog('Course database load failed: $error');
     } finally {
       if (mounted) {
         setState(() {
@@ -274,7 +275,7 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
     try {
       track = await _findNearestCourse();
     } catch (error) {
-      debugPrint('Nearest course fetch failed: $error');
+      debugLog('Nearest course fetch failed: $error');
     }
 
     if (!mounted) {

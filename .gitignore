@@ -58,6 +58,9 @@ app.*.map.json
 
 # Android local properties (環境固有のSDKパス等)
 android/local.properties
+android/key.properties
+*.jks
+*.keystore
 
 # Android NDK and CMake build artifacts
 /android/app/.cxx/
@@ -123,4 +126,3 @@ coverage/
 .test_coverage/
 
 setting_sheet_pdf/
-docs/PUBLICATION_AUDIT.md

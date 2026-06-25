@@ -1,3 +1,4 @@
+import 'package:rc_setting_manager/utils/app_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
@@ -240,7 +241,7 @@ class _LoginPageState extends State<LoginPage> {
     final isEnglish =
         Provider.of<SettingsProvider>(context, listen: false).isEnglish;
 
-    print('Error message to parse: $error');
+    debugLog('Error message to parse: $error');
 
     if (error.contains('user-not-found')) {
       return isEnglish

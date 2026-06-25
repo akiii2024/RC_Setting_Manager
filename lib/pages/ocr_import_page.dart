@@ -1,3 +1,4 @@
+import 'package:rc_setting_manager/utils/app_logger.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -124,8 +125,8 @@ class _OCRImportPageState extends State<OCRImportPage> {
         }
       }
     } catch (e, stackTrace) {
-      print('Error in _pickImage: $e');
-      print('Stack trace: $stackTrace');
+      debugLog('Error in _pickImage: $e');
+      debugLog('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -148,19 +149,19 @@ class _OCRImportPageState extends State<OCRImportPage> {
 
     try {
       if (kIsWeb) {
-        print('Processing image (Web): ${imageFile.name}');
-        print('Image size: ${await imageFile.length()} bytes');
+        debugLog('Processing image (Web): ${imageFile.name}');
+        debugLog('Image size: ${await imageFile.length()} bytes');
       } else {
-        print('Processing image: ${imageFile.path}');
-        print('Image exists: ${await imageFile.exists()}');
-        print('Image size: ${await imageFile.length()} bytes');
+        debugLog('Processing image: ${imageFile.path}');
+        debugLog('Image exists: ${await imageFile.exists()}');
+        debugLog('Image size: ${await imageFile.length()} bytes');
       }
 
       final recognizedText =
           await _ocrService!.recognizeTextFromImage(imageFile);
 
       if (recognizedText != null) {
-        print('Text recognized successfully');
+        debugLog('Text recognized successfully');
         setState(() {
           _recognizedText = recognizedText;
         });
@@ -175,7 +176,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
             carDefinition.availableSettings,
           );
 
-          print('基本抽出完了: ${extractedSettings.length}個の設定を抽出');
+          debugLog('基本抽出完了: ${extractedSettings.length}個の設定を抽出');
 
           // AIを使用してより正確なマッピングを実行
           try {
@@ -208,8 +209,8 @@ class _OCRImportPageState extends State<OCRImportPage> {
               _extractedSettings = mappedSettings;
             });
 
-            print('設定値抽出完了: ${mappedSettings.length}個の設定を取得');
-            print('マッピング結果: $mappedSettings');
+            debugLog('設定値抽出完了: ${mappedSettings.length}個の設定を取得');
+            debugLog('マッピング結果: $mappedSettings');
 
             // 成功メッセージを表示
             if (mounted) {
@@ -221,7 +222,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
               );
             }
           } catch (e) {
-            print('AIマッピングでエラーが発生しました: $e');
+            debugLog('AIマッピングでエラーが発生しました: $e');
             // エラーの場合は基本抽出結果を使用
             setState(() {
               _extractedSettings = extractedSettings;
@@ -238,7 +239,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
           }
         }
       } else {
-        print('No text recognized from image');
+        debugLog('No text recognized from image');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('画像からテキストを認識できませんでした')),
@@ -246,8 +247,8 @@ class _OCRImportPageState extends State<OCRImportPage> {
         }
       }
     } catch (e, stackTrace) {
-      print('Error in _processImage: $e');
-      print('Stack trace: $stackTrace');
+      debugLog('Error in _processImage: $e');
+      debugLog('Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -460,7 +461,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
                         ? null
                         : () => _pickImage(ImageSource.camera),
                     icon: const Icon(Icons.camera_alt),
-                    label: Text(kIsWeb ? 'カメラを起動' : 'カメラで撮影'),
+                    label: const Text(kIsWeb ? 'カメラを起動' : 'カメラで撮影'),
                   ),
                 ),
                 const SizedBox(width: 16),

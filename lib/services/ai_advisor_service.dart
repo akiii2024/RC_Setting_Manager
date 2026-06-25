@@ -1,3 +1,4 @@
+import 'package:rc_setting_manager/utils/app_logger.dart';
 import '../models/car.dart';
 import '../models/car_setting_definition.dart';
 import '../models/track_location.dart';
@@ -102,7 +103,7 @@ class AIAdvisorService {
 
       return 'セッティングアドバイザーです。どのような問題やお悩みがありますか？（例：「曲がりにくい」「アンダーステアが強い」「リアが滑る」など）';
     } catch (e) {
-      print('会話セッション開始エラー: $e');
+      debugLog('会話セッション開始エラー: $e');
       rethrow;
     }
   }
@@ -121,7 +122,7 @@ class AIAdvisorService {
 
       return response;
     } catch (e) {
-      print('メッセージ送信エラー: $e');
+      debugLog('メッセージ送信エラー: $e');
       rethrow;
     }
   }
@@ -163,7 +164,7 @@ class AIAdvisorService {
 
       return advice;
     } catch (e) {
-      print('最終アドバイス生成エラー: $e');
+      debugLog('最終アドバイス生成エラー: $e');
       rethrow;
     }
   }
@@ -268,7 +269,7 @@ class AIAdvisorService {
 
       return _parseAdviceResponse(result);
     } catch (e) {
-      print('AI アドバイス生成エラー: $e');
+      debugLog('AI アドバイス生成エラー: $e');
       rethrow;
     }
   }
@@ -443,7 +444,7 @@ ${trackInfo != null ? '''
         _textContent('user', prompt),
       ]);
     } catch (e) {
-      print('個別アドバイス取得エラー: $e');
+      debugLog('個別アドバイス取得エラー: $e');
       return 'アドバイスの取得中にエラーが発生しました: $e';
     }
   }

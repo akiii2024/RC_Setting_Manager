@@ -1,4 +1,4 @@
-package com.example.settingsheet_manager
+package com.aki.rcsettings
 
 import io.flutter.embedding.android.FlutterActivity
 

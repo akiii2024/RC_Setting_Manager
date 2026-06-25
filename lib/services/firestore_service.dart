@@ -1,3 +1,4 @@
+import 'package:rc_setting_manager/utils/app_logger.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -30,13 +31,13 @@ class FirestoreService {
   }
 
   Future<void> saveSetting(SavedSetting setting) async {
-    print('Attempting to save setting: ${setting.id}');
-    print('User ID: $userId');
-    print('Is Guest User: $isGuestUser');
-    print('User Collection: ${userCollection?.path}');
+    debugLog('Attempting to save setting: ${setting.id}');
+    debugLog('User ID: $userId');
+    debugLog('Is Guest User: $isGuestUser');
+    debugLog('User Collection: ${userCollection?.path}');
 
     if (userCollection == null) {
-      print('ERROR: User collection is null - user may not be logged in');
+      debugLog('ERROR: User collection is null - user may not be logged in');
       throw Exception('User is not signed in.');
     }
 
@@ -45,15 +46,15 @@ class FirestoreService {
           .doc('settings')
           .collection('saved_settings')
           .doc(setting.id);
-      print('Saving to document: ${docRef.path}');
+      debugLog('Saving to document: ${docRef.path}');
       await docRef.set(setting.toJson());
-      print('Setting saved successfully');
+      debugLog('Setting saved successfully');
     } catch (e) {
-      print('Error saving setting: $e');
-      print('Error type: ${e.runtimeType}');
+      debugLog('Error saving setting: $e');
+      debugLog('Error type: ${e.runtimeType}');
       if (e is FirebaseException) {
-        print('Firebase Error Code: ${e.code}');
-        print('Firebase Error Message: ${e.message}');
+        debugLog('Firebase Error Code: ${e.code}');
+        debugLog('Firebase Error Message: ${e.message}');
         throw Exception('Failed to save setting: ${e.code} - ${e.message}');
       }
       throw Exception('Failed to save setting: $e');
@@ -75,7 +76,7 @@ class FirestoreService {
         return SavedSetting.fromJson(data);
       }).toList();
     } catch (e) {
-      print('Error loading settings: $e');
+      debugLog('Error loading settings: $e');
       return [];
     }
   }
@@ -92,7 +93,7 @@ class FirestoreService {
           .doc(settingId)
           .delete();
     } catch (e) {
-      print('Error deleting setting: $e');
+      debugLog('Error deleting setting: $e');
       rethrow;
     }
   }
@@ -109,7 +110,7 @@ class FirestoreService {
           .doc(runLog.id)
           .set(runLog.toJson());
     } catch (e) {
-      print('Error saving run log: $e');
+      debugLog('Error saving run log: $e');
       rethrow;
     }
   }
@@ -127,7 +128,7 @@ class FirestoreService {
         return RunLog.fromJson(data);
       }).toList();
     } catch (e) {
-      print('Error loading run logs: $e');
+      debugLog('Error loading run logs: $e');
       return [];
     }
   }
@@ -144,7 +145,7 @@ class FirestoreService {
           .doc(runLogId)
           .delete();
     } catch (e) {
-      print('Error deleting run log: $e');
+      debugLog('Error deleting run log: $e');
       rethrow;
     }
   }
@@ -158,7 +159,7 @@ class FirestoreService {
       final carsJson = cars.map((car) => car.toJson()).toList();
       await userCollection!.doc('cars').set({'cars': carsJson});
     } catch (e) {
-      print('Error saving cars: $e');
+      debugLog('Error saving cars: $e');
       rethrow;
     }
   }
@@ -180,7 +181,7 @@ class FirestoreService {
           .map((carData) => Car.fromJson(carData as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      print('Error loading cars: $e');
+      debugLog('Error loading cars: $e');
       return [];
     }
   }
@@ -196,7 +197,7 @@ class FirestoreService {
           .doc('owned_parts')
           .set({'ownedParts': ownedPartsJson});
     } catch (e) {
-      print('Error saving owned parts: $e');
+      debugLog('Error saving owned parts: $e');
       rethrow;
     }
   }
@@ -220,7 +221,7 @@ class FirestoreService {
               ))
           .toList();
     } catch (e) {
-      print('Error loading owned parts: $e');
+      debugLog('Error loading owned parts: $e');
       return [];
     }
   }
@@ -238,7 +239,7 @@ class FirestoreService {
       });
       await userCollection!.doc('visibility_settings').set(visibilityJson);
     } catch (e) {
-      print('Error saving visibility settings: $e');
+      debugLog('Error saving visibility settings: $e');
       rethrow;
     }
   }
@@ -262,7 +263,7 @@ class FirestoreService {
       });
       return visibilitySettings;
     } catch (e) {
-      print('Error loading visibility settings: $e');
+      debugLog('Error loading visibility settings: $e');
       return {};
     }
   }
@@ -277,7 +278,7 @@ class FirestoreService {
           .doc('language_settings')
           .set({'isEnglish': isEnglish});
     } catch (e) {
-      print('Error saving language settings: $e');
+      debugLog('Error saving language settings: $e');
       rethrow;
     }
   }
@@ -296,7 +297,7 @@ class FirestoreService {
       final data = snapshot.data() as Map<String, dynamic>;
       return data['isEnglish'] as bool? ?? false;
     } catch (e) {
-      print('Error loading language settings: $e');
+      debugLog('Error loading language settings: $e');
       return false;
     }
   }
@@ -363,7 +364,7 @@ class FirestoreService {
 
       await batch.commit();
     } catch (e) {
-      print('Error syncing data: $e');
+      debugLog('Error syncing data: $e');
       rethrow;
     }
   }

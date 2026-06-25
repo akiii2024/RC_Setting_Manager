@@ -90,6 +90,11 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
 
     expect(find.byType(MyGaragePage), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('TRF421'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
     expect(find.text('TRF421'), findsOneWidget);
   });
 
@@ -133,6 +138,11 @@ void main() {
     await _pumpUntilInitialized(tester, provider);
     await tester.pump();
 
+    await tester.scrollUntilVisible(
+      find.text('TRF421'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
     await tester.tap(find.text('TRF421').first);
     await tester.pumpAndSettle();
 

@@ -1,3 +1,4 @@
+import 'package:rc_setting_manager/utils/app_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../models/saved_setting.dart';
@@ -59,7 +60,7 @@ class SettingsProvider extends ChangeNotifier {
         try {
           _firestoreService = FirestoreService();
         } catch (e) {
-          print('FirestoreService initialization failed: $e');
+          debugLog('FirestoreService initialization failed: $e');
           _firestoreService = null;
         }
       }
@@ -79,7 +80,7 @@ class SettingsProvider extends ChangeNotifier {
       _isInitialized = true;
       notifyListeners();
     } catch (e) {
-      print('SettingsProvider initialization error: $e');
+      debugLog('SettingsProvider initialization error: $e');
       // エラーが発生した場合でも最低限のデータで初期化
       _cars = _getInitialCars();
       _isInitialized = true;
@@ -95,11 +96,11 @@ class SettingsProvider extends ChangeNotifier {
         if (_firestoreService!.userId != null) {
           _isOnlineMode = true;
           await _saveOnlineMode();
-          print('Online mode enabled due to Firebase authentication');
+          debugLog('Online mode enabled due to Firebase authentication');
         }
       }
     } catch (e) {
-      print('Error checking auth state: $e');
+      debugLog('Error checking auth state: $e');
     }
   }
 
@@ -123,7 +124,7 @@ class SettingsProvider extends ChangeNotifier {
         await _saveCars(); // 初期データを保存
       }
     } catch (e) {
-      print('Error loading cars: $e');
+      debugLog('Error loading cars: $e');
       // エラーが発生した場合も初期データを設定
       _cars = _getInitialCars();
     }
@@ -216,7 +217,7 @@ class SettingsProvider extends ChangeNotifier {
         ),
       ];
     } catch (e) {
-      print('Error creating initial cars: $e');
+      debugLog('Error creating initial cars: $e');
       return []; // エラー時は空のリストを返す
     }
   }
@@ -228,7 +229,7 @@ class SettingsProvider extends ChangeNotifier {
       final carsJson = jsonEncode(_cars.map((car) => car.toJson()).toList());
       await prefs.setString(_carsKey, carsJson);
     } catch (e) {
-      print('Error saving cars: $e');
+      debugLog('Error saving cars: $e');
     }
   }
 
@@ -239,7 +240,7 @@ class SettingsProvider extends ChangeNotifier {
       try {
         await _firestoreService!.saveCars(_cars);
       } catch (e) {
-        print('Firebase菫晏ｭ倥お繝ｩ繝ｼ: $e');
+        debugLog('Firebase菫晏ｭ倥お繝ｩ繝ｼ: $e');
       }
     }
 
@@ -259,14 +260,14 @@ class SettingsProvider extends ChangeNotifier {
           try {
             await _firestoreService!.saveCars(_cars);
           } catch (e) {
-            print('Firebase保存エラー: $e');
+            debugLog('Firebase保存エラー: $e');
           }
         }
 
         notifyListeners();
       }
     } catch (e) {
-      print('Error updating car: $e');
+      debugLog('Error updating car: $e');
     }
   }
 
@@ -280,7 +281,7 @@ class SettingsProvider extends ChangeNotifier {
       try {
         await _firestoreService!.saveCars(_cars);
       } catch (e) {
-        print('Firebase保存エラー: $e');
+        debugLog('Firebase保存エラー: $e');
       }
     }
 
@@ -297,7 +298,7 @@ class SettingsProvider extends ChangeNotifier {
       try {
         await _firestoreService!.saveCars(_cars);
       } catch (e) {
-        print('Firebase保存エラー: $e');
+        debugLog('Firebase保存エラー: $e');
       }
     }
 
@@ -615,7 +616,7 @@ class SettingsProvider extends ChangeNotifier {
         _savedSettings.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       }
     } catch (e) {
-      print('Error loading settings: $e');
+      debugLog('Error loading settings: $e');
       _savedSettings = [];
     }
   }
@@ -631,7 +632,7 @@ class SettingsProvider extends ChangeNotifier {
         _runLogs.sort((a, b) => b.runAt.compareTo(a.runAt));
       }
     } catch (e) {
-      print('Error loading run logs: $e');
+      debugLog('Error loading run logs: $e');
       _runLogs = [];
     }
   }
@@ -651,7 +652,7 @@ class SettingsProvider extends ChangeNotifier {
         _ownedParts.sort((a, b) => a.name.compareTo(b.name));
       }
     } catch (e) {
-      print('Error loading owned parts: $e');
+      debugLog('Error loading owned parts: $e');
       _ownedParts = [];
     }
   }
@@ -667,7 +668,7 @@ class SettingsProvider extends ChangeNotifier {
             key, VisibilitySettings.fromJson(value as Map<String, dynamic>)));
       }
     } catch (e) {
-      print('Error loading visibility settings: $e');
+      debugLog('Error loading visibility settings: $e');
       _visibilitySettings = {};
     }
   }
@@ -677,7 +678,7 @@ class SettingsProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       _isEnglish = prefs.getBool(_languageKey) ?? false;
     } catch (e) {
-      print('Error loading language settings: $e');
+      debugLog('Error loading language settings: $e');
       _isEnglish = false;
     }
   }
@@ -687,7 +688,7 @@ class SettingsProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       _isOnlineMode = prefs.getBool(_onlineModeKey) ?? false;
     } catch (e) {
-      print('Error loading online mode: $e');
+      debugLog('Error loading online mode: $e');
       _isOnlineMode = false;
     }
   }
@@ -697,7 +698,7 @@ class SettingsProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       _usePaperStyleEditor = prefs.getBool(_editorLayoutKey) ?? false;
     } catch (e) {
-      print('Error loading editor layout settings: $e');
+      debugLog('Error loading editor layout settings: $e');
       _usePaperStyleEditor = false;
     }
   }
@@ -709,7 +710,7 @@ class SettingsProvider extends ChangeNotifier {
           _savedSettings.map((setting) => setting.toJson()).toList());
       await prefs.setString(_savedSettingsKey, settingsJson);
     } catch (e) {
-      print('Error saving settings: $e');
+      debugLog('Error saving settings: $e');
     }
   }
 
@@ -720,7 +721,7 @@ class SettingsProvider extends ChangeNotifier {
           jsonEncode(_runLogs.map((runLog) => runLog.toJson()).toList());
       await prefs.setString(_runLogsKey, runLogsJson);
     } catch (e) {
-      print('Error saving run logs: $e');
+      debugLog('Error saving run logs: $e');
     }
   }
 
@@ -731,7 +732,7 @@ class SettingsProvider extends ChangeNotifier {
           jsonEncode(_ownedParts.map((part) => part.toJson()).toList());
       await prefs.setString(_ownedPartsKey, ownedPartsJson);
     } catch (e) {
-      print('Error saving owned parts: $e');
+      debugLog('Error saving owned parts: $e');
     }
   }
 
@@ -742,7 +743,7 @@ class SettingsProvider extends ChangeNotifier {
       try {
         await _firestoreService!.saveOwnedParts(_ownedParts);
       } catch (e) {
-        print('Firebase owned parts save error: $e');
+        debugLog('Firebase owned parts save error: $e');
       }
     }
 
@@ -755,7 +756,7 @@ class SettingsProvider extends ChangeNotifier {
       final visibilityJson = jsonEncode(_visibilitySettings);
       await prefs.setString(_visibilitySettingsKey, visibilityJson);
     } catch (e) {
-      print('Error saving visibility settings: $e');
+      debugLog('Error saving visibility settings: $e');
     }
   }
 
@@ -764,7 +765,7 @@ class SettingsProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_languageKey, _isEnglish);
     } catch (e) {
-      print('Error saving language settings: $e');
+      debugLog('Error saving language settings: $e');
     }
   }
 
@@ -773,7 +774,7 @@ class SettingsProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_editorLayoutKey, _usePaperStyleEditor);
     } catch (e) {
-      print('Error saving editor layout settings: $e');
+      debugLog('Error saving editor layout settings: $e');
     }
   }
 
@@ -805,14 +806,14 @@ class SettingsProvider extends ChangeNotifier {
           try {
             await _firestoreService!.saveSetting(settingToSave);
           } catch (e) {
-            print('Firebase保存エラー: $e');
+            debugLog('Firebase保存エラー: $e');
           }
         }
 
         notifyListeners();
       }
     } catch (e) {
-      print('Error updating setting: $e');
+      debugLog('Error updating setting: $e');
     }
   }
 
@@ -884,7 +885,7 @@ class SettingsProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_onlineModeKey, _isOnlineMode);
     } catch (e) {
-      print('Error saving online mode: $e');
+      debugLog('Error saving online mode: $e');
     }
   }
 
@@ -904,7 +905,7 @@ class SettingsProvider extends ChangeNotifier {
       try {
         _firestoreService = FirestoreService();
       } catch (e) {
-        print('FirestoreService initialization failed on setOnlineMode: $e');
+        debugLog('FirestoreService initialization failed on setOnlineMode: $e');
         _firestoreService = null;
       }
     }
@@ -921,7 +922,8 @@ class SettingsProvider extends ChangeNotifier {
       try {
         _firestoreService = FirestoreService();
       } catch (e) {
-        print('FirestoreService initialization failed on toggleOnlineMode: $e');
+        debugLog(
+            'FirestoreService initialization failed on toggleOnlineMode: $e');
         _firestoreService = null;
       }
     }
@@ -948,9 +950,9 @@ class SettingsProvider extends ChangeNotifier {
         visibilitySettings: _visibilitySettings,
         isEnglish: _isEnglish,
       );
-      print('データをFirebaseに同期しました');
+      debugLog('データをFirebaseに同期しました');
     } catch (e) {
-      print('Firebase同期エラー: $e');
+      debugLog('Firebase同期エラー: $e');
       rethrow;
     }
   }
@@ -987,13 +989,13 @@ class SettingsProvider extends ChangeNotifier {
       try {
         await _firestoreService!.saveCars(_cars);
       } catch (e) {
-        print('Firebase車種マージ保存エラー: $e');
+        debugLog('Firebase車種マージ保存エラー: $e');
       }
 
       notifyListeners();
-      print('Firebaseからデータを読み込みました');
+      debugLog('Firebaseからデータを読み込みました');
     } catch (e) {
-      print('Firebase読み込みエラー: $e');
+      debugLog('Firebase読み込みエラー: $e');
       rethrow;
     }
   }
@@ -1027,7 +1029,7 @@ class SettingsProvider extends ChangeNotifier {
       try {
         await _firestoreService!.saveSetting(newSetting);
       } catch (e) {
-        print('Firebase保存エラー: $e');
+        debugLog('Firebase保存エラー: $e');
       }
     }
 
@@ -1123,7 +1125,7 @@ class SettingsProvider extends ChangeNotifier {
       try {
         await _firestoreService!.saveRunLog(runLog);
       } catch (e) {
-        print('Firebase run log save error: $e');
+        debugLog('Firebase run log save error: $e');
       }
     }
 
@@ -1146,7 +1148,7 @@ class SettingsProvider extends ChangeNotifier {
       try {
         await _firestoreService!.saveRunLog(updatedRunLog);
       } catch (e) {
-        print('Firebase run log save error: $e');
+        debugLog('Firebase run log save error: $e');
       }
     }
 
@@ -1161,7 +1163,7 @@ class SettingsProvider extends ChangeNotifier {
       try {
         await _firestoreService!.deleteRunLog(id);
       } catch (e) {
-        print('Firebase run log delete error: $e');
+        debugLog('Firebase run log delete error: $e');
       }
     }
 
@@ -1218,7 +1220,7 @@ class SettingsProvider extends ChangeNotifier {
       try {
         await _firestoreService!.deleteSetting(id);
       } catch (e) {
-        print('Firebase削除エラー: $e');
+        debugLog('Firebase削除エラー: $e');
       }
     }
 
@@ -1235,7 +1237,7 @@ class SettingsProvider extends ChangeNotifier {
       try {
         await _firestoreService!.saveLanguageSettings(_isEnglish);
       } catch (e) {
-        print('Firebase保存エラー: $e');
+        debugLog('Firebase保存エラー: $e');
       }
     }
 
@@ -1262,7 +1264,7 @@ class SettingsProvider extends ChangeNotifier {
       try {
         await _firestoreService!.saveVisibilitySettings(_visibilitySettings);
       } catch (e) {
-        print('Firebase保存エラー: $e');
+        debugLog('Firebase保存エラー: $e');
       }
     }
 
@@ -1305,13 +1307,13 @@ class SettingsProvider extends ChangeNotifier {
             isEnglish: _isEnglish,
           );
         } catch (e) {
-          print('Firebase同期エラー: $e');
+          debugLog('Firebase同期エラー: $e');
         }
       }
 
       notifyListeners();
     } catch (e) {
-      print('データ置き換えエラー: $e');
+      debugLog('データ置き換えエラー: $e');
       rethrow;
     }
   }
@@ -1370,13 +1372,13 @@ class SettingsProvider extends ChangeNotifier {
             isEnglish: _isEnglish,
           );
         } catch (e) {
-          print('Firebase同期エラー: $e');
+          debugLog('Firebase同期エラー: $e');
         }
       }
 
       notifyListeners();
     } catch (e) {
-      print('部分データ置き換えエラー: $e');
+      debugLog('部分データ置き換えエラー: $e');
       rethrow;
     }
   }

@@ -54,21 +54,19 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyDnQdGoO5Tbn7ZbnsiRmRp1VbuVyylCRfM',
-    appId: '1:375147888843:android:092e818accc5187c235b4e',
+    appId: '1:375147888843:android:c6823ac2487e5d00235b4e',
     messagingSenderId: '375147888843',
     projectId: 'rc-setting-manager',
     storageBucket: 'rc-setting-manager.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyC6KsW_0rJCbYlRNM9Z3LeQWifq1HlppLQ',
-    appId: '1:375147888843:ios:b8bdc6931e147db8235b4e',
+    appId: '1:375147888843:ios:54ae525a6d98f3ff235b4e',
     messagingSenderId: '375147888843',
     projectId: 'rc-setting-manager',
     storageBucket: 'rc-setting-manager.firebasestorage.app',
-    iosBundleId: 'com.example.settingsheetManager',
+    iosBundleId: 'com.aki.rcsettings',
   );
-
   static const FirebaseOptions macos = FirebaseOptions(
     apiKey: 'AIzaSyC6KsW_0rJCbYlRNM9Z3LeQWifq1HlppLQ',
     appId: '1:375147888843:ios:b8bdc6931e147db8235b4e',

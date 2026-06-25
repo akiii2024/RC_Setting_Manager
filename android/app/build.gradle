@@ -29,6 +29,15 @@ def googleServicesFiles = [
     "src/release/google-services.json",
 ].collect { file(it) }
 
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("key.properties")
+def hasReleaseSigning = keystorePropertiesFile.exists()
+if (hasReleaseSigning) {
+    keystorePropertiesFile.withReader("UTF-8") { reader ->
+        keystoreProperties.load(reader)
+    }
+}
+
 if (googleServicesFiles.any { it.exists() }) {
     apply plugin: "com.google.gms.google-services"
 } else {
@@ -38,7 +47,7 @@ if (googleServicesFiles.any { it.exists() }) {
 }
 
 android {
-    namespace "com.example.settingsheet_manager"
+    namespace "com.aki.rcsettings"
     compileSdk flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
@@ -56,16 +65,29 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.example.settingsheet_manager"
+        applicationId "com.aki.rcsettings"
         minSdkVersion flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
     }
 
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                keyAlias keystoreProperties["keyAlias"]
+                keyPassword keystoreProperties["keyPassword"]
+                storeFile file(keystoreProperties["storeFile"])
+                storePassword keystoreProperties["storePassword"]
+            }
+        }
+    }
+
     buildTypes {
         release {
-            signingConfig signingConfigs.debug
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }

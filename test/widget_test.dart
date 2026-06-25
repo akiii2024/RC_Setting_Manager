@@ -96,7 +96,12 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
 
-    expect(find.text('Your garage is empty'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('No chassis in My Garage'),
+      300,
+      scrollable: find.byType(Scrollable).last,
+    );
+    expect(find.text('No chassis in My Garage'), findsOneWidget);
   });
 
   testWidgets('Home page does not show the my machines section',

@@ -1,15 +1,12 @@
-// ignore_for_file: avoid_print
+import 'package:rc_setting_manager/utils/app_logger.dart';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart' show User;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-import 'firebase_options.dart';
 import 'pages/car_selection_page.dart';
 import 'pages/home_page.dart';
 import 'pages/login_page.dart';
@@ -21,14 +18,14 @@ import 'services/auth_service.dart';
 
 void main() async {
   FlutterError.onError = (FlutterErrorDetails details) {
-    print('Flutter Error: ${details.exception}');
-    print('Stack trace: ${details.stack}');
+    debugLog('Flutter Error: ${details.exception}');
+    debugLog('Stack trace: ${details.stack}');
   };
 
   try {
     WidgetsFlutterBinding.ensureInitialized();
   } catch (e) {
-    print('WidgetsFlutterBinding initialization error: $e');
+    debugLog('WidgetsFlutterBinding initialization error: $e');
   }
 
   // Current release is offline-only. Keep Firebase code available, but do not
@@ -73,61 +70,6 @@ void main() async {
       ),
     ),
   );
-}
-
-// ignore: unused_element
-Future<bool> _initializeFirebaseWithLogging() async {
-  var firebaseInitialized = false;
-
-  try {
-    print('=== Firebase Configuration Check ===');
-    print('Platform: ${kIsWeb ? 'Web' : 'Mobile'}');
-
-    if (Firebase.apps.isEmpty) {
-      print('No Firebase apps found, initializing...');
-
-      final options = kIsWeb
-          ? DefaultFirebaseOptions.web
-          : DefaultFirebaseOptions.currentPlatform;
-
-      print('Project ID: ${options.projectId}');
-      print('App ID: ${options.appId}');
-      print('Firebase options loaded.');
-
-      await Firebase.initializeApp(options: options);
-      print('Firebase initialized successfully');
-    } else {
-      print('Firebase already initialized (${Firebase.apps.length} apps)');
-    }
-
-    try {
-      final auth = FirebaseAuth.instance;
-      print('Firebase Auth instance created successfully');
-      print('Current user: ${auth.currentUser?.uid ?? 'None'}');
-    } catch (e) {
-      print('Firebase Auth test failed: $e');
-    }
-
-    try {
-      FirebaseFirestore.instance;
-      print('Firebase Firestore instance created successfully');
-    } catch (e) {
-      print('Firebase Firestore test failed: $e');
-    }
-
-    print('=== Firebase Configuration Check Complete ===');
-    firebaseInitialized = true;
-  } catch (e) {
-    print('Firebase initialization error: $e');
-    print('Error type: ${e.runtimeType}');
-    if (e is FirebaseException) {
-      print('Firebase Error Code: ${e.code}');
-      print('Firebase Error Message: ${e.message}');
-    }
-    firebaseInitialized = false;
-  }
-
-  return firebaseInitialized;
 }
 
 class AuthWrapper extends StatelessWidget {
@@ -242,7 +184,7 @@ class MyApp extends StatelessWidget {
         },
       );
     } catch (e) {
-      print('MaterialApp build error: $e');
+      debugLog('MaterialApp build error: $e');
       return MaterialApp(
         home: Scaffold(
           body: Center(
@@ -252,8 +194,10 @@ class MyApp extends StatelessWidget {
                 const Icon(Icons.error, size: 64, color: Colors.red),
                 const SizedBox(height: 16),
                 const Text('Application failed to start.'),
-                const SizedBox(height: 8),
-                Text('$e'),
+                if (kDebugMode) ...[
+                  const SizedBox(height: 8),
+                  Text('$e'),
+                ],
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: () {

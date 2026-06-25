@@ -1,7 +1,7 @@
+import 'package:rc_setting_manager/utils/app_logger.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 
-import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_functions_service.dart';
@@ -24,15 +24,15 @@ class WeatherService {
 
   Future<WeatherData?> getCurrentWeather({bool forceRefresh = false}) async {
     try {
-      debugPrint(
+      debugLog(
         '[Weather Debug] getCurrentWeather: getting current position...',
       );
       final position = await LocationService.instance.getCurrentPosition();
       if (position == null) {
-        debugPrint('[Weather Debug] getCurrentWeather: position is null');
+        debugLog('[Weather Debug] getCurrentWeather: position is null');
         return null;
       }
-      debugPrint(
+      debugLog(
         '[Weather Debug] getCurrentWeather: lat=${position.latitude}, '
         'lon=${position.longitude}',
       );
@@ -43,8 +43,8 @@ class WeatherService {
         forceRefresh: forceRefresh,
       );
     } catch (e, stackTrace) {
-      debugPrint('[Weather Debug] getCurrentWeather EXCEPTION: $e');
-      debugPrint('[Weather Debug] getCurrentWeather StackTrace: $stackTrace');
+      debugLog('[Weather Debug] getCurrentWeather EXCEPTION: $e');
+      debugLog('[Weather Debug] getCurrentWeather StackTrace: $stackTrace');
       return null;
     }
   }
@@ -58,12 +58,12 @@ class WeatherService {
       if (!forceRefresh) {
         final cachedWeather = await _getCachedWeather(lat, lon);
         if (cachedWeather != null) {
-          debugPrint('[Weather Debug] getWeatherByCoordinates: cache hit');
+          debugLog('[Weather Debug] getWeatherByCoordinates: cache hit');
           return cachedWeather;
         }
       }
 
-      debugPrint(
+      debugLog(
         '[Weather Debug] getWeatherByCoordinates: calling Firebase Functions '
         'lat=$lat, lon=$lon',
       );
@@ -74,7 +74,7 @@ class WeatherService {
           'lon': lon,
         },
       );
-      debugPrint(
+      debugLog(
         '[Weather Debug] getWeatherByCoordinates: response city=${data['name']}',
       );
 
@@ -82,8 +82,8 @@ class WeatherService {
       await _saveWeatherCache(lat, lon, weather);
       return weather;
     } catch (e, stackTrace) {
-      debugPrint('[Weather Debug] getWeatherByCoordinates EXCEPTION: $e');
-      debugPrint(
+      debugLog('[Weather Debug] getWeatherByCoordinates EXCEPTION: $e');
+      debugLog(
         '[Weather Debug] getWeatherByCoordinates StackTrace: $stackTrace',
       );
       return null;
@@ -97,28 +97,28 @@ class WeatherService {
       if (!forceRefresh) {
         final cachedValidation = await _getCachedApiKeyValidation();
         if (cachedValidation != null) {
-          debugPrint(
+          debugLog(
             '[Weather Debug] validateApiKey: cache hit = $cachedValidation',
           );
           return cachedValidation;
         }
       }
 
-      debugPrint(
+      debugLog(
         '[Weather Debug] validateApiKey: calling Firebase Functions...',
       );
       final response = await FirebaseFunctionsService.call(
         'validateOpenWeatherApiKey',
         const {},
       );
-      debugPrint('[Weather Debug] validateApiKey: response = $response');
+      debugLog('[Weather Debug] validateApiKey: response = $response');
       final isValid = response['valid'] == true;
       await _saveApiKeyValidation(isValid);
-      debugPrint('[Weather Debug] validateApiKey: isValid = $isValid');
+      debugLog('[Weather Debug] validateApiKey: isValid = $isValid');
       return isValid;
     } catch (e, stackTrace) {
-      debugPrint('[Weather Debug] validateApiKey EXCEPTION: $e');
-      debugPrint('[Weather Debug] validateApiKey StackTrace: $stackTrace');
+      debugLog('[Weather Debug] validateApiKey EXCEPTION: $e');
+      debugLog('[Weather Debug] validateApiKey StackTrace: $stackTrace');
       return false;
     }
   }
@@ -145,7 +145,7 @@ class WeatherService {
         Map<String, dynamic>.from(decoded['data'] as Map),
       );
     } catch (e) {
-      debugPrint('[Weather Debug] _getCachedWeather EXCEPTION: $e');
+      debugLog('[Weather Debug] _getCachedWeather EXCEPTION: $e');
       return null;
     }
   }
@@ -167,7 +167,7 @@ class WeatherService {
         }),
       );
     } catch (e) {
-      debugPrint('[Weather Debug] _saveWeatherCache EXCEPTION: $e');
+      debugLog('[Weather Debug] _saveWeatherCache EXCEPTION: $e');
     }
   }
 
@@ -189,7 +189,7 @@ class WeatherService {
       if (DateTime.now().difference(validatedAt) > maxAge) return null;
       return isValid;
     } catch (e) {
-      debugPrint(
+      debugLog(
         '[Weather Debug] _getCachedApiKeyValidation EXCEPTION: $e',
       );
       return null;
@@ -207,7 +207,7 @@ class WeatherService {
         }),
       );
     } catch (e) {
-      debugPrint('[Weather Debug] _saveApiKeyValidation EXCEPTION: $e');
+      debugLog('[Weather Debug] _saveApiKeyValidation EXCEPTION: $e');
     }
   }
 

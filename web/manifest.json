@@ -1,38 +1,38 @@
 {
-    "name": "RC Car Setting Manager",
-    "short_name": "RC Settings",
-    "start_url": "./",
-    "scope": "./",
-    "display": "standalone",
-    "background_color": "#4CAF50",
-    "theme_color": "#4CAF50",
-    "description": "ラジコンカーのセッティングを管理するアプリ",
-    "orientation": "portrait-primary",
-    "prefer_related_applications": false,
-    "lang": "ja-JP",
-    "categories": ["sports", "utilities"],
-    "icons": [
-        {
-            "src": "icons/Icon-192.png",
-            "sizes": "192x192",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-512.png",
-            "sizes": "512x512",
-            "type": "image/png"
-        },
-        {
-            "src": "icons/Icon-maskable-192.png",
-            "sizes": "192x192",
-            "type": "image/png",
-            "purpose": "maskable"
-        },
-        {
-            "src": "icons/Icon-maskable-512.png",
-            "sizes": "512x512",
-            "type": "image/png",
-            "purpose": "maskable"
-        }
-    ]
+  "name": "RC Car Setting Manager",
+  "short_name": "RC Settings",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F8F9FA",
+  "theme_color": "#005BCF",
+  "description": "ラジコンカーのセットアップと走行記録を管理するアプリ",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false,
+  "lang": "ja-JP",
+  "categories": ["sports", "utilities"],
+  "icons": [
+    {
+      "src": "icons/Icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/Icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/Icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icons/Icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
 }

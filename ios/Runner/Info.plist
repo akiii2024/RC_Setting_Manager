@@ -5,7 +5,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Settingsheet Manager</string>
+	<string>RC Setting Manager</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -13,7 +13,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>settingsheet_manager</string>
+	<string>rc_setting_manager</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -46,12 +46,10 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>NSCameraUsageDescription</key>
-	<string>カメラを使用してセッティングシートの画像を撮影し、OCRでセッティングを読み取ります。</string>
+	<string>セットアップシートを撮影し、OCRで設定値を読み取るためにカメラを使用します。</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>フォトライブラリから画像を選択してOCRでセッティングを読み取ります。</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>近くのトラックを自動検出するために位置情報を使用します。</string>
+	<string>セットアップシートの画像を選択し、OCRで設定値を読み取るために写真ライブラリを使用します。</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>近くのトラックを自動検出するために位置情報を使用します。</string>
+	<string>現在地付近のサーキットと天気を取得するために位置情報を使用します。</string>
 </dict>
 </plist>

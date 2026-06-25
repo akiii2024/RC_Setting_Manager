@@ -1,3 +1,4 @@
+import 'package:rc_setting_manager/utils/app_logger.dart';
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/services.dart';
@@ -10,7 +11,7 @@ class TrackLocationService {
       _instance ??= TrackLocationService._();
   TrackLocationService._();
 
-  List<TrackLocation> _trackLocations = [];
+  final List<TrackLocation> _trackLocations = [];
   bool _isLoaded = false;
 
   // トラック位置データを読み込み
@@ -29,7 +30,7 @@ class TrackLocationService {
       _isLoaded = true;
       return _trackLocations;
     } catch (e) {
-      print('トラック位置データの読み込みエラー: $e');
+      debugLog('トラック位置データの読み込みエラー: $e');
       return [];
     }
   }
@@ -56,7 +57,7 @@ class TrackLocationService {
         }
       }
     } catch (e) {
-      print('デフォルトトラック読み込みエラー: $e');
+      debugLog('デフォルトトラック読み込みエラー: $e');
     }
   }
 
@@ -75,7 +76,7 @@ class TrackLocationService {
         _trackLocations.addAll(customTracks);
       }
     } catch (e) {
-      print('カスタムトラック読み込みエラー: $e');
+      debugLog('カスタムトラック読み込みエラー: $e');
     }
   }
 
@@ -95,7 +96,7 @@ class TrackLocationService {
 
       await prefs.setString('custom_tracks', customTracksJson);
     } catch (e) {
-      print('カスタムトラック保存エラー: $e');
+      debugLog('カスタムトラック保存エラー: $e');
     }
   }
 
@@ -123,12 +124,12 @@ class TrackLocationService {
   // 現在位置から最も近いトラックを検索
   TrackLocation? findNearestTrack(double latitude, double longitude) {
     if (_trackLocations.isEmpty) {
-      print('トラック位置データが空です');
+      debugLog('トラック位置データが空です');
       return null;
     }
 
-    print('位置情報検索開始: 現在位置($latitude, $longitude)');
-    print('読み込み済みトラック数: ${_trackLocations.length}');
+    debugLog('位置情報検索開始: 現在位置($latitude, $longitude)');
+    debugLog('読み込み済みトラック数: ${_trackLocations.length}');
 
     TrackLocation? nearestTrack;
     double minDistance = double.infinity;
@@ -137,22 +138,22 @@ class TrackLocationService {
       final distance = _calculateDistance(
           latitude, longitude, track.latitude, track.longitude);
 
-      print(
+      debugLog(
           '${track.name}: 距離=${distance.toStringAsFixed(1)}m, 範囲=${track.radius}m');
 
       // トラックの範囲内かつ最も近い場合
       if (distance <= track.radius && distance < minDistance) {
         minDistance = distance;
         nearestTrack = track;
-        print('範囲内トラック発見: ${track.name} (${distance.toStringAsFixed(1)}m)');
+        debugLog('範囲内トラック発見: ${track.name} (${distance.toStringAsFixed(1)}m)');
       }
     }
 
     if (nearestTrack != null) {
-      print(
+      debugLog(
           '最寄りトラック決定: ${nearestTrack.name} (${minDistance.toStringAsFixed(1)}m)');
     } else {
-      print('範囲内にトラックが見つかりませんでした');
+      debugLog('範囲内にトラックが見つかりませんでした');
     }
 
     return nearestTrack;
