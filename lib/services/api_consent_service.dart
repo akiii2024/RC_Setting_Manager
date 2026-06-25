@@ -6,11 +6,23 @@ enum ApiConsentType {
   aiAndOcr,
 }
 
+class _ConsentDialogResult {
+  const _ConsentDialogResult({
+    required this.accepted,
+    this.suppressFuturePrompts = false,
+  });
+
+  final bool accepted;
+  final bool suppressFuturePrompts;
+}
+
 class ApiConsentService {
   ApiConsentService._();
 
   static const String _weatherAndLocationConsentKey =
       'weather_location_api_consent_v1';
+  static const String _weatherAndLocationPromptSuppressedKey =
+      'weather_location_api_prompt_suppressed_v1';
   static const String _aiAndOcrConsentKey = 'gemini_api_consent_v1';
 
   static final Map<ApiConsentType, Future<bool>> _pendingRequests = {};
@@ -22,19 +34,57 @@ class ApiConsentService {
     };
   }
 
+  static String? _promptSuppressedPreferenceKey(ApiConsentType type) {
+    return switch (type) {
+      ApiConsentType.weatherAndLocation =>
+        _weatherAndLocationPromptSuppressedKey,
+      ApiConsentType.aiAndOcr => null,
+    };
+  }
+
   static Future<bool> hasConsent(ApiConsentType type) async {
     final preferences = await SharedPreferences.getInstance();
     return preferences.getBool(_preferenceKey(type)) ?? false;
   }
 
+  static Future<bool> isPromptSuppressed(ApiConsentType type) async {
+    final key = _promptSuppressedPreferenceKey(type);
+    if (key == null) {
+      return false;
+    }
+
+    final preferences = await SharedPreferences.getInstance();
+    return preferences.getBool(key) ?? false;
+  }
+
   static Future<void> grantConsent(ApiConsentType type) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool(_preferenceKey(type), true);
+
+    final promptSuppressedKey = _promptSuppressedPreferenceKey(type);
+    if (promptSuppressedKey != null) {
+      await preferences.remove(promptSuppressedKey);
+    }
+  }
+
+  static Future<void> suppressPrompt(ApiConsentType type) async {
+    final key = _promptSuppressedPreferenceKey(type);
+    if (key == null) {
+      return;
+    }
+
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool(key, true);
   }
 
   static Future<void> revokeConsent(ApiConsentType type) async {
     final preferences = await SharedPreferences.getInstance();
     await preferences.remove(_preferenceKey(type));
+
+    final promptSuppressedKey = _promptSuppressedPreferenceKey(type);
+    if (promptSuppressedKey != null) {
+      await preferences.remove(promptSuppressedKey);
+    }
   }
 
   static Future<bool> requestConsent(
@@ -44,6 +94,9 @@ class ApiConsentService {
   }) async {
     if (await hasConsent(type)) {
       return true;
+    }
+    if (await isPromptSuppressed(type)) {
+      return false;
     }
     if (!context.mounted) {
       return false;
@@ -79,63 +132,93 @@ class ApiConsentService {
       return false;
     }
 
-    final accepted = await showDialog<bool>(
+    var suppressFuturePrompts = false;
+    final result = await showDialog<_ConsentDialogResult>(
           context: context,
           barrierDismissible: false,
-          builder: (dialogContext) => AlertDialog(
-            icon: Icon(_icon(type)),
-            title: Text(_title(type, isEnglish)),
-            content: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(_introduction(type, isEnglish)),
-                    const SizedBox(height: 16),
-                    for (final item in _details(type, isEnglish))
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text('• '),
-                            Expanded(child: Text(item)),
-                          ],
+          builder: (dialogContext) => StatefulBuilder(
+            builder: (context, setDialogState) => AlertDialog(
+              icon: Icon(_icon(type)),
+              title: Text(_title(type, isEnglish)),
+              content: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_introduction(type, isEnglish)),
+                      const SizedBox(height: 16),
+                      for (final item in _details(type, isEnglish))
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text('• '),
+                              Expanded(child: Text(item)),
+                            ],
+                          ),
                         ),
+                      const SizedBox(height: 8),
+                      Text(
+                        isEnglish
+                            ? 'Once you agree, this confirmation will not be '
+                                'shown again. If you cancel, no related API '
+                                'request will be sent.'
+                            : '同意した場合、この確認は次回から表示されません。'
+                                'キャンセルした場合、関連するAPI通信は行いません。',
+                        style: Theme.of(dialogContext).textTheme.bodySmall,
                       ),
-                    const SizedBox(height: 8),
-                    Text(
-                      isEnglish
-                          ? 'This confirmation is shown only the first time. '
-                              'If you cancel, no related API request will be sent.'
-                          : 'この確認は初回のみ表示されます。キャンセルした場合、'
-                              '関連するAPI通信は行いません。',
-                      style: Theme.of(dialogContext).textTheme.bodySmall,
-                    ),
-                  ],
+                      if (type == ApiConsentType.weatherAndLocation) ...[
+                        const SizedBox(height: 8),
+                        CheckboxListTile(
+                          value: suppressFuturePrompts,
+                          onChanged: (value) {
+                            setDialogState(() {
+                              suppressFuturePrompts = value ?? false;
+                            });
+                          },
+                          contentPadding: EdgeInsets.zero,
+                          controlAffinity: ListTileControlAffinity.leading,
+                          dense: true,
+                          title: Text(
+                            isEnglish ? 'Do not show this again' : '次から表示しない',
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(
+                    _ConsentDialogResult(
+                      accepted: false,
+                      suppressFuturePrompts: suppressFuturePrompts,
+                    ),
+                  ),
+                  child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(dialogContext).pop(
+                    const _ConsentDialogResult(accepted: true),
+                  ),
+                  child: Text(isEnglish ? 'Agree and continue' : '同意して続ける'),
+                ),
+              ],
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: Text(isEnglish ? 'Agree and continue' : '同意して続ける'),
-              ),
-            ],
           ),
         ) ??
-        false;
+        const _ConsentDialogResult(accepted: false);
 
-    if (accepted) {
+    if (result.accepted) {
       await grantConsent(type);
+    } else if (result.suppressFuturePrompts) {
+      await suppressPrompt(type);
     }
-    return accepted;
+    return result.accepted;
   }
 
   static IconData _icon(ApiConsentType type) {

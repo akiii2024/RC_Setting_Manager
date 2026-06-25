@@ -68,6 +68,87 @@ void main() {
     );
   });
 
+  testWidgets(
+      'weather consent dialog can suppress future prompts after cancellation',
+      (WidgetTester tester) async {
+    late BuildContext pageContext;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            pageContext = context;
+            return const Scaffold();
+          },
+        ),
+      ),
+    );
+
+    final firstRequest = ApiConsentService.requestConsent(
+      pageContext,
+      type: ApiConsentType.weatherAndLocation,
+      isEnglish: false,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('次から表示しない'), findsOneWidget);
+    await tester.tap(find.text('次から表示しない'));
+    await tester.tap(find.text('キャンセル'));
+    await tester.pumpAndSettle();
+
+    expect(await firstRequest, isFalse);
+    expect(
+      await ApiConsentService.isPromptSuppressed(
+        ApiConsentType.weatherAndLocation,
+      ),
+      isTrue,
+    );
+
+    final secondRequest = ApiConsentService.requestConsent(
+      pageContext,
+      type: ApiConsentType.weatherAndLocation,
+      isEnglish: false,
+    );
+    await tester.pumpAndSettle();
+
+    expect(await secondRequest, isFalse);
+    expect(find.text('位置情報・天気サービスの利用'), findsNothing);
+  });
+
+  testWidgets('weather cancellation without checkbox remains repeatable',
+      (WidgetTester tester) async {
+    late BuildContext pageContext;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            pageContext = context;
+            return const Scaffold();
+          },
+        ),
+      ),
+    );
+
+    final request = ApiConsentService.requestConsent(
+      pageContext,
+      type: ApiConsentType.weatherAndLocation,
+      isEnglish: false,
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('キャンセル'));
+    await tester.pumpAndSettle();
+
+    expect(await request, isFalse);
+    expect(
+      await ApiConsentService.isPromptSuppressed(
+        ApiConsentType.weatherAndLocation,
+      ),
+      isFalse,
+    );
+  });
+
   testWidgets('AI consent dialog does not store cancellation',
       (WidgetTester tester) async {
     late BuildContext pageContext;
@@ -91,6 +172,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('AI・OCRサービスの利用'), findsOneWidget);
+    expect(find.text('次から表示しない'), findsNothing);
     await tester.tap(find.text('キャンセル'));
     await tester.pumpAndSettle();
 

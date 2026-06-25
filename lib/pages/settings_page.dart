@@ -2,12 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/settings_provider.dart';
+import '../services/api_consent_service.dart';
 import '../services/auth_service.dart';
 import '../data/car_settings_definitions.dart';
 import '../models/car.dart';
 import '../models/car_setting_definition.dart';
 import '../models/visibility_settings.dart';
 import 'import_export_page.dart';
+
+enum _LocationConsentSetting {
+  enabled,
+  disabled,
+  askWhenUsed,
+}
+
+enum _AiConsentSetting {
+  enabled,
+  askWhenUsed,
+}
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -20,6 +32,18 @@ class _SettingsPageState extends State<SettingsPage> {
   List<Car> _cars = [];
   Car? _selectedCar;
   bool _canDisplaySetting = false;
+  bool _hasLocationConsent = false;
+  bool _isLocationPromptSuppressed = false;
+  bool _isLoadingLocationConsent = true;
+  bool _hasAiConsent = false;
+  bool _isLoadingAiConsent = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLocationConsentState();
+    _loadAiConsentState();
+  }
 
   @override
   void didChangeDependencies() {
@@ -121,6 +145,52 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle: Text(isEnglish ? 'English' : '日本語'),
             trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () => _showLanguageDialog(context),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          ),
+          const SizedBox(height: 16.0),
+          ListTile(
+            title: Text(
+              isEnglish ? 'Location and Weather Services' : '位置情報・天気サービス',
+            ),
+            subtitle: Text(_locationConsentStatusText(isEnglish)),
+            leading: const Icon(Icons.location_on_outlined),
+            trailing: _isLoadingLocationConsent
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.arrow_forward_ios),
+            onTap: _isLoadingLocationConsent
+                ? null
+                : () => _showLocationConsentSettingsDialog(
+                      context,
+                      isEnglish,
+                    ),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          ),
+          const SizedBox(height: 16.0),
+          ListTile(
+            title: Text(
+              isEnglish ? 'Gemini (AI and OCR)' : 'Gemini（AI・OCR）',
+            ),
+            subtitle: Text(_aiConsentStatusText(isEnglish)),
+            leading: const Icon(Icons.auto_awesome_outlined),
+            trailing: _isLoadingAiConsent
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.arrow_forward_ios),
+            onTap: _isLoadingAiConsent
+                ? null
+                : () => _showAiConsentSettingsDialog(
+                      context,
+                      isEnglish,
+                    ),
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           ),
@@ -371,6 +441,277 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _loadLocationConsentState() async {
+    final results = await Future.wait([
+      ApiConsentService.hasConsent(ApiConsentType.weatherAndLocation),
+      ApiConsentService.isPromptSuppressed(
+        ApiConsentType.weatherAndLocation,
+      ),
+    ]);
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _hasLocationConsent = results[0];
+      _isLocationPromptSuppressed = results[1];
+      _isLoadingLocationConsent = false;
+    });
+  }
+
+  Future<void> _loadAiConsentState() async {
+    final hasConsent = await ApiConsentService.hasConsent(
+      ApiConsentType.aiAndOcr,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _hasAiConsent = hasConsent;
+      _isLoadingAiConsent = false;
+    });
+  }
+
+  String _locationConsentStatusText(bool isEnglish) {
+    if (_isLoadingLocationConsent) {
+      return isEnglish ? 'Loading...' : '読み込み中...';
+    }
+    if (_hasLocationConsent) {
+      return isEnglish
+          ? 'Enabled for automatic location and weather retrieval'
+          : '位置情報・天気の自動取得を利用します';
+    }
+    if (_isLocationPromptSuppressed) {
+      return isEnglish
+          ? 'Disabled and the confirmation will not be shown'
+          : '利用しない（確認画面を表示しません）';
+    }
+    return isEnglish
+        ? 'The confirmation will be shown when needed'
+        : '利用時に確認します';
+  }
+
+  String _aiConsentStatusText(bool isEnglish) {
+    if (_isLoadingAiConsent) {
+      return isEnglish ? 'Loading...' : '読み込み中...';
+    }
+    if (_hasAiConsent) {
+      return isEnglish
+          ? 'Consent granted for AI advice and OCR'
+          : 'AIアドバイス・OCRの利用に同意済みです';
+    }
+    return isEnglish
+        ? 'The confirmation will be shown when needed'
+        : '利用時に確認します';
+  }
+
+  Future<void> _showLocationConsentSettingsDialog(
+    BuildContext context,
+    bool isEnglish,
+  ) async {
+    final currentSetting = _hasLocationConsent
+        ? _LocationConsentSetting.enabled
+        : _isLocationPromptSuppressed
+            ? _LocationConsentSetting.disabled
+            : _LocationConsentSetting.askWhenUsed;
+
+    final selected = await showDialog<_LocationConsentSetting>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text(
+          isEnglish ? 'Location and Weather Services' : '位置情報・天気サービス',
+        ),
+        children: [
+          _buildLocationConsentOption(
+            dialogContext,
+            value: _LocationConsentSetting.enabled,
+            currentValue: currentSetting,
+            icon: Icons.location_on_outlined,
+            title: isEnglish ? 'Use services' : '利用する',
+            subtitle: isEnglish
+                ? 'Review the consent information and enable automatic retrieval'
+                : '同意内容を確認して位置情報・天気の自動取得を有効にします',
+          ),
+          _buildLocationConsentOption(
+            dialogContext,
+            value: _LocationConsentSetting.disabled,
+            currentValue: currentSetting,
+            icon: Icons.location_off_outlined,
+            title: isEnglish ? 'Do not use services' : '利用しない',
+            subtitle: isEnglish
+                ? 'Disable these features and do not show the confirmation'
+                : '機能を無効にし、確認画面も表示しません',
+          ),
+          _buildLocationConsentOption(
+            dialogContext,
+            value: _LocationConsentSetting.askWhenUsed,
+            currentValue: currentSetting,
+            icon: Icons.help_outline,
+            title: isEnglish ? 'Ask when used' : '利用時に確認する',
+            subtitle: isEnglish
+                ? 'Show the consent confirmation the next time it is needed'
+                : '次回必要になったときに同意画面を表示します',
+          ),
+        ],
+      ),
+    );
+
+    if (selected == null || selected == currentSetting || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isLoadingLocationConsent = true;
+    });
+
+    try {
+      switch (selected) {
+        case _LocationConsentSetting.enabled:
+          await ApiConsentService.revokeConsent(
+            ApiConsentType.weatherAndLocation,
+          );
+          if (context.mounted) {
+            await ApiConsentService.requestConsent(
+              context,
+              type: ApiConsentType.weatherAndLocation,
+              isEnglish: isEnglish,
+            );
+          }
+        case _LocationConsentSetting.disabled:
+          await ApiConsentService.revokeConsent(
+            ApiConsentType.weatherAndLocation,
+          );
+          await ApiConsentService.suppressPrompt(
+            ApiConsentType.weatherAndLocation,
+          );
+        case _LocationConsentSetting.askWhenUsed:
+          await ApiConsentService.revokeConsent(
+            ApiConsentType.weatherAndLocation,
+          );
+      }
+    } finally {
+      await _loadLocationConsentState();
+    }
+  }
+
+  Widget _buildLocationConsentOption(
+    BuildContext context, {
+    required _LocationConsentSetting value,
+    required _LocationConsentSetting currentValue,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      subtitle: Text(subtitle),
+      trailing: value == currentValue
+          ? Icon(
+              Icons.check,
+              color: Theme.of(context).colorScheme.primary,
+            )
+          : null,
+      onTap: () => Navigator.of(context).pop(value),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+    );
+  }
+
+  Future<void> _showAiConsentSettingsDialog(
+    BuildContext context,
+    bool isEnglish,
+  ) async {
+    final currentSetting = _hasAiConsent
+        ? _AiConsentSetting.enabled
+        : _AiConsentSetting.askWhenUsed;
+
+    final selected = await showDialog<_AiConsentSetting>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text(
+          isEnglish ? 'Gemini (AI and OCR)' : 'Gemini（AI・OCR）',
+        ),
+        children: [
+          _buildAiConsentOption(
+            dialogContext,
+            value: _AiConsentSetting.enabled,
+            currentValue: currentSetting,
+            icon: Icons.auto_awesome_outlined,
+            title: isEnglish ? 'Use services' : '利用する',
+            subtitle: isEnglish
+                ? 'Review the consent information and enable AI and OCR'
+                : '同意内容を確認してAIアドバイス・OCRを有効にします',
+          ),
+          _buildAiConsentOption(
+            dialogContext,
+            value: _AiConsentSetting.askWhenUsed,
+            currentValue: currentSetting,
+            icon: Icons.undo_outlined,
+            title: _hasAiConsent
+                ? (isEnglish ? 'Revoke consent' : '同意を取り消す')
+                : (isEnglish ? 'Ask when used' : '利用時に確認する'),
+            subtitle: isEnglish
+                ? 'Ask for consent again the next time AI or OCR is used'
+                : '次回AI・OCRを使うときに同意画面を再表示します',
+          ),
+        ],
+      ),
+    );
+
+    if (selected == null || selected == currentSetting || !mounted) {
+      return;
+    }
+
+    setState(() {
+      _isLoadingAiConsent = true;
+    });
+
+    try {
+      switch (selected) {
+        case _AiConsentSetting.enabled:
+          if (context.mounted) {
+            await ApiConsentService.requestConsent(
+              context,
+              type: ApiConsentType.aiAndOcr,
+              isEnglish: isEnglish,
+            );
+          }
+        case _AiConsentSetting.askWhenUsed:
+          await ApiConsentService.revokeConsent(
+            ApiConsentType.aiAndOcr,
+          );
+      }
+    } finally {
+      await _loadAiConsentState();
+    }
+  }
+
+  Widget _buildAiConsentOption(
+    BuildContext context, {
+    required _AiConsentSetting value,
+    required _AiConsentSetting currentValue,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+  }) {
+    return ListTile(
+      leading: Icon(icon),
+      title: Text(title),
+      subtitle: Text(subtitle),
+      trailing: value == currentValue
+          ? Icon(
+              Icons.check,
+              color: Theme.of(context).colorScheme.primary,
+            )
+          : null,
+      onTap: () => Navigator.of(context).pop(value),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
     );
   }
 
