@@ -15,6 +15,9 @@ import '../models/track_location.dart';
 import '../services/track_location_service.dart';
 import './ocr_import_page.dart';
 import '../services/ai_advisor_service.dart';
+import '../services/api_consent_service.dart';
+import '../services/gemini_usage_service.dart';
+import '../widgets/gemini_usage_indicator.dart';
 
 BoxConstraints _responsiveDialogConstraints(
   BuildContext context, {
@@ -180,6 +183,17 @@ class _CarSettingPageState extends State<CarSettingPage> {
   Future<void> _initializeLocationAndTrack() async {
     if (!mounted) return;
 
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final consentGranted = await ApiConsentService.requestConsent(
+      context,
+      type: ApiConsentType.weatherAndLocation,
+      isEnglish: settingsProvider.isEnglish,
+    );
+    if (!consentGranted || !mounted) {
+      return;
+    }
+
     setState(() {
       _isLocationLoading = true;
     });
@@ -269,6 +283,17 @@ class _CarSettingPageState extends State<CarSettingPage> {
   // 天気情報を取得して気温・湿度を自動入力
   Future<void> _initializeWeather({bool forceRefresh = false}) async {
     if (!mounted) return;
+
+    final settingsProvider =
+        Provider.of<SettingsProvider>(context, listen: false);
+    final consentGranted = await ApiConsentService.requestConsent(
+      context,
+      type: ApiConsentType.weatherAndLocation,
+      isEnglish: settingsProvider.isEnglish,
+    );
+    if (!consentGranted || !mounted) {
+      return;
+    }
 
     setState(() {
       _isWeatherLoading = true;
@@ -399,6 +424,22 @@ class _CarSettingPageState extends State<CarSettingPage> {
       return;
     }
 
+    final consentGranted = await ApiConsentService.requestConsent(
+      context,
+      type: ApiConsentType.aiAndOcr,
+      isEnglish: isEnglish,
+    );
+    if (!consentGranted || !mounted) {
+      return;
+    }
+
+    try {
+      await GeminiUsageService.refresh();
+    } catch (e) {
+      debugLog('Gemini usage refresh failed: $e');
+    }
+    if (!mounted) return;
+
     // モード選択ダイアログを表示
     final mode = await showDialog<String>(
       context: context,
@@ -407,6 +448,8 @@ class _CarSettingPageState extends State<CarSettingPage> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            GeminiUsageIndicator(isEnglish: isEnglish),
+            const SizedBox(height: 8),
             ListTile(
               leading: Icon(Icons.chat,
                   color: Theme.of(context).colorScheme.primary),
@@ -437,7 +480,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
       ),
     );
 
-    if (mode == null) return;
+    if (mode == null || !mounted) return;
 
     if (mode == 'conversation') {
       // 会話モードを開始
@@ -585,6 +628,11 @@ class _CarSettingPageState extends State<CarSettingPage> {
                   ),
                 ],
               ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: GeminiUsageIndicator(isEnglish: isEnglish),
             ),
 
             // コンテンツ
@@ -5740,6 +5788,11 @@ class _ConversationDialogState extends State<_ConversationDialog> {
                 ),
               ],
             ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: GeminiUsageIndicator(isEnglish: widget.isEnglish),
           ),
 
           // メッセージリスト

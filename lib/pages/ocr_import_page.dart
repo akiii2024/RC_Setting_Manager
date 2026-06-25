@@ -2,9 +2,14 @@ import 'package:rc_setting_manager/utils/app_logger.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/car.dart';
 import '../models/car_setting_definition.dart';
+import '../providers/settings_provider.dart';
+import '../services/api_consent_service.dart';
+import '../services/gemini_usage_service.dart';
 import '../services/ocr_service.dart';
+import '../widgets/gemini_usage_indicator.dart';
 import '../data/car_settings_definitions.dart';
 import 'package:permission_handler/permission_handler.dart';
 
@@ -64,6 +69,25 @@ class _OCRImportPageState extends State<OCRImportPage> {
 
   Future<void> _pickImage(ImageSource source) async {
     if (!_ensureServiceReady()) {
+      return;
+    }
+
+    final consentGranted = await ApiConsentService.requestConsent(
+      context,
+      type: ApiConsentType.aiAndOcr,
+      isEnglish:
+          Provider.of<SettingsProvider>(context, listen: false).isEnglish,
+    );
+    if (!consentGranted || !mounted) {
+      return;
+    }
+
+    try {
+      await GeminiUsageService.refresh();
+    } catch (e) {
+      debugLog('Gemini usage refresh failed: $e');
+    }
+    if (!mounted) {
       return;
     }
 
@@ -451,6 +475,11 @@ class _OCRImportPageState extends State<OCRImportPage> {
               ),
               const SizedBox(height: 16),
             ],
+
+            GeminiUsageIndicator(
+              isEnglish: Provider.of<SettingsProvider>(context).isEnglish,
+            ),
+            const SizedBox(height: 16),
 
             // 画像選択ボタン
             Row(

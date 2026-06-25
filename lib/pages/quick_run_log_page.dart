@@ -10,6 +10,7 @@ import '../models/run_log.dart';
 import '../models/saved_setting.dart';
 import '../models/track_location.dart';
 import '../providers/settings_provider.dart';
+import '../services/api_consent_service.dart';
 import '../services/location_service.dart';
 import '../services/track_location_service.dart';
 import '../services/weather_service.dart';
@@ -117,6 +118,18 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
   }) async {
     if (_isWeatherLoading || !mounted) {
       return;
+    }
+
+    if (widget.weatherFetcher == null) {
+      final provider = Provider.of<SettingsProvider>(context, listen: false);
+      final consentGranted = await ApiConsentService.requestConsent(
+        context,
+        type: ApiConsentType.weatherAndLocation,
+        isEnglish: provider.isEnglish,
+      );
+      if (!consentGranted || !mounted) {
+        return;
+      }
     }
 
     setState(() {
@@ -265,6 +278,17 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
   Future<void> _fillCourseFromCurrentLocation(bool isEnglish) async {
     if (_isFindingCourse) {
       return;
+    }
+
+    if (widget.trackFinder == null) {
+      final consentGranted = await ApiConsentService.requestConsent(
+        context,
+        type: ApiConsentType.weatherAndLocation,
+        isEnglish: isEnglish,
+      );
+      if (!consentGranted || !mounted) {
+        return;
+      }
     }
 
     setState(() {

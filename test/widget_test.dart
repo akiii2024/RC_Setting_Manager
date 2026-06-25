@@ -15,6 +15,7 @@ import 'package:rc_setting_manager/pages/simple_import_page.dart';
 import 'package:rc_setting_manager/pages/tools_page.dart';
 import 'package:rc_setting_manager/providers/app_mode_provider.dart';
 import 'package:rc_setting_manager/providers/settings_provider.dart';
+import 'package:rc_setting_manager/services/api_consent_service.dart';
 import 'package:rc_setting_manager/services/weather_service.dart';
 
 Future<void> _pumpUntilInitialized(
@@ -110,7 +111,6 @@ void main() {
       'language_settings': true,
       'cars_settings': jsonEncode([_testCar().toJson()]),
     });
-
     final provider = SettingsProvider();
 
     await tester.pumpWidget(
@@ -192,6 +192,9 @@ void main() {
       'language_settings': true,
       'cars_settings': jsonEncode([_testCar().toJson()]),
     });
+    await ApiConsentService.grantConsent(
+      ApiConsentType.weatherAndLocation,
+    );
 
     final provider = SettingsProvider();
 

@@ -118,7 +118,7 @@ firebase deploy --only functions
 
 現在の制限:
 
-- Gemini: 1ユーザーあたり10分で10回
+- Gemini: 1ユーザーあたり10分で10回、かつ日本時間の1日あたり20回
 - 天気: 1ユーザーあたり10分で60回
 - OpenWeather 設定確認: 1ユーザーあたり1時間で2回
 - Gemini 画像: 1枚8 MiB、合計10 MiBまで

@@ -25,6 +25,12 @@ const maxParts = 50;
 const maxTextCharacters = 50000;
 const maxInlineBytes = 8 * 1024 * 1024;
 const maxTotalInlineBytes = 10 * 1024 * 1024;
+const tenMinutesMs = 10 * 60 * 1000;
+const oneHourMs = 60 * 60 * 1000;
+const oneDayMs = 24 * oneHourMs;
+const japanTimeOffsetMs = 9 * oneHourMs;
+const geminiBurstLimit = 10;
+const geminiDailyLimit = 20;
 
 function assertSecret(value, name) {
   if (!value) {
@@ -44,32 +50,156 @@ function requireAuthenticated(request) {
   return uid;
 }
 
-async function enforceRateLimit(request, action, limit, windowMs) {
+function buildRateLimitStates(uid, limits, now) {
+  return limits.map((limitConfig) => {
+    const offsetMs = limitConfig.windowOffsetMs || 0;
+    const windowId = Math.floor((now + offsetMs) / limitConfig.windowMs);
+    const windowStartedAtMs =
+      windowId * limitConfig.windowMs - offsetMs;
+    const documentId = `${uid}_${limitConfig.action}_${windowId}`;
+
+    return {
+      ...limitConfig,
+      reference: db.collection("_function_rate_limits").doc(documentId),
+      windowStartedAtMs,
+    };
+  });
+}
+
+function geminiRateLimits() {
+  return [
+    {
+      action: "gemini-burst",
+      limit: geminiBurstLimit,
+      windowMs: tenMinutesMs,
+      message:
+        "Gemini can be used up to 10 times every 10 minutes. " +
+        "Please try again later.",
+    },
+    {
+      action: "gemini-daily-jst",
+      limit: geminiDailyLimit,
+      windowMs: oneDayMs,
+      windowOffsetMs: japanTimeOffsetMs,
+      message:
+        "The daily Gemini limit of 20 requests has been reached. " +
+        "The limit resets at midnight Japan time.",
+    },
+  ];
+}
+
+function toRateLimitUsage(rateLimit, count, now) {
+  const normalizedCount = typeof count === "number" ? count : 0;
+  const resetAtMs = rateLimit.windowStartedAtMs + rateLimit.windowMs;
+
+  return {
+    action: rateLimit.action,
+    limit: rateLimit.limit,
+    used: normalizedCount,
+    remaining: Math.max(0, rateLimit.limit - normalizedCount),
+    resetAt: resetAtMs,
+    retryAfterSeconds: Math.max(
+        0,
+        Math.ceil((resetAtMs - now) / 1000),
+    ),
+  };
+}
+
+function formatGeminiUsage(usages) {
+  const burst = usages.find((usage) => usage.action === "gemini-burst");
+  const daily = usages.find(
+      (usage) => usage.action === "gemini-daily-jst",
+  );
+
+  return {
+    burst,
+    daily,
+  };
+}
+
+async function getRateLimitUsages(request, limits) {
   const uid = requireAuthenticated(request);
   const now = Date.now();
-  const windowId = Math.floor(now / windowMs);
-  const documentId = `${uid}_${action}_${windowId}`;
-  const reference = db.collection("_function_rate_limits").doc(documentId);
+  const rateLimits = buildRateLimitStates(uid, limits, now);
+  const snapshots = await db.getAll(
+      ...rateLimits.map((rateLimit) => rateLimit.reference),
+  );
 
-  await db.runTransaction(async (transaction) => {
-    const snapshot = await transaction.get(reference);
+  return rateLimits.map((rateLimit, index) => {
+    const snapshot = snapshots[index];
     const count = snapshot.exists ? snapshot.get("count") : 0;
+    return toRateLimitUsage(rateLimit, count, now);
+  });
+}
 
-    if (typeof count === "number" && count >= limit) {
-      throw new HttpsError(
-          "resource-exhausted",
-          "Too many requests. Please try again later.",
-      );
+async function enforceRateLimits(request, limits) {
+  const uid = requireAuthenticated(request);
+  const now = Date.now();
+  const rateLimits = buildRateLimitStates(uid, limits, now);
+
+  return db.runTransaction(async (transaction) => {
+    const snapshots = await transaction.getAll(
+        ...rateLimits.map((rateLimit) => rateLimit.reference),
+    );
+
+    for (let index = 0; index < rateLimits.length; index += 1) {
+      const rateLimit = rateLimits[index];
+      const snapshot = snapshots[index];
+      const count = snapshot.exists ? snapshot.get("count") : 0;
+
+      if (typeof count === "number" && count >= rateLimit.limit) {
+        const usage = toRateLimitUsage(rateLimit, count, now);
+
+        throw new HttpsError(
+            "resource-exhausted",
+            rateLimit.message ||
+              "Too many requests. Please try again later.",
+            {
+              limit: rateLimit.limit,
+              limitType: rateLimit.action,
+              retryAfterSeconds: Math.max(1, usage.retryAfterSeconds),
+            },
+        );
+      }
     }
 
-    transaction.set(reference, {
-      uid,
-      action,
-      count: (typeof count === "number" ? count : 0) + 1,
-      windowStartedAt: Timestamp.fromMillis(windowId * windowMs),
-      expiresAt: Timestamp.fromMillis((windowId + 2) * windowMs),
+    for (let index = 0; index < rateLimits.length; index += 1) {
+      const rateLimit = rateLimits[index];
+      const snapshot = snapshots[index];
+      const count = snapshot.exists ? snapshot.get("count") : 0;
+
+      transaction.set(rateLimit.reference, {
+        uid,
+        action: rateLimit.action,
+        count: (typeof count === "number" ? count : 0) + 1,
+        limit: rateLimit.limit,
+        windowStartedAt: Timestamp.fromMillis(rateLimit.windowStartedAtMs),
+        expiresAt: Timestamp.fromMillis(
+            rateLimit.windowStartedAtMs + rateLimit.windowMs * 2,
+        ),
+      });
+    }
+
+    return rateLimits.map((rateLimit, index) => {
+      const snapshot = snapshots[index];
+      const count = snapshot.exists ? snapshot.get("count") : 0;
+      return toRateLimitUsage(
+          rateLimit,
+          (typeof count === "number" ? count : 0) + 1,
+          now,
+      );
     });
   });
+}
+
+async function enforceRateLimit(request, action, limit, windowMs) {
+  return enforceRateLimits(request, [
+    {
+      action,
+      limit,
+      windowMs,
+    },
+  ]);
 }
 
 function assertNumber(value, name, min, max) {
@@ -221,13 +351,24 @@ async function callGemini(contents) {
 }
 
 async function handleGenerateGeminiContent(request) {
-  await enforceRateLimit(request, "gemini", 10, 10 * 60 * 1000);
+  const usages = await enforceRateLimits(request, geminiRateLimits());
   const contents = normalizeContents(request.data?.contents);
-  return callGemini(contents);
+  const result = await callGemini(contents);
+  return {
+    ...result,
+    usage: formatGeminiUsage(usages),
+  };
+}
+
+async function handleGetGeminiUsage(request) {
+  const usages = await getRateLimitUsages(request, geminiRateLimits());
+  return {
+    usage: formatGeminiUsage(usages),
+  };
 }
 
 async function handleGetCurrentWeather(request) {
-  await enforceRateLimit(request, "weather", 60, 10 * 60 * 1000);
+  await enforceRateLimit(request, "weather", 60, tenMinutesMs);
   const lat = request.data?.lat;
   const lon = request.data?.lon;
   assertNumber(lat, "lat", -90, 90);
@@ -280,6 +421,17 @@ exports.generateGeminiContent = onCall(
       maxInstances: 5,
     },
     handleGenerateGeminiContent,
+);
+
+exports.getGeminiUsage = onCall(
+    {
+      region,
+      invoker: "public",
+      enforceAppCheck: true,
+      timeoutSeconds: 15,
+      maxInstances: 5,
+    },
+    handleGetGeminiUsage,
 );
 
 exports.getCurrentWeather = onCall(

@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/car_setting_definition.dart';
 import 'firebase_functions_service.dart';
+import 'gemini_usage_service.dart';
 
 class OCRService {
   final ImagePicker _imagePicker = ImagePicker();
@@ -74,6 +75,7 @@ class OCRService {
           ],
         },
       );
+      GeminiUsageService.updateFromResponse(response);
 
       return response['text'] as String?;
     } catch (e) {
@@ -98,6 +100,7 @@ class OCRService {
         ],
       },
     );
+    GeminiUsageService.updateFromResponse(response);
 
     return response['text'] as String?;
   }

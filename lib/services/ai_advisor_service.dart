@@ -3,6 +3,7 @@ import '../models/car.dart';
 import '../models/car_setting_definition.dart';
 import '../models/track_location.dart';
 import '../services/firebase_functions_service.dart';
+import '../services/gemini_usage_service.dart';
 import '../services/weather_service.dart';
 
 class AIAdvisorService {
@@ -52,6 +53,7 @@ class AIAdvisorService {
       'generateGeminiContent',
       {'contents': contents},
     );
+    GeminiUsageService.updateFromResponse(response);
 
     final text = response['text'] as String?;
     if (text == null || text.isEmpty) {
