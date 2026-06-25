@@ -276,44 +276,12 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
     try {
       final weatherService = WeatherService.instance;
-
-      // APIキーが設定されているかチェック
-      debugLog(
-          '[Weather Debug] Step 1: isApiKeyConfigured = ${weatherService.isApiKeyConfigured()}');
-      if (!weatherService.isApiKeyConfigured()) {
-        debugLog('[Weather Debug] FAILED at Step 1: APIキーが未設定 → モックデータ');
-        final mockWeather = weatherService.getMockWeatherData();
-        if (mounted) {
-          setState(() {
-            _currentWeather = mockWeather;
-          });
-          _updateWeatherSettings(mockWeather);
-        }
-        return;
-      }
-
-      // APIキーの有効性をテスト
-      debugLog('[Weather Debug] Step 2: validateApiKey() を呼び出し中...');
-      final isValidApiKey = await weatherService.validateApiKey();
-      debugLog('[Weather Debug] Step 2: validateApiKey() = $isValidApiKey');
-      if (!isValidApiKey) {
-        debugLog('[Weather Debug] FAILED at Step 2: APIキーが無効 → モックデータ');
-        final mockWeather = weatherService.getMockWeatherData();
-        if (mounted) {
-          setState(() {
-            _currentWeather = mockWeather;
-          });
-          _updateWeatherSettings(mockWeather);
-        }
-        return;
-      }
-
-      debugLog('[Weather Debug] Step 3: getCurrentWeather() を呼び出し中...');
+      debugLog('[Weather Debug] getCurrentWeather() を呼び出し中...');
       final weather = await weatherService.getCurrentWeather(
         forceRefresh: forceRefresh,
       );
       debugLog(
-          '[Weather Debug] Step 3: getCurrentWeather() = ${weather?.toString() ?? 'null'}');
+          '[Weather Debug] getCurrentWeather() = ${weather?.toString() ?? 'null'}');
 
       if (weather != null && mounted) {
         setState(() {
@@ -325,26 +293,20 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
         debugLog('[Weather Debug] SUCCESS: 天気情報を取得しました: ${weather.toString()}');
       } else {
-        debugLog(
-            '[Weather Debug] FAILED at Step 3: weather=$weather, mounted=$mounted → モックデータ');
-        final mockWeather = weatherService.getMockWeatherData();
         if (mounted) {
           setState(() {
-            _currentWeather = mockWeather;
+            _currentWeather = null;
           });
-          _updateWeatherSettings(mockWeather);
         }
+        debugLog('[Weather Debug] 天気情報を取得できませんでした');
       }
     } catch (e, stackTrace) {
       debugLog('[Weather Debug] EXCEPTION: $e');
       debugLog('[Weather Debug] StackTrace: $stackTrace');
-      final weatherService = WeatherService.instance;
-      final mockWeather = weatherService.getMockWeatherData();
       if (mounted) {
         setState(() {
-          _currentWeather = mockWeather;
+          _currentWeather = null;
         });
-        _updateWeatherSettings(mockWeather);
       }
     } finally {
       if (mounted) {
@@ -3037,7 +2999,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
             Icon(
               Icons.star_border,
               size: 64,
-              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3),
+              color: Theme.of(context)
+                  .colorScheme
+                  .onSurface
+                  .withValues(alpha: 0.3),
             ),
             const SizedBox(height: 16),
             Text(
@@ -3047,7 +3012,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 16,
-                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                color: Theme.of(context)
+                    .colorScheme
+                    .onSurface
+                    .withValues(alpha: 0.6),
               ),
             ),
           ],
@@ -3300,8 +3268,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
           child: Row(
             children: [
               Icon(Icons.cloud_off,
-                  color:
-                      Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5)),
+                  color: Theme.of(context)
+                      .colorScheme
+                      .onSurface
+                      .withValues(alpha: 0.5)),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -3359,15 +3329,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
     }
 
     if (_currentWeather != null) {
-      // モックデータかどうかを判定
-      final isUsingMockData = _currentWeather!.cityName == 'テスト地点';
-
       return Card(
         color: Theme.of(context).colorScheme.brightness == Brightness.light
-            ? (isUsingMockData ? Colors.orange.shade50 : Colors.blue.shade50)
-            : (isUsingMockData
-                ? Theme.of(context).colorScheme.errorContainer
-                : Theme.of(context).colorScheme.primaryContainer),
+            ? Colors.blue.shade50
+            : Theme.of(context).colorScheme.primaryContainer,
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
@@ -3376,16 +3341,12 @@ class _CarSettingPageState extends State<CarSettingPage> {
               Row(
                 children: [
                   Icon(
-                    isUsingMockData ? Icons.warning : Icons.cloud,
-                    color: isUsingMockData
-                        ? Theme.of(context).colorScheme.error
-                        : Theme.of(context).colorScheme.primary,
+                    Icons.cloud,
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    isUsingMockData
-                        ? (isEnglish ? 'Sample Weather Data' : 'サンプル天気データ')
-                        : (isEnglish ? 'Current Weather' : '現在の天気'),
+                    isEnglish ? 'Current Weather' : '現在の天気',
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
@@ -3399,19 +3360,6 @@ class _CarSettingPageState extends State<CarSettingPage> {
                   ),
                 ],
               ),
-              if (isUsingMockData) ...[
-                const SizedBox(height: 4),
-                Text(
-                  isEnglish
-                      ? 'API key not configured or invalid. Using sample data.'
-                      : 'APIキーが未設定または無効です。サンプルデータを使用中。',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.error,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ],
               const SizedBox(height: 8),
               Row(
                 children: [
@@ -3438,16 +3386,15 @@ class _CarSettingPageState extends State<CarSettingPage> {
                           '${isEnglish ? "Condition" : "天候"}: ${_currentWeather!.description}',
                           style: const TextStyle(fontSize: 14),
                         ),
-                        if (!isUsingMockData)
-                          Text(
-                            '${isEnglish ? "Location" : "地点"}: ${_currentWeather!.cityName}',
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurface
-                                    .withValues(alpha: 0.5)),
-                          ),
+                        Text(
+                          '${isEnglish ? "Location" : "地点"}: ${_currentWeather!.cityName}',
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withValues(alpha: 0.5)),
+                        ),
                       ],
                     ),
                   ),
@@ -4088,7 +4035,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
                 Icons.cloud,
                 color: _currentWeather != null
                     ? Theme.of(context).colorScheme.primary
-                    : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.5),
+                    : Theme.of(context)
+                        .colorScheme
+                        .onSurface
+                        .withValues(alpha: 0.5),
               ),
         onPressed: _isWeatherLoading ? null : _refreshWeather,
         tooltip: setting.key == 'airTemp' ? '現在の気温を取得' : '現在の湿度を取得',

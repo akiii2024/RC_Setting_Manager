@@ -12,12 +12,7 @@ class WeatherService {
   static WeatherService get instance => _instance ??= WeatherService._();
 
   static const String _weatherCacheKey = 'weather_cache_current_v1';
-  static const String _apiKeyValidationCacheKey =
-      'weather_api_key_validation_cache_v1';
   static const Duration _weatherCacheDuration = Duration(minutes: 30);
-  static const Duration _apiKeyValidationCacheDuration = Duration(hours: 24);
-  static const Duration _apiKeyValidationFailureCacheDuration =
-      Duration(minutes: 5);
   static const double _weatherCacheMaxDistanceMeters = 5000;
 
   WeatherService._();
@@ -90,39 +85,6 @@ class WeatherService {
     }
   }
 
-  bool isApiKeyConfigured() => true;
-
-  Future<bool> validateApiKey({bool forceRefresh = false}) async {
-    try {
-      if (!forceRefresh) {
-        final cachedValidation = await _getCachedApiKeyValidation();
-        if (cachedValidation != null) {
-          debugLog(
-            '[Weather Debug] validateApiKey: cache hit = $cachedValidation',
-          );
-          return cachedValidation;
-        }
-      }
-
-      debugLog(
-        '[Weather Debug] validateApiKey: calling Firebase Functions...',
-      );
-      final response = await FirebaseFunctionsService.call(
-        'validateOpenWeatherApiKey',
-        const {},
-      );
-      debugLog('[Weather Debug] validateApiKey: response = $response');
-      final isValid = response['valid'] == true;
-      await _saveApiKeyValidation(isValid);
-      debugLog('[Weather Debug] validateApiKey: isValid = $isValid');
-      return isValid;
-    } catch (e, stackTrace) {
-      debugLog('[Weather Debug] validateApiKey EXCEPTION: $e');
-      debugLog('[Weather Debug] validateApiKey StackTrace: $stackTrace');
-      return false;
-    }
-  }
-
   Future<WeatherData?> _getCachedWeather(double lat, double lon) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -171,46 +133,6 @@ class WeatherService {
     }
   }
 
-  Future<bool?> _getCachedApiKeyValidation() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final cached = prefs.getString(_apiKeyValidationCacheKey);
-      if (cached == null) return null;
-
-      final decoded = jsonDecode(cached) as Map<String, dynamic>;
-      final isValid = decoded['valid'] == true;
-      final validatedAt = DateTime.fromMillisecondsSinceEpoch(
-        decoded['validatedAt'] as int,
-      );
-      final maxAge = isValid
-          ? _apiKeyValidationCacheDuration
-          : _apiKeyValidationFailureCacheDuration;
-
-      if (DateTime.now().difference(validatedAt) > maxAge) return null;
-      return isValid;
-    } catch (e) {
-      debugLog(
-        '[Weather Debug] _getCachedApiKeyValidation EXCEPTION: $e',
-      );
-      return null;
-    }
-  }
-
-  Future<void> _saveApiKeyValidation(bool isValid) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        _apiKeyValidationCacheKey,
-        jsonEncode({
-          'validatedAt': DateTime.now().millisecondsSinceEpoch,
-          'valid': isValid,
-        }),
-      );
-    } catch (e) {
-      debugLog('[Weather Debug] _saveApiKeyValidation EXCEPTION: $e');
-    }
-  }
-
   double _distanceInMeters(
     double lat1,
     double lon1,
@@ -233,21 +155,6 @@ class WeatherService {
   }
 
   double _degreesToRadians(double degrees) => degrees * math.pi / 180;
-
-  WeatherData getMockWeatherData() {
-    return WeatherData(
-      temperature: 25.0,
-      humidity: 60,
-      description: 'Sunny',
-      feelsLike: 27.0,
-      pressure: 1013,
-      visibility: 10000,
-      windSpeed: 3.5,
-      windDirection: 180,
-      cloudiness: 20,
-      cityName: 'Test Course',
-    );
-  }
 }
 
 class WeatherData {
@@ -331,7 +238,6 @@ enum WeatherStatus {
   loading,
   success,
   error,
-  noApiKey,
   noLocation,
 }
 
