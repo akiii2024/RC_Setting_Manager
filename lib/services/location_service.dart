@@ -41,18 +41,28 @@ class LocationService {
   // Web環境での位置情報権限要求
   Future<bool> _requestWebLocationPermission() async {
     try {
-      // Web環境ではGeolocatorを直接使用
       LocationPermission permission = await Geolocator.checkPermission();
 
-      if (permission == LocationPermission.denied) {
-        permission = await Geolocator.requestPermission();
+      switch (permission) {
+        case LocationPermission.denied:
+          permission = await Geolocator.requestPermission();
+          return permission == LocationPermission.whileInUse ||
+              permission == LocationPermission.always;
+        case LocationPermission.deniedForever:
+          return false;
+        case LocationPermission.whileInUse:
+        case LocationPermission.always:
+          return true;
+        case LocationPermission.unableToDetermine:
+          // Permissions APIを完全にはサポートしないSafariでは権限状態を
+          // 判定できない。実際の位置情報取得時に許可ダイアログを表示する。
+          return true;
       }
-
-      return permission == LocationPermission.whileInUse ||
-          permission == LocationPermission.always;
     } catch (e) {
       debugLog('Web位置情報権限エラー: $e');
-      return false;
+      // Safariではnavigator.permissionsの照会だけが失敗し、
+      // navigator.geolocation自体は利用できる場合がある。
+      return true;
     }
   }
 

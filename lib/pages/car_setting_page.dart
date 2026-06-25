@@ -130,10 +130,13 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
     _initializeSettings();
     // 位置情報と天気情報の初期化を少し遅延させる
-    Future.delayed(const Duration(milliseconds: 500), () {
+    Future.delayed(const Duration(milliseconds: 500), () async {
       if (mounted) {
-        _initializeLocationAndTrack();
-        _initializeWeather();
+        // Safariで位置情報要求が競合しないよう、順番に実行する。
+        await _initializeLocationAndTrack();
+        if (mounted) {
+          await _initializeWeather();
+        }
       }
     });
   }
