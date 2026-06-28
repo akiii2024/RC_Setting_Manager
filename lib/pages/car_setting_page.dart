@@ -17,7 +17,9 @@ import './ocr_import_page.dart';
 import '../services/ai_advisor_service.dart';
 import '../services/api_consent_service.dart';
 import '../services/gemini_usage_service.dart';
+import '../utils/platform_detection.dart';
 import '../widgets/gemini_usage_indicator.dart';
+import '../widgets/ios_weather_unavailable_dialog.dart';
 
 BoxConstraints _responsiveDialogConstraints(
   BuildContext context, {
@@ -289,6 +291,16 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
+    if (isIOSWebPlatform()) {
+      if (forceRefresh) {
+        await showIOSWeatherUnavailableDialog(
+          context,
+          isEnglish: settingsProvider.isEnglish,
+        );
+      }
+      return;
+    }
+
     final consentGranted = await ApiConsentService.requestConsent(
       context,
       type: ApiConsentType.weatherAndLocation,
@@ -3311,6 +3323,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
   Widget _buildWeatherInfoCard() {
     final settingsProvider = Provider.of<SettingsProvider>(context);
     final isEnglish = settingsProvider.isEnglish;
+    final isIOSWeatherUnavailable = isIOSWebPlatform();
 
     if (_currentWeather == null && !_isWeatherLoading) {
       return Card(
@@ -3333,9 +3346,15 @@ class _CarSettingPageState extends State<CarSettingPage> {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      isEnglish
-                          ? 'Weather data not available. Using manual input.'
-                          : '天気データが利用できません。手動入力を使用してください。',
+                      isIOSWeatherUnavailable
+                          ? (isEnglish
+                              ? 'Automatic weather retrieval is unavailable '
+                                  'on iOS. Please use manual input.'
+                              : 'iOSでは天気情報を自動取得できません。'
+                                  '手動で入力してください。')
+                          : (isEnglish
+                              ? 'Weather data not available. Using manual input.'
+                              : '天気データが利用できません。手動入力を使用してください。'),
                       style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(context)

@@ -14,7 +14,9 @@ import '../services/api_consent_service.dart';
 import '../services/location_service.dart';
 import '../services/track_location_service.dart';
 import '../services/weather_service.dart';
+import '../utils/platform_detection.dart';
 import '../utils/run_log_formatters.dart';
+import '../widgets/ios_weather_unavailable_dialog.dart';
 import 'car_setting_page.dart';
 
 String _t(bool isEnglish, String en, String ja) => isEnglish ? en : ja;
@@ -120,8 +122,22 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
       return;
     }
 
+    final provider = Provider.of<SettingsProvider>(context, listen: false);
+    if (widget.weatherFetcher == null && isIOSWebPlatform()) {
+      setState(() {
+        _hasWeatherAttempted = true;
+        _hasWeatherError = true;
+      });
+      if (forceRefresh) {
+        await showIOSWeatherUnavailableDialog(
+          context,
+          isEnglish: provider.isEnglish,
+        );
+      }
+      return;
+    }
+
     if (widget.weatherFetcher == null) {
-      final provider = Provider.of<SettingsProvider>(context, listen: false);
       final consentGranted = await ApiConsentService.requestConsent(
         context,
         type: ApiConsentType.weatherAndLocation,
@@ -679,6 +695,8 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final weather = _currentWeather;
+    final isIOSWeatherUnavailable =
+        widget.weatherFetcher == null && isIOSWebPlatform();
 
     final Color backgroundColor;
     final Color borderColor;
@@ -686,7 +704,24 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
     final String title;
     final String message;
 
-    if (_isWeatherLoading || !_hasWeatherAttempted) {
+    if (isIOSWeatherUnavailable) {
+      backgroundColor = colorScheme.errorContainer.withValues(alpha: 0.35);
+      borderColor = colorScheme.error.withValues(alpha: 0.35);
+      leading = Icon(
+        Icons.cloud_off,
+        color: colorScheme.error,
+      );
+      title = _t(
+        isEnglish,
+        'Weather unavailable on iOS',
+        'iOSでは天気情報を取得できません',
+      );
+      message = _t(
+        isEnglish,
+        'Please enter the temperature, humidity, and weather manually.',
+        '気温・湿度・天候は手動で入力してください。',
+      );
+    } else if (_isWeatherLoading || !_hasWeatherAttempted) {
       backgroundColor = colorScheme.surfaceContainerLow;
       borderColor = colorScheme.outlineVariant.withValues(alpha: 0.45);
       leading = Icon(
