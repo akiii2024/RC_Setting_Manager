@@ -207,4 +207,35 @@ void main() {
 
     expect(find.text('Add to My Garage?'), findsNothing);
   });
+
+  testWidgets('app editor scroll moves the input header with setting fields',
+      (WidgetTester tester) async {
+    final car = _buildCar();
+    final provider = _createProvider([car]);
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: MaterialApp(
+          home: CarSettingPage(originalCar: car),
+        ),
+      ),
+    );
+    await _pumpUntilInitialized(tester, provider);
+    await tester.pump(const Duration(milliseconds: 600));
+
+    final editorScrollView = find.byKey(
+      const Key('setting-editor-scroll-view'),
+    );
+    expect(editorScrollView, findsOneWidget);
+
+    final settingName = find.text('Setting Name');
+    final initialTop = tester.getTopLeft(settingName).dy;
+
+    await tester.drag(editorScrollView, const Offset(0, -250));
+    await tester.pumpAndSettle();
+
+    expect(tester.getTopLeft(settingName).dy, lessThan(initialTop - 100));
+    expect(find.text('Favorites'), findsOneWidget);
+  });
 }

@@ -53,6 +53,41 @@ Dialog _buildResponsiveDialog({
   );
 }
 
+class _SettingTabBarDelegate extends SliverPersistentHeaderDelegate {
+  final TabBar tabBar;
+  final Color backgroundColor;
+
+  const _SettingTabBarDelegate({
+    required this.tabBar,
+    required this.backgroundColor,
+  });
+
+  @override
+  double get minExtent => tabBar.preferredSize.height;
+
+  @override
+  double get maxExtent => tabBar.preferredSize.height;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    return Material(
+      color: backgroundColor,
+      elevation: overlapsContent ? 1 : 0,
+      child: tabBar,
+    );
+  }
+
+  @override
+  bool shouldRebuild(covariant _SettingTabBarDelegate oldDelegate) {
+    return oldDelegate.tabBar != tabBar ||
+        oldDelegate.backgroundColor != backgroundColor;
+  }
+}
+
 enum _GaragePromptAction {
   add,
   notNow,
@@ -900,96 +935,91 @@ class _CarSettingPageState extends State<CarSettingPage> {
         padding: const EdgeInsets.all(16.0),
         child: usePaperStyleEditor
             ? _buildPaperEditorBody(context, isEnglish)
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildEditorLayoutSelector(isEnglish, usePaperStyleEditor),
-                  const SizedBox(height: 16),
-                  // Setting name input
-                  TextField(
-                    controller: _settingNameController,
-                    decoration: InputDecoration(
-                      labelText: isEnglish ? 'Setting Name' : 'セッティング名',
-                      hintText:
-                          isEnglish ? 'e.g. Race Setup 1' : '例：レースセットアップ1',
-                      border: const OutlineInputBorder(),
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16.0, vertical: 16.0),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Track name input with location features
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _trackNameController,
-                          decoration: InputDecoration(
-                            labelText: isEnglish ? 'Track Name' : 'トラック名',
-                            hintText: isEnglish
-                                ? 'e.g. Tamiya Circuit'
-                                : '例：タミヤサーキット',
-                            border: const OutlineInputBorder(),
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16.0, vertical: 16.0),
-                            prefixIcon: _currentTrack != null
-                                ? Icon(
-                                    _currentTrack!.type == 'indoor'
-                                        ? Icons.home_work
-                                        : Icons.landscape,
-                                    color:
-                                        Theme.of(context).colorScheme.primary,
-                                  )
-                                : const Icon(Icons.place),
-                            suffixIcon: _isLocationLoading
-                                ? const Padding(
-                                    padding: EdgeInsets.all(12.0),
-                                    child: SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 2),
-                                    ),
-                                  )
-                                : null,
-                            helperText: _currentTrack != null
-                                ? '${_currentTrack!.prefecture} • ${isEnglish ? (_currentTrack!.type == 'indoor' ? 'Indoor' : 'Outdoor') : (_currentTrack!.type == 'indoor' ? '屋内' : '屋外')} • ${_currentTrack!.surfaceType == 'carpet' ? (isEnglish ? 'Carpet' : 'カーペット') : (isEnglish ? 'Asphalt' : 'アスファルト')}'
-                                : null,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        onPressed: _refreshLocation,
-                        icon: const Icon(Icons.my_location),
-                        tooltip: isEnglish ? 'Get current location' : '現在位置を取得',
-                      ),
-                      IconButton(
-                        onPressed: _searchTrackManually,
-                        icon: const Icon(Icons.search),
-                        tooltip: isEnglish ? 'Search track' : 'トラック検索',
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Car information
-                  Text(
-                    '${isEnglish ? 'Car' : '車両'}: $carName',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Setting tabs
-                  Expanded(
-                    child: _buildSettingTabs(context),
-                  ),
-                ],
-              ),
+            : _buildSettingTabs(context),
       ),
       bottomNavigationBar: _buildSaveActionBar(isEnglish),
+    );
+  }
+
+  Widget _buildAppEditorHeader(bool isEnglish) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildEditorLayoutSelector(isEnglish, false),
+        const SizedBox(height: 16),
+        TextField(
+          controller: _settingNameController,
+          decoration: InputDecoration(
+            labelText: isEnglish ? 'Setting Name' : 'セッティング名',
+            hintText: isEnglish ? 'e.g. Race Setup 1' : '例：レースセットアップ1',
+            border: const OutlineInputBorder(),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 16.0,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _trackNameController,
+                decoration: InputDecoration(
+                  labelText: isEnglish ? 'Track Name' : 'トラック名',
+                  hintText: isEnglish ? 'e.g. Tamiya Circuit' : '例：タミヤサーキット',
+                  border: const OutlineInputBorder(),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16.0,
+                    vertical: 16.0,
+                  ),
+                  prefixIcon: _currentTrack != null
+                      ? Icon(
+                          _currentTrack!.type == 'indoor'
+                              ? Icons.home_work
+                              : Icons.landscape,
+                          color: Theme.of(context).colorScheme.primary,
+                        )
+                      : const Icon(Icons.place),
+                  suffixIcon: _isLocationLoading
+                      ? const Padding(
+                          padding: EdgeInsets.all(12.0),
+                          child: SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : null,
+                  helperText: _currentTrack != null
+                      ? '${_currentTrack!.prefecture} • ${isEnglish ? (_currentTrack!.type == 'indoor' ? 'Indoor' : 'Outdoor') : (_currentTrack!.type == 'indoor' ? '屋内' : '屋外')} • ${_currentTrack!.surfaceType == 'carpet' ? (isEnglish ? 'Carpet' : 'カーペット') : (isEnglish ? 'Asphalt' : 'アスファルト')}'
+                      : null,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              onPressed: _refreshLocation,
+              icon: const Icon(Icons.my_location),
+              tooltip: isEnglish ? 'Get current location' : '現在位置を取得',
+            ),
+            IconButton(
+              onPressed: _searchTrackManually,
+              icon: const Icon(Icons.search),
+              tooltip: isEnglish ? 'Search track' : 'トラック検索',
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          '${isEnglish ? 'Car' : '車両'}: $carName',
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+      ],
     );
   }
 
@@ -3008,41 +3038,51 @@ class _CarSettingPageState extends State<CarSettingPage> {
       'memo': isEnglish ? 'Memo' : 'メモ',
     };
 
+    final tabBar = TabBar(
+      isScrollable: true,
+      tabs: categories.values.map((name) => Tab(text: name)).toList(),
+    );
+
     return DefaultTabController(
       length: categories.length,
-      child: Column(
-        children: [
-          TabBar(
-            isScrollable: true,
-            tabs: categories.values.map((name) => Tab(text: name)).toList(),
+      child: NestedScrollView(
+        key: const Key('setting-editor-scroll-view'),
+        headerSliverBuilder: (context, innerBoxIsScrolled) => [
+          SliverToBoxAdapter(
+            child: _buildAppEditorHeader(isEnglish),
           ),
-          Expanded(
-            child: TabBarView(
-              children: categories.keys.map((category) {
-                // よく使う項目タブの場合
-                if (category == 'favorites') {
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.all(16.0),
-                    child: _buildFavoriteSettings(),
-                  );
-                }
-                // TRF420Xのフロントタブの場合、専用のビルダーを使用
-                if (category == 'front' &&
-                    widget.originalCar.id == 'trf420x' &&
-                    _getCategorySettings('frontDamper').isEmpty) {
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.all(16.0),
-                    child: _buildFrontSettingsTabForTRF420X(),
-                  );
-                }
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.all(16.0),
-                  child: _buildCategorySettings(category),
-                );
-              }).toList(),
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _SettingTabBarDelegate(
+              tabBar: tabBar,
+              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
             ),
           ),
         ],
+        body: TabBarView(
+          children: categories.keys.map((category) {
+            // よく使う項目タブの場合
+            if (category == 'favorites') {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: _buildFavoriteSettings(),
+              );
+            }
+            // TRF420Xのフロントタブの場合、専用のビルダーを使用
+            if (category == 'front' &&
+                widget.originalCar.id == 'trf420x' &&
+                _getCategorySettings('frontDamper').isEmpty) {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: _buildFrontSettingsTabForTRF420X(),
+              );
+            }
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: _buildCategorySettings(category),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
