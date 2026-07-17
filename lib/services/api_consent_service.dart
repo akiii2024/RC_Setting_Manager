@@ -23,7 +23,7 @@ class ApiConsentService {
       'weather_location_api_consent_v1';
   static const String _weatherAndLocationPromptSuppressedKey =
       'weather_location_api_prompt_suppressed_v1';
-  static const String _aiAndOcrConsentKey = 'gemini_api_consent_v1';
+  static const String _aiAndOcrConsentKey = 'gemini_api_consent_v2';
 
   static final Map<ApiConsentType, Future<bool>> _pendingRequests = {};
 
@@ -276,6 +276,8 @@ class ApiConsentService {
               'Selected OCR images and text contained in them.',
               'RC car settings, track/weather context, and messages entered '
                   'for AI advice.',
+              'Up to five related run logs may be included after they are '
+                  'shown in the consultation screen.',
               'Do not select images containing personal or confidential '
                   'information.',
               'Firebase anonymous authentication is used to protect the API.',
@@ -283,6 +285,7 @@ class ApiConsentService {
           : const [
               'OCRで選択した画像と、画像内に含まれる文字情報。',
               'RCカーの設定値、コース・天気情報、AIアドバイスに入力したメッセージ。',
+              '相談画面で件数を確認した関連走行ログ（最大5件）。',
               '個人情報や機密情報が写った画像は選択しないでください。',
               'API保護のためFirebase匿名認証を使用します。',
             ],

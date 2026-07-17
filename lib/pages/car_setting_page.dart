@@ -14,6 +14,7 @@ import '../services/weather_service.dart';
 import '../models/track_location.dart';
 import '../services/track_location_service.dart';
 import './ocr_import_page.dart';
+import './ai_setting_advisor_page.dart';
 import '../services/ai_advisor_service.dart';
 import '../services/api_consent_service.dart';
 import '../services/gemini_usage_service.dart';
@@ -125,6 +126,8 @@ class CarSettingPage extends StatefulWidget {
 class _CarSettingPageState extends State<CarSettingPage> {
   late String carName;
   late Map<String, dynamic> settings;
+  late Map<String, dynamic> _initialSettingsSnapshot;
+  String? _activeSavedSettingId;
   bool _isLoading = true;
   final TextEditingController _settingNameController = TextEditingController();
   final TextEditingController _trackNameController = TextEditingController();
@@ -165,6 +168,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
       _settingNameController.text = _buildDefaultSettingName();
     }
 
+    _activeSavedSettingId = widget.savedSettingId;
+    _initialSettingsSnapshot = Map<String, dynamic>.from(settings);
+
     _initializeSettings();
     // 位置情報と天気情報の初期化を少し遅延させる
     Future.delayed(const Duration(milliseconds: 500), () async {
@@ -196,16 +202,23 @@ class _CarSettingPageState extends State<CarSettingPage> {
   dynamic _getDefaultValueForType(SettingItem setting) {
     switch (setting.type) {
       case 'number':
-        return setting.constraints['default'] ?? 0.0;
+        final parsedDefault = double.tryParse(setting.defaultValue ?? '');
+        final constraintDefault = setting.constraints['default'];
+        return parsedDefault ??
+            (constraintDefault is num ? constraintDefault.toDouble() : null) ??
+            0.0;
       case 'text':
         if (setting.key == 'date' && setting.isAutoFilled) {
           return DateTime.now().toString().split(' ')[0];
         }
-        return '';
+        return setting.defaultValue ?? '';
       case 'select':
-        return setting.options?.first;
+        return setting.defaultValue ?? setting.options?.first;
       case 'slider':
-        return setting.constraints['min'] ?? 0.0;
+        final parsedDefault = double.tryParse(setting.defaultValue ?? '');
+        return parsedDefault ?? setting.constraints['min'] ?? 0.0;
+      case 'grid':
+        return <Map<String, int>>[];
       default:
         return null;
     }
@@ -457,7 +470,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
     }
   }
 
-  // AIアドバイスモード選択
+  // AIセッティング相談
   Future<void> _getAIAdvice() async {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
@@ -490,58 +503,45 @@ class _CarSettingPageState extends State<CarSettingPage> {
     }
     if (!mounted) return;
 
-    // モード選択ダイアログを表示
-    final mode = await showDialog<String>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(isEnglish ? 'Select AI Advisor Mode' : 'AIアドバイスモードを選択'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            GeminiUsageIndicator(isEnglish: isEnglish),
-            const SizedBox(height: 8),
-            ListTile(
-              leading: Icon(Icons.chat,
-                  color: Theme.of(context).colorScheme.primary),
-              title: Text(isEnglish ? 'Conversation Mode' : '会話モード'),
-              subtitle: Text(isEnglish
-                  ? 'Chat with AI about your problems'
-                  : 'AIと会話しながら問題を解決'),
-              onTap: () => Navigator.of(context).pop('conversation'),
-            ),
-            const Divider(),
-            ListTile(
-              leading: Icon(Icons.assessment,
-                  color: Theme.of(context).colorScheme.secondary),
-              title: Text(isEnglish ? 'Analysis Mode' : '評価モード'),
-              subtitle: Text(isEnglish
-                  ? 'Get immediate comprehensive analysis'
-                  : '即座に総合的な分析結果を取得'),
-              onTap: () => Navigator.of(context).pop('analysis'),
-            ),
-          ],
+    final derivedSetting = await Navigator.of(context).push<SavedSetting>(
+      MaterialPageRoute(
+        builder: (context) => AISettingAdvisorPage(
+          car: widget.originalCar,
+          currentSettings: Map<String, dynamic>.from(settings),
+          initialSettings: Map<String, dynamic>.from(_initialSettingsSnapshot),
+          settingDefinition: _carSettingDefinition!,
+          settingName: _settingNameController.text,
+          savedSettingId: _activeSavedSettingId,
+          trackInfo: _currentTrack,
+          weatherInfo: _currentWeather,
+          isEnglish: isEnglish,
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
-          ),
-        ],
       ),
     );
 
-    if (mode == null || !mounted) return;
-
-    if (mode == 'conversation') {
-      // 会話モードを開始
-      await _startConversationMode();
-    } else {
-      // 評価モードを実行
-      await _startAnalysisMode();
+    if (derivedSetting != null && mounted) {
+      setState(() {
+        settings = Map<String, dynamic>.from(derivedSetting.settings);
+        _initialSettingsSnapshot =
+            Map<String, dynamic>.from(derivedSetting.settings);
+        _settingNameController.text = derivedSetting.name;
+        _activeSavedSettingId = derivedSetting.id;
+        _isEditing = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isEnglish
+                ? 'Created and opened the AI-derived setting'
+                : 'AI提案の派生セットを作成して開きました',
+          ),
+        ),
+      );
     }
   }
 
   // 会話モードを開始
+  // ignore: unused_element
   Future<void> _startConversationMode() async {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
@@ -564,6 +564,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
   }
 
   // 評価モードを実行（従来の一括分析）
+  // ignore: unused_element
   Future<void> _startAnalysisMode() async {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
@@ -2867,17 +2868,17 @@ class _CarSettingPageState extends State<CarSettingPage> {
       return;
     }
 
-    if (_isEditing && widget.savedSettingId != null) {
+    if (_isEditing && _activeSavedSettingId != null) {
       // Update existing setting
       SavedSetting? existingSetting;
       for (final setting in settingsProvider.savedSettings) {
-        if (setting.id == widget.savedSettingId) {
+        if (setting.id == _activeSavedSettingId) {
           existingSetting = setting;
           break;
         }
       }
       final updatedSetting = SavedSetting(
-        id: widget.savedSettingId!,
+        id: _activeSavedSettingId!,
         name: _settingNameController.text,
         createdAt: DateTime.now(),
         car: widget.originalCar,
@@ -2980,17 +2981,17 @@ class _CarSettingPageState extends State<CarSettingPage> {
       return;
     }
 
-    if (_isEditing && widget.savedSettingId != null) {
+    if (_isEditing && _activeSavedSettingId != null) {
       // Update existing setting
       SavedSetting? existingSetting;
       for (final setting in settingsProvider.savedSettings) {
-        if (setting.id == widget.savedSettingId) {
+        if (setting.id == _activeSavedSettingId) {
           existingSetting = setting;
           break;
         }
       }
       final updatedSetting = SavedSetting(
-        id: widget.savedSettingId!,
+        id: _activeSavedSettingId!,
         name: _settingNameController.text,
         createdAt: DateTime.now(),
         car: widget.originalCar,

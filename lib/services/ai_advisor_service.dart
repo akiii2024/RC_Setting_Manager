@@ -1,4 +1,5 @@
 import 'package:rc_setting_manager/utils/app_logger.dart';
+import '../models/ai_advisor.dart';
 import '../models/car.dart';
 import '../models/car_setting_definition.dart';
 import '../models/track_location.dart';
@@ -17,6 +18,72 @@ class AIAdvisorService {
   WeatherData? _contextWeatherInfo;
 
   AIAdvisorService();
+
+  Future<Map<String, dynamic>> _callStructuredAdvisor({
+    required String phase,
+    required AIAdvisorContext context,
+    required AIAdvisorIntake intake,
+    required List<AdvisorMessage> messages,
+    required bool isEnglish,
+    required bool includeHistory,
+  }) async {
+    final response = await FirebaseFunctionsService.call(
+      'generateSettingAdvice',
+      {
+        'phase': phase,
+        'locale': isEnglish ? 'en' : 'ja',
+        'context': context.toJson(includeHistory: includeHistory),
+        'intake': intake.toJson(),
+        'messages': messages.map((message) => message.toJson()).toList(),
+      },
+    );
+    GeminiUsageService.updateFromResponse(response);
+    return response;
+  }
+
+  Future<AdvisorChatTurn> continueStructuredConversation({
+    required AIAdvisorContext context,
+    required AIAdvisorIntake intake,
+    required List<AdvisorMessage> messages,
+    required bool isEnglish,
+    required bool includeHistory,
+  }) async {
+    final response = await _callStructuredAdvisor(
+      phase: 'chat',
+      context: context,
+      intake: intake,
+      messages: messages,
+      isEnglish: isEnglish,
+      includeHistory: includeHistory,
+    );
+    final turn = AdvisorChatTurn.fromJson(response);
+    if (turn.message.trim().isEmpty) {
+      throw Exception('AIからの応答が空です');
+    }
+    return turn;
+  }
+
+  Future<AISettingAdvice> generateStructuredAdvice({
+    required AIAdvisorContext context,
+    required AIAdvisorIntake intake,
+    required List<AdvisorMessage> messages,
+    required bool isEnglish,
+    required bool includeHistory,
+  }) async {
+    final response = await _callStructuredAdvisor(
+      phase: 'final',
+      context: context,
+      intake: intake,
+      messages: messages,
+      isEnglish: isEnglish,
+      includeHistory: includeHistory,
+    );
+    final rawAdvice = response['advice'];
+    if (rawAdvice is! Map) {
+      throw Exception('AIからの診断結果が不正です');
+    }
+    return AISettingAdvice.fromJson(Map<String, dynamic>.from(rawAdvice));
+  }
 
   /// 会話セッションがアクティブかどうか
   bool get isConversationActive => _conversationContents.isNotEmpty;

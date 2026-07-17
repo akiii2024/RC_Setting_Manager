@@ -3,6 +3,7 @@ import 'car.dart';
 enum SavedSettingKind {
   manual,
   runResult,
+  aiSuggestion,
 }
 
 class SavedSetting {

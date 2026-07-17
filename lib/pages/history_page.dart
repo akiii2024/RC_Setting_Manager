@@ -450,6 +450,19 @@ class _HistoryPageState extends State<HistoryPage> {
                         ),
                       ),
                     ],
+                    if (setting.kind == SavedSettingKind.aiSuggestion) ...[
+                      const SizedBox(height: 6),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Chip(
+                          avatar: const Icon(Icons.auto_awesome, size: 16),
+                          visualDensity: VisualDensity.compact,
+                          label: Text(
+                            isEnglish ? 'AI suggestion' : 'AI提案',
+                          ),
+                        ),
+                      ),
+                    ],
                     const SizedBox(height: 4),
                     Row(
                       children: [
