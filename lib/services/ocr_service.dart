@@ -3,19 +3,51 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import '../models/ai_provider.dart';
 import '../models/car_setting_definition.dart';
-import 'firebase_functions_service.dart';
-import 'gemini_usage_service.dart';
+import 'ai_configuration_service.dart';
+import 'ai_provider_client.dart';
+
+typedef OcrAiProviderClientFactory = AiProviderClient Function(
+  AiConfiguration configuration,
+);
 
 class OCRService {
   final ImagePicker _imagePicker = ImagePicker();
+  final AiConfigurationService _configurationService;
+  final AiProviderClient? _providerClient;
+  final OcrAiProviderClientFactory _clientFactory;
 
-  OCRService();
+  OCRService({
+    AiConfigurationService? configurationService,
+    AiProviderClient? providerClient,
+    OcrAiProviderClientFactory? clientFactory,
+  })  : _configurationService =
+            configurationService ?? AiConfigurationService(),
+        _providerClient = providerClient,
+        _clientFactory = clientFactory ??
+            ((configuration) => AiProviderClient(configuration: configuration));
+
+  Future<T> _withProviderClient<T>(
+    Future<T> Function(AiProviderClient client) action,
+  ) async {
+    final injectedClient = _providerClient;
+    if (injectedClient != null) return action(injectedClient);
+
+    final configuration =
+        await _configurationService.requireActiveConfiguration();
+    final client = _clientFactory(configuration);
+    try {
+      return await action(client);
+    } finally {
+      client.close();
+    }
+  }
 
   // Web環境チェック
   bool get isWebPlatform => kIsWeb;
 
-  // 画像から文字を認識（Gemini使用）
+  // 選択中のAIプロバイダーを使って画像から文字を認識
   Future<String?> recognizeTextFromImage(dynamic imageFile) async {
     try {
       late Uint8List imageBytes;
@@ -56,30 +88,19 @@ class OCRService {
 読み取ったテキストをそのまま出力してください。
 ''';
 
-      final response = await FirebaseFunctionsService.call(
-        'generateGeminiContent',
-        {
-          'contents': [
-            {
-              'role': 'user',
-              'parts': [
-                {'text': prompt},
-                {
-                  'inlineData': {
-                    'mimeType': 'image/jpeg',
-                    'data': base64Encode(imageBytes),
-                  },
-                },
-              ],
-            },
-          ],
-        },
+      final response = await _withProviderClient(
+        (client) => client.generateText(
+          prompt,
+          imageBytes: imageBytes,
+          mimeType: _imageMimeType(imageBytes),
+          maxTokens: 4096,
+        ),
       );
-      GeminiUsageService.updateFromResponse(response);
-
-      return response['text'] as String?;
+      return response;
+    } on UnsupportedError {
+      rethrow;
     } catch (e) {
-      debugLog('Gemini OCR エラー: $e');
+      debugLog('AI OCR エラー: $e');
       debugLog('エラータイプ: ${e.runtimeType}');
       debugLog('スタックトレース: ${StackTrace.current}');
       return null;
@@ -87,22 +108,45 @@ class OCRService {
   }
 
   Future<String?> _generateTextWithAI(String prompt) async {
-    final response = await FirebaseFunctionsService.call(
-      'generateGeminiContent',
-      {
-        'contents': [
-          {
-            'role': 'user',
-            'parts': [
-              {'text': prompt},
-            ],
-          },
-        ],
-      },
+    return _withProviderClient(
+      (client) => client.generateText(
+        prompt,
+        maxTokens: 4096,
+      ),
     );
-    GeminiUsageService.updateFromResponse(response);
+  }
 
-    return response['text'] as String?;
+  String _imageMimeType(Uint8List bytes) {
+    if (bytes.length >= 3 &&
+        bytes[0] == 0xff &&
+        bytes[1] == 0xd8 &&
+        bytes[2] == 0xff) {
+      return 'image/jpeg';
+    }
+    if (bytes.length >= 8 &&
+        bytes[0] == 0x89 &&
+        bytes[1] == 0x50 &&
+        bytes[2] == 0x4e &&
+        bytes[3] == 0x47 &&
+        bytes[4] == 0x0d &&
+        bytes[5] == 0x0a &&
+        bytes[6] == 0x1a &&
+        bytes[7] == 0x0a) {
+      return 'image/png';
+    }
+    if (bytes.length >= 12 &&
+        String.fromCharCodes(bytes.sublist(0, 4)) == 'RIFF' &&
+        String.fromCharCodes(bytes.sublist(8, 12)) == 'WEBP') {
+      return 'image/webp';
+    }
+    if (bytes.length >= 6) {
+      final signature = String.fromCharCodes(bytes.sublist(0, 6));
+      if (signature == 'GIF87a' || signature == 'GIF89a') {
+        return 'image/gif';
+      }
+    }
+
+    throw UnsupportedError('JPEG、PNG、WebP、GIFの画像を選択してください。');
   }
 
   // カメラから画像を取得
@@ -165,7 +209,7 @@ class OCRService {
     }
   }
 
-  // Geminiの応答からセッティング値を抽出（改良版）
+  // AIの応答からセッティング値を抽出（改良版）
   Map<String, String> extractSettingsFromText(
       String text, List<SettingItem> settingDefinitions) {
     final Map<String, String> extractedSettings = {};
@@ -303,10 +347,74 @@ class OCRService {
       }
     }
 
-    return mappedSettings;
+    return validateSettingsForImport(mappedSettings, settingDefinitions);
   }
 
-  // Gemini AIを使用して値をマッピング
+  /// OCR・AIの出力を、車種定義に存在しローカルで検証できる値だけへ絞る。
+  Map<String, String> validateSettingsForImport(
+    Map<String, String> settings,
+    List<SettingItem> settingDefinitions,
+  ) {
+    final definitions = {
+      for (final item in settingDefinitions) item.key: item,
+    };
+    final validated = <String, String>{};
+
+    for (final entry in settings.entries) {
+      final item = definitions[entry.key];
+      if (item == null || entry.key.startsWith('_unmatched_')) continue;
+      final value = entry.value.trim();
+      if (value.isEmpty) continue;
+
+      final options = item.options;
+      if (options != null && options.isNotEmpty) {
+        if (options.contains(value)) validated[entry.key] = value;
+        continue;
+      }
+
+      if (item.type == 'number') {
+        var numericText = value.replaceAll(',', '.');
+        final unit = item.unit;
+        if (unit != null && unit.isNotEmpty) {
+          numericText = numericText.replaceAll(unit, '');
+        }
+        numericText = _cleanValue(numericText);
+        final number = double.tryParse(numericText);
+        if (number == null || !number.isFinite) continue;
+
+        final minValue = item.constraints['min'];
+        final maxValue = item.constraints['max'];
+        final stepValue = item.constraints['step'];
+        final min = minValue is num ? minValue.toDouble() : null;
+        final max = maxValue is num ? maxValue.toDouble() : null;
+        final step = stepValue is num ? stepValue.toDouble().abs() : null;
+        if ((min != null && (!min.isFinite || number < min)) ||
+            (max != null && (!max.isFinite || number > max))) {
+          continue;
+        }
+        if (step != null) {
+          if (!step.isFinite || step <= 0 || min == null) continue;
+          final stepsFromMin = (number - min) / step;
+          if ((stepsFromMin - stepsFromMin.round()).abs() > 0.000001) {
+            continue;
+          }
+        }
+
+        validated[entry.key] = number == number.truncateToDouble()
+            ? number.toInt().toString()
+            : number.toString();
+        continue;
+      }
+
+      if (item.type == 'text' && value.length <= 500) {
+        validated[entry.key] = value;
+      }
+    }
+
+    return validated;
+  }
+
+  // AIを使用して値をマッピング
   Future<String?> _mapValueWithAI(
       String rawValue, List<String> availableOptions) async {
     // まずローカルでの類似性チェックを試行
@@ -856,6 +964,6 @@ $itemsText
   }
 
   void dispose() {
-    // Gemini APIクライアントのクリーンアップ（必要に応じて）
+    // Provider clients created for individual requests are closed immediately.
   }
 }

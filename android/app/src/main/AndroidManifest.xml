@@ -7,6 +7,9 @@
     <application
         android:label="RC Setting Manager"
         android:name="${applicationName}"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/launcher_icon">
         <activity
             android:name=".MainActivity"

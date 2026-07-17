@@ -23,7 +23,9 @@ class ApiConsentService {
       'weather_location_api_consent_v1';
   static const String _weatherAndLocationPromptSuppressedKey =
       'weather_location_api_prompt_suppressed_v1';
-  static const String _aiAndOcrConsentKey = 'gemini_api_consent_v2';
+  // The destination changed from the managed Gemini function to a
+  // user-selected provider, so the previous consent must not be reused.
+  static const String _aiAndOcrConsentKey = 'ai_provider_api_consent_v3';
 
   static final Map<ApiConsentType, Future<bool>> _pendingRequests = {};
 
@@ -244,10 +246,10 @@ class ApiConsentService {
               'uses your device location.'
           : '近くのコース検索と現在の天気取得のため、端末の位置情報を利用します。',
       ApiConsentType.aiAndOcr => isEnglish
-          ? 'The app sends the following data to Google Gemini through '
-              'Firebase Functions to provide AI advice and OCR.'
-          : 'AIアドバイスとOCRを提供するため、以下のデータをFirebase Functions'
-              '経由でGoogle Geminiへ送信します。',
+          ? 'To provide AI advice and OCR, the app sends the following data '
+              'directly to the AI provider selected in Settings.'
+          : 'AIアドバイスとOCRを提供するため、以下のデータを設定画面で選択した'
+              'AIプロバイダーへ直接送信します。',
     };
   }
 
@@ -278,16 +280,22 @@ class ApiConsentService {
                   'for AI advice.',
               'Up to five related run logs may be included after they are '
                   'shown in the consultation screen.',
+              'Your API key is used only to authenticate the direct request. '
+                  'It is not included in prompts, app backups, or cloud sync.',
               'Do not select images containing personal or confidential '
                   'information.',
-              'Firebase anonymous authentication is used to protect the API.',
+              'The selected provider processes data under its own terms and '
+                  'privacy policy.',
             ]
           : const [
               'OCRで選択した画像と、画像内に含まれる文字情報。',
               'RCカーの設定値、コース・天気情報、AIアドバイスに入力したメッセージ。',
               '相談画面で件数を確認した関連走行ログ（最大5件）。',
+              'APIキーは直接通信の認証だけに使用し、プロンプト、アプリのバックアップ、'
+                  'クラウド同期には含めません。',
               '個人情報や機密情報が写った画像は選択しないでください。',
-              'API保護のためFirebase匿名認証を使用します。',
+              '送信データは、選択したプロバイダーの利用規約とプライバシーポリシーに'
+                  '基づいて処理されます。',
             ],
     };
   }

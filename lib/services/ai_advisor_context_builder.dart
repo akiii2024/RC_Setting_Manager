@@ -156,6 +156,9 @@ class AIAdvisorContextBuilder {
     final step = (item.constraints['step'] as num).toDouble().abs();
     if (current == null ||
         proposed == null ||
+        !min.isFinite ||
+        !max.isFinite ||
+        !step.isFinite ||
         step <= 0 ||
         proposed < min ||
         proposed > max) {
@@ -284,13 +287,17 @@ class AIAdvisorContextBuilder {
   }
 
   static double? _asDouble(dynamic value, {String? unit}) {
-    if (value is num) return value.toDouble();
-    if (value is! String) return null;
-    var normalized = value.trim().replaceAll(',', '.');
-    if (unit != null && unit.isNotEmpty) {
-      normalized = normalized.replaceAll(unit, '');
+    double? parsed;
+    if (value is num) {
+      parsed = value.toDouble();
+    } else if (value is String) {
+      var normalized = value.trim().replaceAll(',', '.');
+      if (unit != null && unit.isNotEmpty) {
+        normalized = normalized.replaceAll(unit, '');
+      }
+      parsed = double.tryParse(normalized.trim());
     }
-    return double.tryParse(normalized.trim());
+    return parsed != null && parsed.isFinite ? parsed : null;
   }
 
   static String _truncate(String value, int maxLength) {

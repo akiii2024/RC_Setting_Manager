@@ -10,7 +10,7 @@ import '../providers/settings_provider.dart';
 import '../services/ai_advisor_context_builder.dart';
 import '../services/ai_advisor_service.dart';
 import '../services/weather_service.dart';
-import '../widgets/gemini_usage_indicator.dart';
+import '../widgets/ai_provider_indicator.dart';
 
 class AISettingAdvisorPage extends StatefulWidget {
   final Car car;
@@ -516,7 +516,7 @@ class _AISettingAdvisorPageState extends State<AISettingAdvisorPage> {
                         : '同じ車種の、現在セットまたは現在コースに関連する履歴だけを選びます。',
                   ),
                 ),
-                GeminiUsageIndicator(isEnglish: _isEnglish),
+                const AiProviderIndicator(),
               ],
             ),
           ),
@@ -604,7 +604,7 @@ class _AISettingAdvisorPageState extends State<AISettingAdvisorPage> {
                         : 'AIからの追加質問は最大2問です'),
               ),
               const SizedBox(height: 8),
-              GeminiUsageIndicator(isEnglish: _isEnglish),
+              const AiProviderIndicator(),
             ],
           ),
         ),

@@ -79,21 +79,21 @@ void main() {
     );
   });
 
-  testWidgets('Gemini consent can be revoked from settings', (tester) async {
+  testWidgets('AI data consent can be revoked from settings', (tester) async {
     await ApiConsentService.grantConsent(
       ApiConsentType.aiAndOcr,
     );
     await _pumpSettingsPage(tester);
 
     await tester.scrollUntilVisible(
-      find.text('Gemini（AI・OCR）'),
+      find.text('AI・OCRのデータ送信'),
       200,
     );
     await tester.pumpAndSettle();
 
     expect(find.text('AIアドバイス・OCRの利用に同意済みです'), findsOneWidget);
 
-    await tester.tap(find.text('Gemini（AI・OCR）'));
+    await tester.tap(find.text('AI・OCRのデータ送信'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('同意を取り消す'));
     await tester.pumpAndSettle();
@@ -102,13 +102,13 @@ void main() {
       await ApiConsentService.hasConsent(ApiConsentType.aiAndOcr),
       isFalse,
     );
-    final geminiTile = find.ancestor(
-      of: find.text('Gemini（AI・OCR）'),
+    final aiConsentTile = find.ancestor(
+      of: find.text('AI・OCRのデータ送信'),
       matching: find.byType(ListTile),
     );
     expect(
       find.descendant(
-        of: geminiTile,
+        of: aiConsentTile,
         matching: find.text('利用時に確認します'),
       ),
       findsOneWidget,

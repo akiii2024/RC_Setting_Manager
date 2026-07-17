@@ -7,10 +7,11 @@ import '../models/car.dart';
 import '../models/car_setting_definition.dart';
 import '../providers/settings_provider.dart';
 import '../services/api_consent_service.dart';
-import '../services/gemini_usage_service.dart';
+import '../services/ai_configuration_service.dart';
 import '../services/ocr_service.dart';
-import '../widgets/gemini_usage_indicator.dart';
+import '../widgets/ai_provider_indicator.dart';
 import '../data/car_settings_definitions.dart';
+import 'ai_provider_settings_page.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 class OCRImportPage extends StatefulWidget {
@@ -72,6 +73,10 @@ class _OCRImportPageState extends State<OCRImportPage> {
       return;
     }
 
+    if (!await _ensureAiConfigured() || !mounted) {
+      return;
+    }
+
     final consentGranted = await ApiConsentService.requestConsent(
       context,
       type: ApiConsentType.aiAndOcr,
@@ -79,15 +84,6 @@ class _OCRImportPageState extends State<OCRImportPage> {
           Provider.of<SettingsProvider>(context, listen: false).isEnglish,
     );
     if (!consentGranted || !mounted) {
-      return;
-    }
-
-    try {
-      await GeminiUsageService.refresh();
-    } catch (e) {
-      debugLog('Gemini usage refresh failed: $e');
-    }
-    if (!mounted) {
       return;
     }
 
@@ -160,10 +156,66 @@ class _OCRImportPageState extends State<OCRImportPage> {
         );
       }
     } finally {
-      setState(() {
-        _isProcessing = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
+  }
+
+  Future<bool> _ensureAiConfigured() async {
+    try {
+      if (await AiConfigurationService().activeConfiguration != null) {
+        return true;
+      }
+    } catch (_) {
+      // Show the same setup guidance for unavailable secure storage.
+    }
+    if (!mounted) return false;
+    final isEnglish =
+        Provider.of<SettingsProvider>(context, listen: false).isEnglish;
+    final openSettings = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(isEnglish ? 'AI setup required' : 'AI設定が必要です'),
+            content: Text(
+              isEnglish
+                  ? 'Set an OpenAI, Anthropic, or Gemini API key before '
+                      'using image OCR.'
+                  : '画像OCRを使う前に、OpenAI・Anthropic・Geminiのいずれかの'
+                      'APIキーを設定してください。',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(isEnglish ? 'Open settings' : '設定を開く'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (openSettings && mounted) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => AiProviderSettingsPage(
+            isEnglish: isEnglish,
+          ),
+        ),
+      );
+      if (!mounted) return false;
+      setState(() {});
+      try {
+        return await AiConfigurationService().activeConfiguration != null;
+      } catch (_) {
+        return false;
+      }
+    }
+    return false;
   }
 
   Future<void> _processImage(dynamic imageFile) async {
@@ -180,9 +232,11 @@ class _OCRImportPageState extends State<OCRImportPage> {
         debugLog('Image exists: ${await imageFile.exists()}');
         debugLog('Image size: ${await imageFile.length()} bytes');
       }
+      if (!mounted) return;
 
       final recognizedText =
           await _ocrService!.recognizeTextFromImage(imageFile);
+      if (!mounted) return;
 
       if (recognizedText != null) {
         debugLog('Text recognized successfully');
@@ -228,6 +282,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
               extractedSettings,
               carDefinition.availableSettings,
             );
+            if (!mounted) return;
 
             setState(() {
               _extractedSettings = mappedSettings;
@@ -247,9 +302,15 @@ class _OCRImportPageState extends State<OCRImportPage> {
             }
           } catch (e) {
             debugLog('AIマッピングでエラーが発生しました: $e');
+            if (!mounted) return;
             // エラーの場合は基本抽出結果を使用
+            final safeExtractedSettings =
+                _ocrService!.validateSettingsForImport(
+              extractedSettings,
+              carDefinition.availableSettings,
+            );
             setState(() {
-              _extractedSettings = extractedSettings;
+              _extractedSettings = safeExtractedSettings;
             });
 
             if (mounted) {
@@ -476,9 +537,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
               const SizedBox(height: 16),
             ],
 
-            GeminiUsageIndicator(
-              isEnglish: Provider.of<SettingsProvider>(context).isEnglish,
-            ),
+            const AiProviderIndicator(),
             const SizedBox(height: 16),
 
             // 画像選択ボタン

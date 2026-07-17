@@ -15,11 +15,12 @@ import '../models/track_location.dart';
 import '../services/track_location_service.dart';
 import './ocr_import_page.dart';
 import './ai_setting_advisor_page.dart';
+import './ai_provider_settings_page.dart';
 import '../services/ai_advisor_service.dart';
+import '../services/ai_configuration_service.dart';
 import '../services/api_consent_service.dart';
-import '../services/gemini_usage_service.dart';
 import '../utils/platform_detection.dart';
-import '../widgets/gemini_usage_indicator.dart';
+import '../widgets/ai_provider_indicator.dart';
 import '../widgets/ios_weather_unavailable_dialog.dart';
 
 BoxConstraints _responsiveDialogConstraints(
@@ -487,6 +488,10 @@ class _CarSettingPageState extends State<CarSettingPage> {
       return;
     }
 
+    if (!await _ensureAiConfigured(isEnglish) || !mounted) {
+      return;
+    }
+
     final consentGranted = await ApiConsentService.requestConsent(
       context,
       type: ApiConsentType.aiAndOcr,
@@ -495,13 +500,6 @@ class _CarSettingPageState extends State<CarSettingPage> {
     if (!consentGranted || !mounted) {
       return;
     }
-
-    try {
-      await GeminiUsageService.refresh();
-    } catch (e) {
-      debugLog('Gemini usage refresh failed: $e');
-    }
-    if (!mounted) return;
 
     final derivedSetting = await Navigator.of(context).push<SavedSetting>(
       MaterialPageRoute(
@@ -538,6 +536,58 @@ class _CarSettingPageState extends State<CarSettingPage> {
         ),
       );
     }
+  }
+
+  Future<bool> _ensureAiConfigured(bool isEnglish) async {
+    try {
+      if (await AiConfigurationService().activeConfiguration != null) {
+        return true;
+      }
+    } catch (_) {
+      // Secure-storage failures use the same actionable setup dialog.
+    }
+    if (!mounted) return false;
+    final openSettings = await showDialog<bool>(
+          context: context,
+          builder: (dialogContext) => AlertDialog(
+            title: Text(isEnglish ? 'AI setup required' : 'AI設定が必要です'),
+            content: Text(
+              isEnglish
+                  ? 'Set an OpenAI, Anthropic, or Gemini API key before '
+                      'starting AI setup advice.'
+                  : 'AIセッティング相談を始める前に、OpenAI・Anthropic・Geminiの'
+                      'いずれかのAPIキーを設定してください。',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: Text(isEnglish ? 'Open settings' : '設定を開く'),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+    if (openSettings && mounted) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => AiProviderSettingsPage(
+            isEnglish: isEnglish,
+          ),
+        ),
+      );
+      if (!mounted) return false;
+      setState(() {});
+      try {
+        return await AiConfigurationService().activeConfiguration != null;
+      } catch (_) {
+        return false;
+      }
+    }
+    return false;
   }
 
   // 会話モードを開始
@@ -681,9 +731,9 @@ class _CarSettingPageState extends State<CarSettingPage> {
               ),
             ),
 
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: GeminiUsageIndicator(isEnglish: isEnglish),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: AiProviderIndicator(),
             ),
 
             // コンテンツ
@@ -5853,9 +5903,9 @@ class _ConversationDialogState extends State<_ConversationDialog> {
             ),
           ),
 
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-            child: GeminiUsageIndicator(isEnglish: widget.isEnglish),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: AiProviderIndicator(),
           ),
 
           // メッセージリスト

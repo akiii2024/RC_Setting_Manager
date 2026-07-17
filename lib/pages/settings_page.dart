@@ -3,12 +3,14 @@ import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/api_consent_service.dart';
+import '../services/ai_configuration_service.dart';
 import '../services/auth_service.dart';
 import '../data/car_settings_definitions.dart';
 import '../models/car.dart';
 import '../models/car_setting_definition.dart';
 import '../models/visibility_settings.dart';
 import 'import_export_page.dart';
+import 'ai_provider_settings_page.dart';
 
 enum _LocationConsentSetting {
   enabled,
@@ -37,12 +39,15 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isLoadingLocationConsent = true;
   bool _hasAiConsent = false;
   bool _isLoadingAiConsent = true;
+  String? _aiProviderSummary;
+  bool _isLoadingAiProvider = true;
 
   @override
   void initState() {
     super.initState();
     _loadLocationConsentState();
     _loadAiConsentState();
+    _loadAiProviderState();
   }
 
   @override
@@ -174,10 +179,44 @@ class _SettingsPageState extends State<SettingsPage> {
           const SizedBox(height: 16.0),
           ListTile(
             title: Text(
-              isEnglish ? 'Gemini (AI and OCR)' : 'Gemini（AI・OCR）',
+              isEnglish ? 'AI Provider and API Key' : 'AIプロバイダー・APIキー',
+            ),
+            subtitle: Text(
+              _isLoadingAiProvider
+                  ? (isEnglish ? 'Loading...' : '読み込み中...')
+                  : (_aiProviderSummary ??
+                      (isEnglish ? 'Not configured' : '未設定')),
+            ),
+            leading: const Icon(Icons.key_outlined),
+            trailing: _isLoadingAiProvider
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.arrow_forward_ios),
+            onTap: _isLoadingAiProvider
+                ? null
+                : () async {
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => AiProviderSettingsPage(
+                          isEnglish: isEnglish,
+                        ),
+                      ),
+                    );
+                    await _loadAiProviderState();
+                  },
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          ),
+          const SizedBox(height: 16.0),
+          ListTile(
+            title: Text(
+              isEnglish ? 'AI and OCR Data Sharing' : 'AI・OCRのデータ送信',
             ),
             subtitle: Text(_aiConsentStatusText(isEnglish)),
-            leading: const Icon(Icons.auto_awesome_outlined),
+            leading: const Icon(Icons.policy_outlined),
             trailing: _isLoadingAiConsent
                 ? const SizedBox(
                     width: 24,
@@ -478,6 +517,27 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
+  Future<void> _loadAiProviderState() async {
+    try {
+      final service = AiConfigurationService();
+      final settings = await service.activeSettings;
+      if (!mounted) return;
+      setState(() {
+        // APIキーの状態はセキュアストレージを扱う専用画面でだけ確認する。
+        // これにより設定一覧の初期表示をOS資格情報ストアに依存させない。
+        _aiProviderSummary =
+            '${settings.provider.displayName} / ${settings.model}';
+        _isLoadingAiProvider = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _aiProviderSummary = null;
+        _isLoadingAiProvider = false;
+      });
+    }
+  }
+
   String _locationConsentStatusText(bool isEnglish) {
     if (_isLoadingLocationConsent) {
       return isEnglish ? 'Loading...' : '読み込み中...';
@@ -635,7 +695,7 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (dialogContext) => SimpleDialog(
         title: Text(
-          isEnglish ? 'Gemini (AI and OCR)' : 'Gemini（AI・OCR）',
+          isEnglish ? 'AI and OCR Data Sharing' : 'AI・OCRのデータ送信',
         ),
         children: [
           _buildAiConsentOption(

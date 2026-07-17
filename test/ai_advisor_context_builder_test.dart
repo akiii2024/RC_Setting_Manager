@@ -177,7 +177,27 @@ void main() {
     expect(validate('frontCamber', '-1.5'), -1.5);
     expect(validate('frontCamber', '-2.0'), isNull);
     expect(validate('frontCamber', '99'), isNull);
+    expect(validate('frontCamber', 'NaN'), isNull);
+    expect(validate('frontCamber', 'Infinity'), isNull);
     expect(validate('frontSpring', 'Hard'), isNull);
     expect(validate('unknown', '0'), isNull);
+
+    expect(
+      AIAdvisorContextBuilder.validatedProposedValue(
+        change: const AdvisorSettingChange(
+          settingKey: 'frontCamber',
+          settingLabel: 'frontCamber',
+          currentValue: 'NaN',
+          proposedValue: '-1.5',
+          reason: '',
+          expectedEffect: '',
+          tradeoff: '',
+          priority: 1,
+        ),
+        settingDefinition: definition,
+        currentSettings: const {'frontCamber': double.nan},
+      ),
+      isNull,
+    );
   });
 }
