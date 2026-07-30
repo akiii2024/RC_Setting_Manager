@@ -94,10 +94,12 @@ class LocationService {
         }
       }
 
-      return await Geolocator.getCurrentPosition(
-        desiredAccuracy:
-            kIsWeb ? LocationAccuracy.medium : LocationAccuracy.high,
+      final locationSettings = LocationSettings(
+        accuracy: kIsWeb ? LocationAccuracy.medium : LocationAccuracy.high,
         timeLimit: const Duration(seconds: 20),
+      );
+      return await Geolocator.getCurrentPosition(
+        locationSettings: locationSettings,
       );
     } on LocationException {
       rethrow;
