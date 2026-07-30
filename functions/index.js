@@ -634,7 +634,7 @@ async function callGeminiRequest(model, requestBody) {
   let body;
   try {
     body = bodyText ? JSON.parse(bodyText) : {};
-  } catch (_) {
+  } catch {
     logger.error("Gemini returned invalid JSON.", {status: response.status});
     throw new HttpsError("internal", "The AI service returned invalid data.");
   }
@@ -884,7 +884,7 @@ async function callSettingAdvisor(request) {
   let parsed;
   try {
     parsed = JSON.parse(result.text);
-  } catch (_) {
+  } catch {
     logger.error("Gemini advisor returned invalid JSON.", {
       modelVersion: result.modelVersion,
       phase: request.phase,
