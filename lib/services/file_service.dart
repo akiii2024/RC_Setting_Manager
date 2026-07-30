@@ -22,9 +22,11 @@ class FileService {
       await file.writeAsString(xmlContent);
 
       // ファイルを共有
-      await Share.shareXFiles(
-        [XFile(file.path)],
-        text: 'RC Car Settings Export',
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path)],
+          text: 'RC Car Settings Export',
+        ),
       );
     } catch (e) {
       throw Exception('Failed to save and share file: $e');
@@ -36,7 +38,9 @@ class FileService {
     if (kIsWeb) {
       // Web環境では、share_plus を使用してファイルを共有
       // または、ダウンロード機能を実装
-      await Share.share(content, subject: fileName);
+      await SharePlus.instance.share(
+        ShareParams(text: content, subject: fileName),
+      );
     }
   }
 

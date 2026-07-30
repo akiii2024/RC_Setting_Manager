@@ -271,7 +271,9 @@ class XmlService {
 
       if (kIsWeb) {
         // Web環境では直接共有
-        await Share.share(xmlContent, subject: fileName);
+        await SharePlus.instance.share(
+          ShareParams(text: xmlContent, subject: fileName),
+        );
       } else {
         // モバイル環境では従来の方法
         final directory = await getApplicationDocumentsDirectory();
@@ -280,9 +282,11 @@ class XmlService {
         await file.writeAsString(xmlContent);
 
         // ファイルを共有
-        await Share.shareXFiles(
-          [XFile(file.path)],
-          text: isEnglish ? 'RC Car Settings Export' : 'RCカーセッティングエクスポート',
+        await SharePlus.instance.share(
+          ShareParams(
+            files: [XFile(file.path)],
+            text: isEnglish ? 'RC Car Settings Export' : 'RCカーセッティングエクスポート',
+          ),
         );
       }
     } catch (e) {

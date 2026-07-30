@@ -282,7 +282,8 @@ class ToolsPage extends StatelessWidget {
     );
   }
 
-  void _shareSettingData(BuildContext context, SavedSetting setting) {
+  Future<void> _shareSettingData(
+      BuildContext context, SavedSetting setting) async {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
@@ -304,7 +305,9 @@ class ToolsPage extends StatelessWidget {
       buffer.writeln('$key: $value');
     });
 
-    Share.share(buffer.toString());
+    await SharePlus.instance.share(
+      ShareParams(text: buffer.toString()),
+    );
   }
 
   String _formatDate(DateTime dateTime, bool isEnglish) {
