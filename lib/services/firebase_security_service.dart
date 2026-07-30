@@ -46,15 +46,16 @@ class FirebaseSecurityService {
       }
 
       await FirebaseAppCheck.instance.activate(
-        webProvider: ReCaptchaV3Provider(_webSiteKey),
+        providerWeb: ReCaptchaV3Provider(_webSiteKey),
       );
       return;
     }
 
     if (defaultTargetPlatform == TargetPlatform.android) {
       await FirebaseAppCheck.instance.activate(
-        androidProvider:
-            kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+        providerAndroid: kDebugMode
+            ? const AndroidDebugProvider()
+            : const AndroidPlayIntegrityProvider(),
       );
       return;
     }
@@ -62,9 +63,9 @@ class FirebaseSecurityService {
     if (defaultTargetPlatform == TargetPlatform.iOS ||
         defaultTargetPlatform == TargetPlatform.macOS) {
       await FirebaseAppCheck.instance.activate(
-        appleProvider: kDebugMode
-            ? AppleProvider.debug
-            : AppleProvider.appAttestWithDeviceCheckFallback,
+        providerApple: kDebugMode
+            ? const AppleDebugProvider()
+            : const AppleAppAttestWithDeviceCheckFallbackProvider(),
       );
       return;
     }
