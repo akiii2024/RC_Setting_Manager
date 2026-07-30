@@ -197,4 +197,13 @@ void main() {
     expect(result.runLogs, isEmpty);
     expect(result.ownedParts, isEmpty);
   });
+
+  test('rejects oversized XML before parsing', () async {
+    final oversized = 'x' * (XmlService.maxImportCharacters + 1);
+
+    expect(
+      XmlService.importFromXml(oversized),
+      throwsA(isA<Exception>()),
+    );
+  });
 }

@@ -51,6 +51,8 @@ class ExportImportOptions {
 }
 
 class XmlService {
+  static const int maxImportCharacters = 5 * 1024 * 1024;
+
   // データをXML形式でエクスポート（部分的エクスポート対応）
   static Future<String> exportToXml({
     required List<SavedSetting> savedSettings,
@@ -293,6 +295,9 @@ class XmlService {
       {ExportImportOptions? options}) async {
     final importOptions = options ?? const ExportImportOptions();
     try {
+      if (xmlContent.length > maxImportCharacters) {
+        throw const FormatException('XMLデータは5 MiB以下にしてください。');
+      }
       final document = XmlDocument.parse(xmlContent);
       final root = document.rootElement;
 
@@ -787,6 +792,9 @@ class XmlService {
 
     try {
       final file = File(filePath);
+      if (await file.length() > maxImportCharacters) {
+        throw const FormatException('XMLファイルは5 MiB以下にしてください。');
+      }
       final xmlContent = await file.readAsString();
       return await importFromXml(xmlContent, options: options);
     } catch (e) {

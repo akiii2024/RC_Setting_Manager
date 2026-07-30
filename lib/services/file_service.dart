@@ -4,6 +4,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
 class FileService {
+  static const int maxXmlImportBytes = 5 * 1024 * 1024;
+
   // XMLファイルを保存してシェア
   static Future<void> saveAndShareXml(
       String xmlContent, String fileName) async {
@@ -70,7 +72,11 @@ class FileService {
     }
 
     try {
-      return await (file as File).readAsString();
+      final targetFile = file as File;
+      if (await targetFile.length() > maxXmlImportBytes) {
+        throw const FormatException('XMLファイルは5 MiB以下にしてください。');
+      }
+      return await targetFile.readAsString();
     } catch (e) {
       throw Exception('Failed to read file: $e');
     }

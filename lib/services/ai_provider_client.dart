@@ -42,6 +42,12 @@ class AiProviderException implements Exception {
 ///
 /// APIキーはすべてHTTPヘッダーへ設定し、URL・本文・例外には含めない。
 class AiProviderClient {
+  static const int maxImageBytes = 10 * 1024 * 1024;
+  static const int maxPromptCharacters = 50000;
+  static const int maxSystemCharacters = 20000;
+  static const int maxSchemaCharacters = 100000;
+  static const int maxOutputTokens = 8192;
+
   AiProviderClient({
     required AiConfiguration configuration,
     http.Client? client,
@@ -54,7 +60,11 @@ class AiProviderClient {
           configuration.provider,
           configuration.model,
         ),
-        _apiKey = _requiredValue(configuration.apiKey, 'APIキー'),
+        _apiKey = _requiredValue(
+          configuration.apiKey,
+          'APIキー',
+          maxLength: 2048,
+        ),
         _client = client ?? http.Client(),
         _ownsClient = client == null,
         _openAiBaseUri =
@@ -78,18 +88,29 @@ class AiProviderClient {
   final Uri _anthropicBaseUri;
   final Uri _geminiBaseUri;
 
-  static String _requiredValue(String value, String label) {
+  static String _requiredValue(
+    String value,
+    String label, {
+    int? maxLength,
+  }) {
     final normalized = value.trim();
     if (normalized.isEmpty) {
       throw ArgumentError('$labelを空白だけにすることはできません。');
+    }
+    if (maxLength != null && normalized.length > maxLength) {
+      throw ArgumentError('$labelが長すぎます。');
     }
     return normalized;
   }
 
   static String _normalizedModel(AiProvider provider, String value) {
-    final normalized = _requiredValue(value, 'モデル名');
+    final normalized = _requiredValue(value, 'モデル名', maxLength: 200);
     if (provider == AiProvider.gemini && normalized.startsWith('models/')) {
-      return _requiredValue(normalized.substring('models/'.length), 'モデル名');
+      return _requiredValue(
+        normalized.substring('models/'.length),
+        'モデル名',
+        maxLength: 200,
+      );
     }
     return normalized;
   }
@@ -101,9 +122,20 @@ class AiProviderClient {
     required String schemaName,
     int maxTokens = 4096,
   }) async {
-    final normalizedSystem = _requiredValue(system, 'システム指示');
-    final normalizedPrompt = _requiredValue(prompt, 'プロンプト');
+    final normalizedSystem = _requiredValue(
+      system,
+      'システム指示',
+      maxLength: maxSystemCharacters,
+    );
+    final normalizedPrompt = _requiredValue(
+      prompt,
+      'プロンプト',
+      maxLength: maxPromptCharacters,
+    );
     final normalizedSchemaName = _validateSchemaName(schemaName);
+    if (jsonEncode(schema).length > maxSchemaCharacters) {
+      throw ArgumentError('レスポンススキーマが大きすぎます。');
+    }
     _validateMaxTokens(maxTokens);
 
     final response = switch (provider) {
@@ -186,7 +218,11 @@ class AiProviderClient {
     String? mimeType,
     int maxTokens = 4096,
   }) async {
-    final normalizedPrompt = _requiredValue(prompt, 'プロンプト');
+    final normalizedPrompt = _requiredValue(
+      prompt,
+      'プロンプト',
+      maxLength: maxPromptCharacters,
+    );
     final normalizedMimeType = _validateImage(imageBytes, mimeType);
     _validateMaxTokens(maxTokens);
 
@@ -341,8 +377,10 @@ class AiProviderClient {
   }
 
   void _validateMaxTokens(int maxTokens) {
-    if (maxTokens <= 0) {
-      throw ArgumentError('最大トークン数は1以上にしてください。');
+    if (maxTokens <= 0 || maxTokens > maxOutputTokens) {
+      throw ArgumentError(
+        '最大トークン数は1以上$maxOutputTokens以下にしてください。',
+      );
     }
   }
 
@@ -355,6 +393,9 @@ class AiProviderClient {
     }
     if (imageBytes.isEmpty) {
       throw ArgumentError('画像データが空です。');
+    }
+    if (imageBytes.lengthInBytes > maxImageBytes) {
+      throw ArgumentError('画像は10 MiB以下にしてください。');
     }
 
     final normalized = mimeType?.trim().toLowerCase() ?? '';

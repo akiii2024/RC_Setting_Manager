@@ -428,5 +428,24 @@ void main() {
       client.generateText('prompt', maxTokens: 0),
       throwsArgumentError,
     );
+    expect(
+      client.generateText(
+        'prompt',
+        maxTokens: AiProviderClient.maxOutputTokens + 1,
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      client.generateText('x' * (AiProviderClient.maxPromptCharacters + 1)),
+      throwsArgumentError,
+    );
+    expect(
+      client.generateText(
+        'prompt',
+        imageBytes: Uint8List(AiProviderClient.maxImageBytes + 1),
+        mimeType: 'image/png',
+      ),
+      throwsArgumentError,
+    );
   });
 }

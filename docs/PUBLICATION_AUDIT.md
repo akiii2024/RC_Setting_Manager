@@ -1,317 +1,91 @@
-# 公開前監査メモ
-
-作成日: 2026-06-22
-
-## 対応状況
-
-2026-06-25 にコード側の主要問題を修正しました。Firebase Console、Google Cloud Console、GitHub、Play Console、App Store Connect で必要な作業は [PUBLISHING_SETUP_GUIDE.md](./PUBLISHING_SETUP_GUIDE.md) に分離しています。
-
-コード側で対応済み:
-
-- 公開 HTTP Functions の定義と Web 側フォールバックを削除
-- callable Functions に Auth、App Check、入力上限、レート制限、最大インスタンス数を追加
-- Firestore Rules を追加し `firebase.json` の配布対象に設定
-- GitHub Actions から Gemini / OpenWeather secret の `.env` 書き出しを削除
-- iOS `Info.plist` の XML と権限説明を修正
-- Android release build の debug 署名利用を廃止
-- 未使用 ML Kit 依存を削除
-- release でアプリログを出さない共通 logger に移行
-- 独自 `web/sw.js` を削除し、Web manifest の文字化けを修正
-- Functions 依存関係を更新し、`npm audit --omit=dev` の脆弱性を解消
-
-外部作業が必要:
-
-- 公開用 application ID / Bundle ID の確定
-- Android upload key と Play App Signing の設定
-- Firebase Auth、App Check、Functions Secret、Firestore TTL の設定
-- 旧 public Functions の削除
-- Firebase クライアント API key のプラットフォーム制限
-- iOS release build とストア申告
-
-このメモは、RC Setting Manager を公開する前に確認した API、Firebase、ビルド設定、権限、ログ、依存関係まわりの調査結果です。
-
-## 結論
-
-このまま公開するのはまだ推奨しません。
-
-Gemini / OpenWeather の実 API キーを Flutter アプリへ直接埋め込まない構成になっている点は良い状態です。一方で、公開 Cloud Functions が保護不足で、誰でも API コストを発生させられる可能性があります。また Android release build と iOS の `Info.plist` に公開前ブロッカーがあります。
-
-## 良い点
-
-- `.env` は `.gitignore` 対象で、Git 管理にも入っていません。
-- `google-services.json` / `GoogleService-Info.plist` の実ファイルは管理対象になく、example のみです。
-- Gemini / OpenWeather の実キーは Flutter アプリや `build/web` には見つかりませんでした。
-- Gemini / OpenWeather は Firebase Functions の Secret Manager 経由に寄せられています。
-- Web release build は成功しました。
-
-## 公開前ブロッカー
-
-### 1. Cloud Functions が実質誰でも呼べる
-
-対象:
-
-- `functions/index.js`
-- `lib/services/firebase_functions_service.dart`
-
-`functions/index.js` の `onPublicCallable` で `cors: true`、`invoker: "public"` が設定され、`generateGeminiContentPublic` / `getCurrentWeatherPublic` / `validateOpenWeatherApiKeyPublic` が公開されています。
-
-Web クライアント側も `lib/services/firebase_functions_service.dart` で Web の場合 public HTTP Functions に切り替えています。
-
-リスク:
-
-- 第三者が Gemini API を叩き続けて課金を発生させられる。
-- OpenWeather API の quota を消費される。
-- CORS が全許可のため、別サイトからも呼び出しやすい。
-- Gemini 入力のサイズ制限が弱く、base64 画像などでコスト増や DoS に近い負荷を作れる。
-
-推奨対応:
-
-- Firebase App Check を有効化し、Functions 側で enforcement する。
-- 可能なら Firebase Auth 必須にする。
-- ユーザー単位/IP単位のレート制限を入れる。
-- `contents` の件数、文字数、画像サイズ、mime type を制限する。
-- Gemini だけでも public endpoint をやめ、Callable Functions + App Check に寄せる。
-
-### 2. Android release build が失敗する
-
-実行結果:
-
-```bash
-flutter build apk --release
-```
-
-結果: 失敗
-
-主因:
-
-R8 が `google_mlkit_text_recognition` の script-specific TextRecognizer クラスを見つけられません。
-
-例:
-
-- `com.google.mlkit.vision.text.japanese.JapaneseTextRecognizerOptions`
-- `com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions`
-- `com.google.mlkit.vision.text.korean.KoreanTextRecognizerOptions`
-- `com.google.mlkit.vision.text.devanagari.DevanagariTextRecognizerOptions`
-
-推奨対応:
-
-- `google_mlkit_text_recognition` の日本語など script-specific 依存関係を Android 側に追加する。
-- 使わない script を無効化できる構成なら無効化する。
-- 必要に応じて `missing_rules.txt` の内容を ProGuard rules に反映する。ただし `-dontwarn` だけで実行時問題が消えるとは限らないため、依存関係追加を優先する。
-
-### 3. iOS の `Info.plist` が XML として壊れている
-
-対象:
-
-- `ios/Runner/Info.plist`
-
-問題:
-
-`NSCameraUsageDescription`、`NSPhotoLibraryUsageDescription`、`NSLocation...UsageDescription` の `string` タグが `</string>` ではなく文字列内に `/string>` として入っており、XML パースに失敗します。文言も mojibake しています。
-
-推奨対応:
-
-- 権限説明を正しい日本語に直す。
-- XML としてパースできることを確認する。
-- App Store 審査向けに、何のためにカメラ/写真/位置情報を使うかを明確に書く。
-
-### 4. Android release signing が debug のまま
-
-対象:
-
-- `android/app/build.gradle`
-
-問題:
-
-`release` build type が `signingConfigs.debug` を使っています。
-
-推奨対応:
-
-- 公開用 keystore を作成する。
-- `key.properties` は Git 管理外にする。
-- release 用 signing config を設定する。
-
-### 5. パッケージ ID / Bundle ID が `com.example...`
-
-対象:
-
-- `android/app/build.gradle`
-- `ios/Runner.xcodeproj/project.pbxproj`
-- `lib/firebase_options.dart`
-
-問題:
-
-Android は `com.example.settingsheet_manager`、iOS は `com.example.settingsheetManager` になっています。
-
-推奨対応:
-
-- 公開用の固有 ID に変更する。
-- Firebase の Android/iOS アプリ設定も新 ID に合わせて再作成または更新する。
-- Google Cloud の API key 制限も新 ID / SHA / Bundle ID に合わせる。
-
-## API / セキュリティ上の問題
-
-### Firebase API key は公開成果物に入る
-
-`build/web/main.dart.js` に Firebase Web API key は入っていました。
-
-これは Firebase クライアント SDK では公開前提の情報ですが、制限なしで放置してよいものではありません。
-
-推奨対応:
-
-- Google Cloud Console で HTTP referrer 制限を設定する。
-- Android key は package name + SHA-1/SHA-256 で制限する。
-- iOS key は Bundle ID で制限する。
-- Firebase Auth の承認済みドメインを公開ドメインのみに絞る。
-- Firestore Rules / App Check で実データを守る。
-
-### Firestore Rules が repo から確認・deploy できない
-
-問題:
-
-`firebase.json` に Firestore rules の deploy 設定がありません。docs には rules 例がありますが、実運用ルールとして repo 管理されていません。
-
-また、実装では `guest_users/{uid}/data/...` を使いますが、docs の rules 例は `users/{userId}` 中心です。
-
-推奨対応:
-
-- `firestore.rules` を repo に追加する。
-- `firebase.json` に rules 設定を追加する。
-- `users/{uid}` と `guest_users/{uid}` の owner-only rules を明示する。
-- 可能なら rules test を追加する。
-
-### GitHub Actions が不要な秘密情報を `.env` に書いている
-
-対象:
-
-- `.github/workflows/deploy.yml`
-
-問題:
-
-Web build 前に `.env` へ `OPENWEATHER_API_KEY` と `GEMINI_API_KEY` を書いています。現状では `pubspec.yaml` の assets に `.env` がないため配布物には入っていませんでしたが、将来 `.env` を asset 登録すると漏えいします。
-
-推奨対応:
-
-- Web build workflow から Gemini / OpenWeather の secret 書き込みを削除する。
-- Firebase client config を使う場合も、必要な `--dart-define` だけに限定する。
-- 第三者 API キーは Functions secrets のみに置く。
-
-## ログ / プライバシー
-
-`flutter analyze` で production `print` が多数検出されました。
-
-特に注意が必要なログ:
-
-- `lib/services/weather_service.dart`: 緯度経度をログ出力
-- `lib/services/auth_service.dart`: メールアドレス、UID、Auth エラー詳細をログ出力
-- `lib/pages/ocr_import_page.dart`: 画像サイズ、OCR マッピング結果をログ出力
-- `lib/main.dart`: Flutter error stack trace、Firebase project/app 情報、current user UID をログ出力
-
-推奨対応:
-
-- 公開版では `kDebugMode` でログをガードする。
-- メール、UID、位置情報、OCR結果などの個人情報に近い情報は release で出さない。
-- ユーザーに表示するエラー文も内部例外をそのまま出さない。
-
-## 依存関係 / テスト
-
-### `flutter analyze`
-
-結果:
-
-- 221 issues
-- 多くは `avoid_print` と deprecated API
-
-主な内容:
-
-- production `print`
-- `withOpacity` deprecated
-- `DropdownButtonFormField.value` deprecated
-- `Radio.groupValue` / `onChanged` deprecated
-
-### `flutter test`
-
-結果:
-
-- 2 件失敗
-
-失敗箇所:
-
-- `test/car_test.dart:222`
-- `test/settings_provider_test.dart:241`
-
-公開前に、期待値と実装のどちらが正しいか確認して修正が必要です。
-
-### `npm audit --omit=dev`
-
-結果:
-
-- moderate 8 件
-- `uuid` 起点で `firebase-admin` / Google Cloud 系 transitive dependency に影響
-
-推奨対応:
-
-```bash
-cd functions
-npm audit fix
-```
-
-修正後に Functions の lint と deploy dry-run 相当を確認してください。
-
-### `flutter pub outdated`
-
-Firebase 系、`share_plus`、`geolocator`、`google_fonts`、`flutter_lints` など多数が古いです。
-
-公開前に全 major update を無理に入れる必要はありませんが、以下は優先確認対象です。
-
-- Firebase packages
-- `share_plus`
-- `geolocator`
-- `permission_handler`
-- `image_picker`
-- `google_mlkit_text_recognition`
-
-## Web / PWA
-
-Web release build は成功しました。
-
-生成物の確認結果:
-
-- `build/web/.env` は存在しません。
-- Gemini / OpenWeather のキーは見つかりません。
-- Firebase Web API key と Functions URL は `main.dart.js` に含まれます。
-
-注意:
-
-- `web/sw.js` に `throw error;` がありますが、そのスコープに `error` が定義されていません。Flutter 標準の `flutter_service_worker.js` と併用される構成にも見えるため、PWA の実動作確認が必要です。
-- `manifest.json` などにも mojibake が残っています。
-
-## 公開前の推奨対応順
-
-1. Functions を public 無制限から、Auth/App Check/レート制限/入力サイズ制限ありに変更する。
-2. Android release build の R8 / ML Kit 問題を修正する。
-3. iOS `Info.plist` と権限説明の mojibake/XML破損を修正する。
-4. Android/iOS の package ID / bundle ID、release signing、version を公開用に設定する。
-5. Firestore rules を repo 管理し、`users` / `guest_users` の owner-only rules を deploy 対象にする。
-6. production ログを削減する。
-7. `flutter test` の失敗 2 件を直す。
-8. Functions の `npm audit` と Flutter 依存関係の更新方針を決める。
-9. README/docs/manifest/UI 文言の mojibake を直す。
-
-## 実行した主な確認コマンド
-
-```bash
-git status --short
-rg --files
-rg -n "AIza|api[_-]?key|OPENWEATHER|GEMINI|Secret|token|password|private_key" -S .
-flutter analyze
-flutter test
-flutter pub outdated
-flutter build web --release --base-href "/RC_Setting_Manager/"
-flutter build apk --release
-npm audit --omit=dev
-```
-
-## 補足
-
-Android の `INTERNET` 権限は `android/app/src/main/AndroidManifest.xml` には直接ありませんが、release の merged manifest には依存プラグイン経由で入っていました。そのため、通信権限そのものは今回の主問題ではありません。
+# 公開前セキュリティ監査
+
+更新日: 2026-07-17
+
+## 判定
+
+コード側で対応できる主要な公開前セキュリティ対策と検証は完了しています。
+
+ただし、署名鍵、Firebase / Google Cloud Console、ストア申告はリポジトリ外の作業です。後述の「公開を止める外部作業」が終わるまでは、ストア版や本番 Functions を公開しないでください。具体的な順序は [PUBLISHING_SETUP_GUIDE.md](./PUBLISHING_SETUP_GUIDE.md) に記載しています。
+
+## 今回の対応
+
+### 秘密情報とAPI
+
+- `.env`、モバイル Firebase 設定ファイル、署名鍵、`key.properties` が Git 管理外であることを確認
+- Firebase クライアント API キーとサーバー秘密情報の違いをドキュメントで明確化
+- Gemini Functions の API キーを URL query ではなく `x-goog-api-key` ヘッダーで送信
+- AIプロバイダーの入力を、プロンプト50,000文字、system 20,000文字、schema 100,000文字、出力8,192 token、画像10 MiBに制限
+- XMLインポートを5 MiBに制限し、巨大入力をパース前に拒否
+- release UI で内部例外内容を表示しないよう変更
+
+### Firebase
+
+- callable Functions は Authentication、App Check、レート制限、入力検証、timeout、最大インスタンス数を使用
+- Firestore Rules を owner-only に加えて、許可するパス、フィールド、型、件数、文字数まで制限
+- 不明なクライアントパスは全面拒否し、Functions内部コレクションは Admin SDK 専用
+- Firestore Rules を公式エミュレータでコンパイル確認
+
+### Android / Apple
+
+- Androidのアプリバックアップと平文HTTPを明示的に禁止
+- Androidの信頼アンカーをsystem CAに限定する Network Security Config を追加
+- release署名がない場合は、Gradle設定段階でリリース成果物の生成を拒否
+- 依存関係が要求する Android Gradle Plugin 8.9.1へ更新
+- iOS / macOSでATSの任意HTTP通信を禁止
+- macOSのcamera、位置情報、ユーザー選択ファイル、Keychain access groupを最小権限で設定
+- 現在の公開版から `/login` の直接ルートを外し、未完成のオンラインアカウント機能を公開しない構成に変更
+
+### Web / CI
+
+- JavaScriptをインライン実行せず、CSPでscript、connect、frame、worker等の接続先を制限
+- NginxにCSP、Permissions-Policy、Referrer-Policy、HSTS、nosniff、clickjacking対策を追加
+- 非ハッシュJSを1年間immutable cacheする設定をやめ、更新が反映されるよう修正
+- GitHub Actionsの書込権限をdeploy jobだけに限定
+- 使用するGitHub Actionsを検証済みcommit SHAへ固定
+- Dependabotでpub、npm、GitHub Actionsを毎週確認
+
+### 依存関係
+
+- `flutter pub upgrade` で互換範囲内のロック依存57件を更新
+- Cloud Functions本番依存の `npm audit --omit=dev` は既知脆弱性0件
+- major updateは一括適用せず、Dependabot PRごとにテストして更新する方針
+
+## 検証結果
+
+| 検証 | 結果 |
+|---|---|
+| `flutter analyze` | 問題0件 |
+| `flutter test` | 86件すべて成功 |
+| Functions ESLint | 成功 |
+| Functions tests | 5件すべて成功 |
+| `npm audit --omit=dev` | 既知脆弱性0件 |
+| Firestore Rules emulator compile | 成功 |
+| Web release build | 成功 |
+| CSP下のheadless Chrome起動 | 初回描画成功、ブラウザsecurity errorなし |
+| Android debug APK build | 成功 |
+| XML / JSON / YAML構文 | 成功 |
+| `git diff --check` | 問題なし |
+
+Web buildは現在JavaScript rendererを使用します。Wasm dry runでは `flutter_secure_storage_web` と旧JS interop依存が非対応と報告されますが、現在配布するJavaScript buildの失敗ではありません。
+
+Android release buildは、公開用 `android/key.properties` がない現状では意図的に失敗します。実際のupload key設定後に、release AABを改めてビルド・署名検証してください。
+
+## 公開を止める外部作業
+
+- [ ] Android upload keyを安全な場所で作成し、Play App Signingを有効化する
+- [ ] `android/key.properties` をGit管理外で設定し、release AABをビルドする
+- [ ] macOS上のXcodeでiOS / macOS署名、entitlements、実機権限ダイアログを確認する
+- [ ] `com.aki.rcsettings` を最終application ID / Bundle IDとして使用できることを確認する
+- [ ] Firebase AuthenticationのAnonymousだけを有効化する
+- [ ] Web / Android / iOSのApp Checkを登録し、正規token確認後にConsole側 enforcementを有効化する
+- [ ] Functions Secretを登録し、Firestore Rules、Functionsの順に配布する
+- [ ] `_function_rate_limits.expiresAt` のFirestore TTLを設定する
+- [ ] 旧public HTTP Functionsが残っている場合は削除する
+- [ ] Firebaseクライアントキーのreferrer / package+SHA / Bundle ID制限を設定する
+- [ ] Firebase AuthのAuthorized domainsを本番ドメインだけに整理する
+- [ ] Cloud Billing予算通知、API quota、Functions / App Check監視を設定する
+- [ ] プライバシーポリシー、問い合わせ窓口、データ削除方法を公開し、各ストアのデータ申告を完了する
+- [ ] 公開バージョンを決め、現在の `0.0.1+1` を必要に応じて更新する
+
+Email/Passwordやクラウド同期を将来公開する場合は、アプリ内アカウント削除、関連Firestoreデータの再帰削除、再認証、外部Web削除導線を追加してから再監査してください。

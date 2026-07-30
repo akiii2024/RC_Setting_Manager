@@ -1,17 +1,12 @@
 # 公開に必要な外部設定手順
 
-更新日: 2026-06-25
+更新日: 2026-07-17
 
 コード側のセキュリティ修正後に必要な Firebase、Google Cloud、GitHub、ストア側の作業です。App Check の切替でサービスを止めないため、原則として以下の順番で実施してください。
 
 ## 1. 公開用アプリ識別子を決める
 
-現在の Android application ID と iOS Bundle ID は `com.example...` のままです。公開前に、所有しているドメインを逆順にした永続的な ID を決めてください。
-
-例:
-
-- Android: `jp.example.rcsettingmanager`
-- iOS: `jp.example.rcSettingManager`
+現在の Android application ID と iOS Bundle ID は `com.aki.rcsettings` です。公開前に、この ID を今後も所有・維持できることを確認してください。変更する場合は、初回公開より前に永続的な ID を決めます。
 
 一度ストア公開した ID は変更できません。
 
@@ -33,12 +28,13 @@ flutterfire configure --project=rc-setting-manager
 
 ## 2. Firebase Authentication を有効化する
 
-Firebase Console の `Authentication` > `Sign-in method` で以下を有効にします。
+現在の公開版はオンラインアカウント画面を無効化しています。Firebase Console の `Authentication` > `Sign-in method` では、Functions の認証に必要な次の方式だけを有効にします。
 
 - Anonymous
-- Email/Password（アカウント機能を公開する場合）
 
-Functions は認証済みリクエストのみ受け付けます。未ログイン状態の AI・天気機能は、アプリ側で匿名認証を自動実行します。
+Functions は認証済みリクエストのみ受け付けます。天気機能は、アプリ側で匿名認証を自動実行します。
+
+Email/Password とクラウド同期を将来公開する場合は、有効化前にアプリ内のアカウント削除、関連 Firestore データの再帰削除、再認証、問い合わせ導線を実装し、ストア要件を再確認してください。
 
 ## 3. Firebase App Check を登録する
 
@@ -91,7 +87,7 @@ Gemini / OpenWeather のキーを `.env`、Flutter の asset、GitHub Actions �
 firebase deploy --only firestore:rules
 ```
 
-`users/{uid}` と `guest_users/{uid}` は本人だけが読み書きできます。それ以外のクライアントアクセスは拒否されます。
+`users/{uid}` と `guest_users/{uid}` は本人だけが読み書きできます。さらに、アプリが使用するドキュメントパスとデータ形状だけが許可され、それ以外のクライアントアクセスは拒否されます。
 
 Functions のレート制限用コレクション `_function_rate_limits` は Admin SDK だけが利用します。
 
@@ -196,7 +192,7 @@ Xcode で Signing & Capabilities、Bundle ID、Team、App Attest capability、�
 少なくとも以下をプライバシーポリシーとストア申告へ反映してください。
 
 - 位置情報を天気・近隣コース取得に利用すること
-- OCR 画像と入力したセット情報を Gemini API へ送信すること
+- OCR画像と入力したセット情報を、ユーザーが選択したAIプロバイダーへ送信すること
 - Firebase Authentication と Firestore を利用すること
 - 匿名アカウントでも Firebase UID が発行されること
 - データ削除、アカウント削除、問い合わせ方法

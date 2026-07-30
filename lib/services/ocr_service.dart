@@ -55,6 +55,9 @@ class OCRService {
       if (kIsWeb) {
         // Web環境の場合
         if (imageFile is XFile) {
+          if (await imageFile.length() > AiProviderClient.maxImageBytes) {
+            throw ArgumentError('画像は10 MiB以下にしてください。');
+          }
           imageBytes = await imageFile.readAsBytes();
         } else {
           throw Exception('Web環境では XFile が必要です');
@@ -62,6 +65,9 @@ class OCRService {
       } else {
         // モバイル/デスクトップ環境の場合
         if (imageFile is File) {
+          if (await imageFile.length() > AiProviderClient.maxImageBytes) {
+            throw ArgumentError('画像は10 MiB以下にしてください。');
+          }
           imageBytes = await imageFile.readAsBytes();
         } else {
           throw Exception('モバイル環境では File が必要です');

@@ -1,134 +1,95 @@
 # Firebase セキュリティ設定ガイド
 
-> 現在、Gemini API key と OpenWeather API key は Firebase Functions の Secret Manager で管理します。Flutter の `--dart-define` や GitHub Actions secrets でアプリへ埋め込まないでください。
+更新日: 2026-07-17
 
-## 🔒 現在のセキュリティ状況
+## 秘密情報の扱い
 
-### ⚠️ 注意事項
-- Gemini API key と OpenWeather API key は Firebase Functions secrets で管理します
-- Firebase クライアント SDK の API key はアプリ設定として残ります
-- Firebase クライアント API key は Google Cloud / Firebase Console で利用制限を設定してください
+- Firebase クライアント SDK の API キーはアプリ識別情報であり、生成済みの `firebase_options.dart` に含まれます。データ保護は API キーの秘匿ではなく、Authentication、App Check、Firestore Rules、API キー制限で行います。
+- アプリ運営者の Gemini / OpenWeather API キーは Firebase Functions の Secret Manager だけに保存します。Flutter の `--dart-define`、asset、`.env`、GitHub Actions の Web ビルドへ渡してはいけません。
+- ユーザーが設定する OpenAI / Anthropic / Gemini API キーは、モバイル・デスクトップでは OS の資格情報ストアに保存します。Web では永続保存せず、ページを閉じるまでのメモリにだけ保持します。
+- `google-services.json`、`GoogleService-Info.plist`、署名鍵、`key.properties` は現在のリポジトリ方針では Git 管理外です。
 
-## 🛡️ セキュリティ強化手順
+Functions の Secret は Firebase CLI で登録します。
 
-### 1. GitHub Secretsの設定
-
-GitHubリポジトリの「Settings」→「Secrets and variables」→「Actions」で以下を設定：
-
-```
-FIREBASE_WEB_API_KEY=AIzaSyDKIP88kAdkXBcWde69ofYkH3DGOQouwIE
-FIREBASE_PROJECT_ID=rc-setting-manager
-FIREBASE_MESSAGING_SENDER_ID=375147888843
-OPENWEATHER_API_KEY=your_openweather_api_key
+```bash
+firebase functions:secrets:set GEMINI_API_KEY
+firebase functions:secrets:set OPENWEATHER_API_KEY
 ```
 
-### 2. Firebase Consoleでの設定
+## 必須の Firebase 設定
 
-#### A. Authentication設定
-1. Firebase Console → Authentication → Sign-in method
-2. 「メール/パスワード」を有効化
-3. 「承認済みドメイン」に以下を追加：
-   - `localhost`
-   - `your-username.github.io`
-   - カスタムドメインがある場合は追加
+### Authentication
 
-#### B. Firestoreセキュリティルール
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    // ユーザーは自分のデータのみアクセス可能
-    match /users/{userId}/{document=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    
-    // 公開データ（読み取り専用）
-    match /public/{document=**} {
-      allow read: if true;
-      allow write: if false;
-    }
-  }
-}
+天気などの callable Functions は認証済みリクエストだけを受け付けます。現在の公開版では Firebase Console で次を有効にしてください。
+
+- Anonymous
+
+Email/Password とクラウド同期は、アカウント削除と関連データ削除を含むアカウント管理機能を完成させるまで有効にしません。
+
+`Authorized domains` は、localhost と実際の本番ドメインだけに整理します。
+
+### App Check
+
+各プラットフォームを Firebase Console の App Check に登録します。
+
+- Web: reCAPTCHA v3 または reCAPTCHA Enterprise
+- Android: Play Integrity。Play App Signing と upload key の SHA-256 を登録
+- iOS: App Attest。必要に応じて DeviceCheck fallback
+
+Web の Site Key は秘密情報ではありません。GitHub Repository Variable `FIREBASE_APP_CHECK_WEB_KEY` に登録します。
+
+登録直後はメトリクスを確認し、正規クライアントが token を送れていることを確認してから Firebase Console 側の enforcement を有効にします。Functions コード側は `enforceAppCheck: true` です。
+
+### Firestore Rules
+
+リポジトリの [firestore.rules](../firestore.rules) は、次の方針です。
+
+- `users/{uid}` と `guest_users/{uid}` は本人だけがアクセス可能
+- アプリが使用する既知のドキュメント／サブコレクションだけ書き込み可能
+- 保存設定と走行ログはフィールド、型、件数、文字数を検証
+- その他のクライアントアクセスは全面拒否
+- Functions の `_function_rate_limits` は Admin SDK だけが利用
+
+Rules は Functions より先に配布します。
+
+```bash
+firebase deploy --only firestore:rules
 ```
 
-#### C. Storageセキュリティルール（必要に応じて）
-```javascript
-rules_version = '2';
-service firebase.storage {
-  match /b/{bucket}/o {
-    match /users/{userId}/{allPaths=**} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-  }
-}
+期限切れレート制限データの削除用に、Firestore TTL を設定します。
+
+- Collection group: `_function_rate_limits`
+- Timestamp field: `expiresAt`
+
+## Google Cloud の API キー制限
+
+FlutterFire が生成したクライアントキーは、プラットフォームごとに分けて制限します。
+
+- Web: 本番 URL の HTTP referrer
+- Android: `com.aki.rcsettings` と公開署名の SHA-1 / SHA-256
+- iOS: `com.aki.rcsettings` の Bundle ID
+
+API restrictions では、実際に利用する Firebase API だけを許可してください。制限内容を変更した後は、認証、Firestore、App Check、Functions 呼び出しを各実機で再確認します。
+
+## 監視とインシデント対応
+
+- Google Cloud Billing の予算通知と quota を設定する
+- Functions のエラー率、呼出回数、インスタンス数を監視する
+- App Check の無効 token、Authentication の異常な登録数、Firestore の拒否数を確認する
+- API キー漏えい時は、対象キーを無効化・再発行し、Secret Manager またはユーザー設定を更新する
+- 不正アクセス時はログの保存、影響範囲の特定、Rules／認証 token の失効、ユーザー通知を順に行う
+
+## 配布前チェック
+
+```bash
+flutter analyze
+flutter test
+flutter build web --release --base-href "/RC_Setting_Manager/" \
+  --dart-define=FIREBASE_APP_CHECK_WEB_KEY=<site-key>
+cd functions
+npm test
+npm run lint
+npm audit --omit=dev
 ```
 
-### 3. APIキーの制限設定
-
-#### A. Google Cloud Consoleでの設定
-1. [Google Cloud Console](https://console.cloud.google.com/)にアクセス
-2. プロジェクト「rc-setting-manager」を選択
-3. 「APIとサービス」→「認証情報」
-4. 各APIキーをクリックして制限を設定：
-
-**Web APIキー制限例：**
-- アプリケーションの制限：HTTPリファラー
-- 許可されたリファラー：
-  - `localhost:8080/*`
-  - `your-username.github.io/*`
-  - `your-custom-domain.com/*`
-
-**Android APIキー制限例：**
-- アプリケーションの制限：Androidアプリ
-- パッケージ名：`com.example.settingsheet_manager`
-- SHA-1証明書フィンガープリント：開発用とリリース用を追加
-
-**iOS APIキー制限例：**
-- アプリケーションの制限：iOSアプリ
-- バンドルID：`com.example.settingsheetManager`
-
-### 4. 環境変数を使用した実装
-
-#### A. pubspec.yamlに依存関係を追加
-```yaml
-dependencies:
-  flutter_dotenv: ^5.1.0
-```
-
-#### B. 環境変数から読み込む実装例
-```dart
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-
-class FirebaseConfig {
-  static String get webApiKey => dotenv.env['FIREBASE_WEB_API_KEY'] ?? '';
-  static String get projectId => dotenv.env['FIREBASE_PROJECT_ID'] ?? '';
-  static String get messagingSenderId => dotenv.env['FIREBASE_MESSAGING_SENDER_ID'] ?? '';
-}
-```
-
-### 5. 本番環境での推奨事項
-
-1. **APIキーのローテーション**: 定期的にAPIキーを更新
-2. **監視の設定**: Firebase Consoleで異常なアクセスを監視
-3. **バックアップ**: 重要なデータのバックアップを設定
-4. **ログ監視**: Cloud Loggingでアクセスログを監視
-
-## 🚨 緊急時の対応
-
-### APIキーが漏洩した場合
-1. 即座にGoogle Cloud ConsoleでAPIキーを無効化
-2. 新しいAPIキーを生成
-3. GitHub Secretsを更新
-4. アプリを再デプロイ
-
-### 不正アクセスが発生した場合
-1. Firebase Consoleでアクセスログを確認
-2. 影響を受けたデータを特定
-3. 必要に応じてデータを復元
-4. セキュリティルールを見直し
-
-## 📞 サポート
-
-セキュリティに関する質問や問題が発生した場合は、以下に連絡してください：
-- Firebase Support: https://firebase.google.com/support
-- Google Cloud Support: https://cloud.google.com/support 
+Firebase Console、Google Cloud、署名、ストア申告を含む全手順は [PUBLISHING_SETUP_GUIDE.md](./PUBLISHING_SETUP_GUIDE.md) を参照してください。

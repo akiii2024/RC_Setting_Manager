@@ -162,7 +162,6 @@ class MyApp extends StatelessWidget {
                   '/': (context) => const AuthWrapper(),
                   '/car-selection': (context) => const CarSelectionPage(),
                   '/settings': (context) => const SettingsPage(),
-                  '/login': (context) => const LoginPage(),
                 },
                 onGenerateRoute: (settings) {
                   if (settings.name != null && settings.name!.startsWith('/')) {
@@ -224,9 +223,9 @@ class MyApp extends StatelessWidget {
               const Icon(Icons.error, size: 64, color: Colors.red),
               const SizedBox(height: 16),
               const Text('An unexpected UI error occurred.'),
-              const SizedBox(height: 8),
-              Text('${errorDetails.exception}'),
               if (kDebugMode) ...[
+                const SizedBox(height: 8),
+                Text('${errorDetails.exception}'),
                 const SizedBox(height: 16),
                 Expanded(
                   child: SingleChildScrollView(

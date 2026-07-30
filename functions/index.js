@@ -618,10 +618,13 @@ async function callGeminiRequest(model, requestBody) {
   assertSecret(apiKey, "GEMINI_API_KEY");
 
   const response = await fetch(
-      `${geminiBaseUrl}/models/${model}:generateContent?key=${apiKey}`,
+      `${geminiBaseUrl}/models/${model}:generateContent`,
       {
         method: "POST",
-        headers: {"Content-Type": "application/json"},
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
         body: JSON.stringify(requestBody),
         signal: AbortSignal.timeout(110000),
       },

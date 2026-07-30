@@ -1494,7 +1494,7 @@ class _SettingsPageState extends State<SettingsPage> {
             children: [
               Text(isEnglish ? 'RC Car Setting Manager' : 'RCカーセッティング管理アプリ'),
               const SizedBox(height: 16),
-              Text(isEnglish ? 'Version: 1.0.0' : 'バージョン: 1.0.0'),
+              Text(isEnglish ? 'Version: 0.0.1' : 'バージョン: 0.0.1'),
               const SizedBox(height: 16),
               Text(isEnglish
                   ? 'This app helps you manage settings for your RC cars.'

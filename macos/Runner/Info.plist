@@ -26,6 +26,17 @@
 	<string>$(PRODUCT_COPYRIGHT)</string>
 	<key>NSMainNibFile</key>
 	<string>MainMenu</string>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>セッティングシートを撮影し、OCRで設定値を読み取るためにカメラを使用します。</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>セッティングシート画像を選択し、OCRで設定値を読み取るために写真ライブラリを使用します。</string>
+	<key>NSLocationUsageDescription</key>
+	<string>現在地付近のサーキット検索と天気情報の取得に位置情報を使用します。</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 </dict>

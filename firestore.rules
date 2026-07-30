@@ -6,12 +6,159 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
-    match /users/{uid}/{document=**} {
-      allow read, write: if isOwner(uid);
+    function validTopLevelDocument(documentId) {
+      let data = request.resource.data;
+      return (
+          documentId == 'cars' &&
+          data.keys().hasOnly(['cars']) &&
+          data.cars is list &&
+          data.cars.size() <= 100
+        ) || (
+          documentId == 'owned_parts' &&
+          data.keys().hasOnly(['ownedParts']) &&
+          data.ownedParts is list &&
+          data.ownedParts.size() <= 1000
+        ) || (
+          documentId == 'visibility_settings' &&
+          data.keys().size() <= 100
+        ) || (
+          documentId == 'language_settings' &&
+          data.keys().hasOnly(['isEnglish']) &&
+          data.isEnglish is bool
+        );
     }
 
-    match /guest_users/{uid}/{document=**} {
-      allow read, write: if isOwner(uid);
+    function validSavedSetting(settingId) {
+      let data = request.resource.data;
+      return data.keys().hasAll([
+          'id',
+          'name',
+          'createdAt',
+          'car',
+          'settings',
+          'kind',
+          'sourceRunLogId',
+          'parentSettingId'
+        ]) &&
+        data.keys().hasOnly([
+          'id',
+          'name',
+          'createdAt',
+          'car',
+          'settings',
+          'kind',
+          'sourceRunLogId',
+          'parentSettingId'
+        ]) &&
+        data.id is string &&
+        data.id == settingId &&
+        data.id.size() <= 128 &&
+        data.name is string &&
+        data.name.size() <= 200 &&
+        data.createdAt is string &&
+        data.createdAt.size() <= 64 &&
+        data.car is map &&
+        data.settings is map &&
+        data.settings.keys().size() <= 300 &&
+        data.kind in ['manual', 'runResult', 'aiSuggestion'] &&
+        (data.sourceRunLogId == null ||
+          (data.sourceRunLogId is string && data.sourceRunLogId.size() <= 128)) &&
+        (data.parentSettingId == null ||
+          (data.parentSettingId is string && data.parentSettingId.size() <= 128));
+    }
+
+    function validRunLog(runLogId) {
+      let data = request.resource.data;
+      return data.keys().hasAll([
+          'id',
+          'createdAt',
+          'runAt',
+          'car',
+          'trackName',
+          'baseSettingId',
+          'baseSettingName',
+          'resultSettingId',
+          'resultSettingName',
+          'bestLapMillis',
+          'airTempC',
+          'humidityPercent',
+          'weatherCondition',
+          'trackTempC',
+          'trackCondition',
+          'feelTagIds',
+          'memo',
+          'changes'
+        ]) &&
+        data.keys().hasOnly([
+          'id',
+          'createdAt',
+          'runAt',
+          'car',
+          'trackName',
+          'baseSettingId',
+          'baseSettingName',
+          'resultSettingId',
+          'resultSettingName',
+          'bestLapMillis',
+          'airTempC',
+          'humidityPercent',
+          'weatherCondition',
+          'trackTempC',
+          'trackCondition',
+          'feelTagIds',
+          'memo',
+          'changes'
+        ]) &&
+        data.id is string &&
+        data.id == runLogId &&
+        data.id.size() <= 128 &&
+        data.createdAt is string &&
+        data.createdAt.size() <= 64 &&
+        data.runAt is string &&
+        data.runAt.size() <= 64 &&
+        data.car is map &&
+        data.trackName is string &&
+        data.trackName.size() <= 300 &&
+        data.bestLapMillis is int &&
+        data.bestLapMillis >= 0 &&
+        data.feelTagIds is list &&
+        data.feelTagIds.size() <= 30 &&
+        data.memo is string &&
+        data.memo.size() <= 5000 &&
+        data.changes is list &&
+        data.changes.size() <= 100;
+    }
+
+    match /users/{uid}/data/{documentId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid) &&
+        validTopLevelDocument(documentId);
+    }
+
+    match /users/{uid}/data/settings/saved_settings/{settingId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validSavedSetting(settingId);
+    }
+
+    match /users/{uid}/data/run_logs/items/{runLogId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validRunLog(runLogId);
+    }
+
+    match /guest_users/{uid}/data/{documentId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid) &&
+        validTopLevelDocument(documentId);
+    }
+
+    match /guest_users/{uid}/data/settings/saved_settings/{settingId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validSavedSetting(settingId);
+    }
+
+    match /guest_users/{uid}/data/run_logs/items/{runLogId} {
+      allow read, delete: if isOwner(uid);
+      allow create, update: if isOwner(uid) && validRunLog(runLogId);
     }
 
     match /{document=**} {

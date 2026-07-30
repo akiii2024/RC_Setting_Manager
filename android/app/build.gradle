@@ -38,6 +38,42 @@ if (hasReleaseSigning) {
     }
 }
 
+def requiredSigningProperties = [
+    "keyAlias",
+    "keyPassword",
+    "storeFile",
+    "storePassword",
+]
+def missingSigningProperties = hasReleaseSigning
+    ? requiredSigningProperties.findAll {
+        !keystoreProperties[it]?.toString()?.trim()
+    }
+    : []
+if (!missingSigningProperties.isEmpty()) {
+    throw new GradleException(
+        "android/key.properties is missing: ${missingSigningProperties.join(', ')}",
+    )
+}
+
+def releaseStoreFile = hasReleaseSigning
+    ? file(keystoreProperties["storeFile"])
+    : null
+if (releaseStoreFile != null && !releaseStoreFile.exists()) {
+    throw new GradleException(
+        "Release keystore not found: ${releaseStoreFile}",
+    )
+}
+
+def isReleaseBuildRequested = gradle.startParameter.taskNames.any {
+    it.toLowerCase().contains("release")
+}
+if (isReleaseBuildRequested && !hasReleaseSigning) {
+    throw new GradleException(
+        "Release signing is required. Create android/key.properties from " +
+        "android/key.properties.example before building a release artifact.",
+    )
+}
+
 if (googleServicesFiles.any { it.exists() }) {
     apply plugin: "com.google.gms.google-services"
 } else {
@@ -77,7 +113,7 @@ android {
             release {
                 keyAlias keystoreProperties["keyAlias"]
                 keyPassword keystoreProperties["keyPassword"]
-                storeFile file(keystoreProperties["storeFile"])
+                storeFile releaseStoreFile
                 storePassword keystoreProperties["storePassword"]
             }
         }
