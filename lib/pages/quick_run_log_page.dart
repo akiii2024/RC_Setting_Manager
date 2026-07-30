@@ -14,9 +14,7 @@ import '../services/api_consent_service.dart';
 import '../services/location_service.dart';
 import '../services/track_location_service.dart';
 import '../services/weather_service.dart';
-import '../utils/platform_detection.dart';
 import '../utils/run_log_formatters.dart';
-import '../widgets/ios_weather_unavailable_dialog.dart';
 import 'car_setting_page.dart';
 
 String _t(bool isEnglish, String en, String ja) => isEnglish ? en : ja;
@@ -81,6 +79,7 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
   bool _hasWeatherAttempted = false;
   bool _hasRequestedInitialWeather = false;
   WeatherData? _currentWeather;
+  WeatherStatus? _weatherErrorStatus;
 
   @override
   void dispose() {
@@ -96,9 +95,13 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
   }
 
   Future<WeatherData?> _fetchWeather({bool forceRefresh = false}) {
-    final fetcher =
-        widget.weatherFetcher ?? WeatherService.instance.getCurrentWeather;
-    return fetcher(forceRefresh: forceRefresh);
+    final fetcher = widget.weatherFetcher;
+    if (fetcher != null) {
+      return fetcher(forceRefresh: forceRefresh);
+    }
+    return WeatherService.instance.fetchCurrentWeather(
+      forceRefresh: forceRefresh,
+    );
   }
 
   void _scheduleInitialWeatherFetch() {
@@ -123,20 +126,6 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
     }
 
     final provider = Provider.of<SettingsProvider>(context, listen: false);
-    if (widget.weatherFetcher == null && isIOSWebPlatform()) {
-      setState(() {
-        _hasWeatherAttempted = true;
-        _hasWeatherError = true;
-      });
-      if (forceRefresh) {
-        await showIOSWeatherUnavailableDialog(
-          context,
-          isEnglish: provider.isEnglish,
-        );
-      }
-      return;
-    }
-
     if (widget.weatherFetcher == null) {
       final consentGranted = await ApiConsentService.requestConsent(
         context,
@@ -152,12 +141,21 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
       _isWeatherLoading = true;
       _hasWeatherAttempted = true;
       _hasWeatherError = false;
+      _weatherErrorStatus = null;
     });
 
     WeatherData? weather;
+    WeatherStatus? failureStatus;
     try {
       weather = await _fetchWeather(forceRefresh: forceRefresh);
+    } on WeatherException catch (error) {
+      failureStatus = error.status;
+      debugLog(
+        'Run log weather fetch failed [${error.status.name}]: '
+        '${error.message}',
+      );
     } catch (error) {
+      failureStatus = WeatherStatus.error;
       debugLog('Run log weather fetch failed: $error');
     }
 
@@ -169,6 +167,8 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
       _isWeatherLoading = false;
       _currentWeather = weather;
       _hasWeatherError = weather == null;
+      _weatherErrorStatus =
+          weather == null ? failureStatus ?? WeatherStatus.error : null;
       if (weather != null) {
         _applyWeatherToInputs(
           weather,
@@ -691,12 +691,50 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
     return input.trim().isNotEmpty && parsed == null;
   }
 
+  String _weatherFailureMessage(bool isEnglish) {
+    return switch (_weatherErrorStatus) {
+      WeatherStatus.locationPermissionDenied => _t(
+          isEnglish,
+          'Allow location access in the browser or device settings, then retry.',
+          'ブラウザまたは端末の設定で位置情報を許可してから再取得してください。',
+        ),
+      WeatherStatus.locationServiceDisabled => _t(
+          isEnglish,
+          'Turn on Location Services on this device, then retry.',
+          '端末の位置情報サービスを有効にしてから再取得してください。',
+        ),
+      WeatherStatus.locationTimeout => _t(
+          isEnglish,
+          'Location retrieval timed out. Move to an open area and retry.',
+          '位置情報の取得がタイムアウトしました。開けた場所で再取得してください。',
+        ),
+      WeatherStatus.noLocation => _t(
+          isEnglish,
+          'The current location could not be determined. Check location settings and retry.',
+          '現在位置を特定できませんでした。位置情報設定を確認して再取得してください。',
+        ),
+      WeatherStatus.serviceError => _t(
+          isEnglish,
+          'The weather service could not be reached. Check the network and retry.',
+          '天気サービスに接続できませんでした。通信状態を確認して再取得してください。',
+        ),
+      WeatherStatus.invalidResponse => _t(
+          isEnglish,
+          'The weather service returned an invalid response. Please retry later.',
+          '天気サービスから不正な応答が返されました。時間をおいて再取得してください。',
+        ),
+      _ => _t(
+          isEnglish,
+          'Use manual input or retry when location and network are available.',
+          '位置情報と通信を確認して再取得するか、手動で入力してください。',
+        ),
+    };
+  }
+
   Widget _buildWeatherStatus(bool isEnglish) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final weather = _currentWeather;
-    final isIOSWeatherUnavailable =
-        widget.weatherFetcher == null && isIOSWebPlatform();
 
     final Color backgroundColor;
     final Color borderColor;
@@ -704,24 +742,7 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
     final String title;
     final String message;
 
-    if (isIOSWeatherUnavailable) {
-      backgroundColor = colorScheme.errorContainer.withValues(alpha: 0.35);
-      borderColor = colorScheme.error.withValues(alpha: 0.35);
-      leading = Icon(
-        Icons.cloud_off,
-        color: colorScheme.error,
-      );
-      title = _t(
-        isEnglish,
-        'Weather unavailable on iOS',
-        'iOSでは天気情報を取得できません',
-      );
-      message = _t(
-        isEnglish,
-        'Please enter the temperature, humidity, and weather manually.',
-        '気温・湿度・天候は手動で入力してください。',
-      );
-    } else if (_isWeatherLoading || !_hasWeatherAttempted) {
+    if (_isWeatherLoading || !_hasWeatherAttempted) {
       backgroundColor = colorScheme.surfaceContainerLow;
       borderColor = colorScheme.outlineVariant.withValues(alpha: 0.45);
       leading = Icon(
@@ -746,11 +767,7 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
         'Weather unavailable',
         '天気情報を取得できません',
       );
-      message = _t(
-        isEnglish,
-        'Use manual input or retry when location and network are available.',
-        '位置情報と通信を確認して再取得するか、手動で入力してください。',
-      );
+      message = _weatherFailureMessage(isEnglish);
     } else {
       backgroundColor = colorScheme.primaryContainer.withValues(alpha: 0.35);
       borderColor = colorScheme.primary.withValues(alpha: 0.30);

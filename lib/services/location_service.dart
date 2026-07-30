@@ -1,4 +1,6 @@
 import 'package:rc_setting_manager/utils/app_logger.dart';
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -72,27 +74,61 @@ class LocationService {
   }
 
   // 現在位置を取得
+  Future<Position> determineCurrentPosition() async {
+    try {
+      if (!kIsWeb) {
+        // WebではPermissions APIの実装がブラウザごとに異なるため、
+        // navigator.geolocation相当の実取得に権限要求を任せる。
+        if (!await requestLocationPermission()) {
+          throw LocationException(
+            '位置情報の権限が許可されていません',
+            LocationStatus.permissionDenied,
+          );
+        }
+
+        if (!await isLocationServiceEnabled()) {
+          throw LocationException(
+            '位置情報サービスが無効です',
+            LocationStatus.serviceDisabled,
+          );
+        }
+      }
+
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy:
+            kIsWeb ? LocationAccuracy.medium : LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 20),
+      );
+    } on LocationException {
+      rethrow;
+    } on PermissionDeniedException catch (e) {
+      throw LocationException(
+        e.message ?? '位置情報の権限が許可されていません',
+        LocationStatus.permissionDenied,
+      );
+    } on LocationServiceDisabledException catch (e) {
+      throw LocationException(
+        '位置情報サービスが無効です: $e',
+        LocationStatus.serviceDisabled,
+      );
+    } on TimeoutException catch (e) {
+      throw LocationException(
+        e.message ?? '位置情報の取得がタイムアウトしました',
+        LocationStatus.timeout,
+      );
+    } catch (e) {
+      throw LocationException(
+        '現在位置を取得できませんでした: $e',
+        LocationStatus.unavailable,
+      );
+    }
+  }
+
   Future<Position?> getCurrentPosition() async {
     try {
-      // 権限チェック
-      if (!await requestLocationPermission()) {
-        throw Exception('位置情報の権限が許可されていません');
-      }
-
-      // 位置情報サービスチェック
-      if (!await isLocationServiceEnabled()) {
-        throw Exception('位置情報サービスが無効です');
-      }
-
-      // 現在位置を取得
-      Position position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 10),
-      );
-
-      return position;
-    } catch (e) {
-      debugLog('位置情報取得エラー: $e');
+      return await determineCurrentPosition();
+    } on LocationException catch (e) {
+      debugLog('位置情報取得エラー [${e.status.name}]: ${e.message}');
       return null;
     }
   }
@@ -148,6 +184,8 @@ enum LocationStatus {
   available,
   serviceDisabled,
   permissionDenied,
+  timeout,
+  unavailable,
 }
 
 // 位置情報エラーのカスタム例外

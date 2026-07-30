@@ -281,6 +281,43 @@ void main() {
     expect(provider.runLogs.first.trackCondition, 'Very good - dusty');
   });
 
+  testWidgets('quick run log explains a denied location permission',
+      (WidgetTester tester) async {
+    SharedPreferences.setMockInitialValues({
+      'language_settings': true,
+      'cars_settings': jsonEncode([_testCar().toJson()]),
+    });
+
+    final provider = SettingsProvider();
+
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: MaterialApp(
+          home: QuickRunLogPage(
+            weatherFetcher: ({bool forceRefresh = false}) async {
+              throw WeatherException(
+                'Location permission denied',
+                WeatherStatus.locationPermissionDenied,
+              );
+            },
+          ),
+        ),
+      ),
+    );
+
+    await _pumpUntilInitialized(tester, provider);
+    await tester.pump();
+    await tester.pump();
+
+    expect(
+      find.text(
+        'Allow location access in the browser or device settings, then retry.',
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('quick run log saves selected course name from database',
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({

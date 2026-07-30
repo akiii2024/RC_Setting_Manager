@@ -19,28 +19,50 @@ class WeatherService {
 
   Future<WeatherData?> getCurrentWeather({bool forceRefresh = false}) async {
     try {
+      return await fetchCurrentWeather(forceRefresh: forceRefresh);
+    } on WeatherException catch (e, stackTrace) {
+      debugLog(
+        '[Weather Debug] getCurrentWeather FAILED [${e.status.name}]: '
+        '${e.message}',
+      );
+      debugLog('[Weather Debug] getCurrentWeather StackTrace: $stackTrace');
+      return null;
+    } catch (e, stackTrace) {
+      debugLog('[Weather Debug] getCurrentWeather EXCEPTION: $e');
+      debugLog('[Weather Debug] getCurrentWeather StackTrace: $stackTrace');
+      return null;
+    }
+  }
+
+  Future<WeatherData> fetchCurrentWeather({bool forceRefresh = false}) async {
+    try {
       debugLog(
         '[Weather Debug] getCurrentWeather: getting current position...',
       );
-      final position = await LocationService.instance.getCurrentPosition();
-      if (position == null) {
-        debugLog('[Weather Debug] getCurrentWeather: position is null');
-        return null;
-      }
+      final position =
+          await LocationService.instance.determineCurrentPosition();
       debugLog(
         '[Weather Debug] getCurrentWeather: lat=${position.latitude}, '
         'lon=${position.longitude}',
       );
 
-      return getWeatherByCoordinates(
+      return fetchWeatherByCoordinates(
         position.latitude,
         position.longitude,
         forceRefresh: forceRefresh,
       );
-    } catch (e, stackTrace) {
-      debugLog('[Weather Debug] getCurrentWeather EXCEPTION: $e');
-      debugLog('[Weather Debug] getCurrentWeather StackTrace: $stackTrace');
-      return null;
+    } on LocationException catch (e) {
+      throw WeatherException(
+        e.message,
+        switch (e.status) {
+          LocationStatus.permissionDenied =>
+            WeatherStatus.locationPermissionDenied,
+          LocationStatus.serviceDisabled =>
+            WeatherStatus.locationServiceDisabled,
+          LocationStatus.timeout => WeatherStatus.locationTimeout,
+          _ => WeatherStatus.noLocation,
+        },
+      );
     }
   }
 
@@ -50,39 +72,73 @@ class WeatherService {
     bool forceRefresh = false,
   }) async {
     try {
-      if (!forceRefresh) {
-        final cachedWeather = await _getCachedWeather(lat, lon);
-        if (cachedWeather != null) {
-          debugLog('[Weather Debug] getWeatherByCoordinates: cache hit');
-          return cachedWeather;
-        }
-      }
-
-      debugLog(
-        '[Weather Debug] getWeatherByCoordinates: calling Firebase Functions '
-        'lat=$lat, lon=$lon',
+      return await fetchWeatherByCoordinates(
+        lat,
+        lon,
+        forceRefresh: forceRefresh,
       );
-      final data = await FirebaseFunctionsService.call(
+    } on WeatherException catch (e, stackTrace) {
+      debugLog(
+        '[Weather Debug] getWeatherByCoordinates FAILED [${e.status.name}]: '
+        '${e.message}',
+      );
+      debugLog(
+        '[Weather Debug] getWeatherByCoordinates StackTrace: $stackTrace',
+      );
+      return null;
+    }
+  }
+
+  Future<WeatherData> fetchWeatherByCoordinates(
+    double lat,
+    double lon, {
+    bool forceRefresh = false,
+  }) async {
+    if (!forceRefresh) {
+      final cachedWeather = await _getCachedWeather(lat, lon);
+      if (cachedWeather != null) {
+        debugLog('[Weather Debug] getWeatherByCoordinates: cache hit');
+        return cachedWeather;
+      }
+    }
+
+    debugLog(
+      '[Weather Debug] getWeatherByCoordinates: calling Firebase Functions '
+      'lat=$lat, lon=$lon',
+    );
+
+    final Map<String, dynamic> data;
+    try {
+      data = await FirebaseFunctionsService.call(
         'getCurrentWeather',
         {
           'lat': lat,
           'lon': lon,
         },
       );
-      debugLog(
-        '[Weather Debug] getWeatherByCoordinates: response city=${data['name']}',
+    } catch (e) {
+      throw WeatherException(
+        '天気サービスとの通信に失敗しました: $e',
+        WeatherStatus.serviceError,
       );
-
-      final weather = WeatherData.fromJson(data);
-      await _saveWeatherCache(lat, lon, weather);
-      return weather;
-    } catch (e, stackTrace) {
-      debugLog('[Weather Debug] getWeatherByCoordinates EXCEPTION: $e');
-      debugLog(
-        '[Weather Debug] getWeatherByCoordinates StackTrace: $stackTrace',
-      );
-      return null;
     }
+
+    debugLog(
+      '[Weather Debug] getWeatherByCoordinates: response city=${data['name']}',
+    );
+
+    final WeatherData weather;
+    try {
+      weather = WeatherData.fromJson(data);
+    } catch (e) {
+      throw WeatherException(
+        '天気サービスから不正な応答を受信しました: $e',
+        WeatherStatus.invalidResponse,
+      );
+    }
+
+    await _saveWeatherCache(lat, lon, weather);
+    return weather;
   }
 
   Future<WeatherData?> _getCachedWeather(double lat, double lon) async {
@@ -239,6 +295,11 @@ enum WeatherStatus {
   success,
   error,
   noLocation,
+  locationPermissionDenied,
+  locationServiceDisabled,
+  locationTimeout,
+  serviceError,
+  invalidResponse,
 }
 
 class WeatherException implements Exception {

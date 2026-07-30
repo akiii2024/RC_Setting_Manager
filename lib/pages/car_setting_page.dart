@@ -1,5 +1,6 @@
 import 'package:rc_setting_manager/utils/app_logger.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/car.dart';
 
 import '../providers/settings_provider.dart';
@@ -19,9 +20,7 @@ import './ai_provider_settings_page.dart';
 import '../services/ai_advisor_service.dart';
 import '../services/ai_configuration_service.dart';
 import '../services/api_consent_service.dart';
-import '../utils/platform_detection.dart';
 import '../widgets/ai_provider_indicator.dart';
-import '../widgets/ios_weather_unavailable_dialog.dart';
 
 BoxConstraints _responsiveDialogConstraints(
   BuildContext context, {
@@ -135,8 +134,11 @@ class _CarSettingPageState extends State<CarSettingPage> {
   bool _isEditing = false;
   CarSettingDefinition? _carSettingDefinition;
   TrackLocation? _currentTrack;
+  Position? _currentPosition;
+  LocationStatus? _locationFailureStatus;
   bool _isLocationLoading = false;
   WeatherData? _currentWeather;
+  WeatherStatus? _weatherErrorStatus;
   bool _isWeatherLoading = false;
   bool _isAIAnalyzing = false;
 
@@ -254,23 +256,15 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
     try {
       final locationService = LocationService.instance;
+      final position = await locationService.determineCurrentPosition();
+      _currentPosition = position;
+      _locationFailureStatus = null;
 
-      // 位置情報の権限状況を確認
-      final locationStatus = await locationService.getLocationStatus();
-
-      if (locationStatus == LocationStatus.permissionDenied) {
-        debugLog('位置情報の権限が拒否されています。手動でトラックを選択してください。');
-        if (mounted) _showLocationPermissionDialog();
-        return;
-      }
-
-      if (locationStatus == LocationStatus.serviceDisabled) {
-        debugLog('位置情報サービスが無効です。設定で有効にしてください。');
-        if (mounted) _showLocationServiceDialog();
-        return;
-      }
-
-      final nearestTrack = await locationService.findNearestTrack();
+      await TrackLocationService.instance.loadTrackLocations();
+      final nearestTrack = TrackLocationService.instance.findNearestTrack(
+        position.latitude,
+        position.longitude,
+      );
 
       if (nearestTrack != null && mounted) {
         setState(() {
@@ -291,6 +285,21 @@ class _CarSettingPageState extends State<CarSettingPage> {
         });
       } else {
         debugLog('近くにトラックが見つかりませんでした。手動でトラックを選択してください。');
+      }
+    } on LocationException catch (e) {
+      _locationFailureStatus = e.status;
+      debugLog('位置情報取得エラー [${e.status.name}]: ${e.message}');
+      if (!mounted) return;
+      switch (e.status) {
+        case LocationStatus.permissionDenied:
+          _showLocationPermissionDialog();
+        case LocationStatus.serviceDisabled:
+          _showLocationServiceDialog();
+        case LocationStatus.timeout:
+        case LocationStatus.unavailable:
+          _showLocationFailureSnackBar(e.status);
+        case LocationStatus.available:
+          break;
       }
     } catch (e) {
       debugLog('位置情報取得エラー: $e');
@@ -340,15 +349,6 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
-    if (isIOSWebPlatform()) {
-      if (forceRefresh) {
-        await showIOSWeatherUnavailableDialog(
-          context,
-          isEnglish: settingsProvider.isEnglish,
-        );
-      }
-      return;
-    }
 
     final consentGranted = await ApiConsentService.requestConsent(
       context,
@@ -361,33 +361,62 @@ class _CarSettingPageState extends State<CarSettingPage> {
 
     setState(() {
       _isWeatherLoading = true;
+      _weatherErrorStatus = null;
     });
 
     try {
       final weatherService = WeatherService.instance;
+      var position = _currentPosition;
+      if (position == null && !forceRefresh && _locationFailureStatus != null) {
+        throw LocationException(
+          '直前の現在位置取得に失敗しました',
+          _locationFailureStatus!,
+        );
+      }
+      if (position == null || forceRefresh) {
+        position = await LocationService.instance.determineCurrentPosition();
+        _currentPosition = position;
+        _locationFailureStatus = null;
+      }
+
       debugLog('[Weather Debug] getCurrentWeather() を呼び出し中...');
-      final weather = await weatherService.getCurrentWeather(
+      final weather = await weatherService.fetchWeatherByCoordinates(
+        position.latitude,
+        position.longitude,
         forceRefresh: forceRefresh,
       );
-      debugLog(
-          '[Weather Debug] getCurrentWeather() = ${weather?.toString() ?? 'null'}');
+      debugLog('[Weather Debug] getCurrentWeather() = ${weather.toString()}');
 
-      if (weather != null && mounted) {
+      if (mounted) {
         setState(() {
           _currentWeather = weather;
+          _weatherErrorStatus = null;
         });
 
         // 気温と湿度を自動入力
         _updateWeatherSettings(weather);
 
         debugLog('[Weather Debug] SUCCESS: 天気情報を取得しました: ${weather.toString()}');
-      } else {
-        if (mounted) {
-          setState(() {
-            _currentWeather = null;
-          });
-        }
-        debugLog('[Weather Debug] 天気情報を取得できませんでした');
+      }
+    } on LocationException catch (e, stackTrace) {
+      final status = _weatherStatusForLocation(e.status);
+      debugLog(
+          '[Weather Debug] LOCATION FAILED [${e.status.name}]: ${e.message}');
+      debugLog('[Weather Debug] StackTrace: $stackTrace');
+      if (mounted) {
+        setState(() {
+          _currentWeather = null;
+          _weatherErrorStatus = status;
+        });
+      }
+    } on WeatherException catch (e, stackTrace) {
+      debugLog('[Weather Debug] FAILED [${e.status.name}]: ${e.message}');
+      debugLog('[Weather Debug] StackTrace: $stackTrace');
+      if (mounted) {
+        setState(() {
+          _currentWeather = null;
+          _weatherErrorStatus = e.status;
+        });
       }
     } catch (e, stackTrace) {
       debugLog('[Weather Debug] EXCEPTION: $e');
@@ -395,6 +424,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
       if (mounted) {
         setState(() {
           _currentWeather = null;
+          _weatherErrorStatus = WeatherStatus.error;
         });
       }
     } finally {
@@ -429,6 +459,41 @@ class _CarSettingPageState extends State<CarSettingPage> {
   // 天気情報を手動で再取得
   Future<void> _refreshWeather() async {
     await _initializeWeather(forceRefresh: true);
+  }
+
+  WeatherStatus _weatherStatusForLocation(LocationStatus status) {
+    return switch (status) {
+      LocationStatus.permissionDenied => WeatherStatus.locationPermissionDenied,
+      LocationStatus.serviceDisabled => WeatherStatus.locationServiceDisabled,
+      LocationStatus.timeout => WeatherStatus.locationTimeout,
+      _ => WeatherStatus.noLocation,
+    };
+  }
+
+  String _weatherFailureMessage(bool isEnglish) {
+    return switch (_weatherErrorStatus) {
+      WeatherStatus.locationPermissionDenied => isEnglish
+          ? 'Allow location access in the browser or device settings, then retry.'
+          : 'ブラウザまたは端末の設定で位置情報を許可してから再取得してください。',
+      WeatherStatus.locationServiceDisabled => isEnglish
+          ? 'Turn on Location Services on this device, then retry.'
+          : '端末の位置情報サービスを有効にしてから再取得してください。',
+      WeatherStatus.locationTimeout => isEnglish
+          ? 'Location retrieval timed out. Move to an open area and retry.'
+          : '位置情報の取得がタイムアウトしました。開けた場所で再取得してください。',
+      WeatherStatus.noLocation => isEnglish
+          ? 'The current location could not be determined. Check location settings and retry.'
+          : '現在位置を特定できませんでした。位置情報設定を確認して再取得してください。',
+      WeatherStatus.serviceError => isEnglish
+          ? 'The weather service could not be reached. Check the network and retry.'
+          : '天気サービスに接続できませんでした。通信状態を確認して再取得してください。',
+      WeatherStatus.invalidResponse => isEnglish
+          ? 'The weather service returned an invalid response. Please retry later.'
+          : '天気サービスから不正な応答が返されました。時間をおいて再取得してください。',
+      _ => isEnglish
+          ? 'Weather data is unavailable. Check location and network settings, then retry.'
+          : '天気データを取得できませんでした。位置情報と通信設定を確認して再取得してください。',
+    };
   }
 
   // トラック情報から路面情報を更新
@@ -951,6 +1016,22 @@ class _CarSettingPageState extends State<CarSettingPage> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showLocationFailureSnackBar(LocationStatus status) {
+    final isEnglish =
+        Provider.of<SettingsProvider>(context, listen: false).isEnglish;
+    final message = switch (status) {
+      LocationStatus.timeout => isEnglish
+          ? 'Location retrieval timed out. Move to an open area and retry.'
+          : '位置情報の取得がタイムアウトしました。開けた場所で再取得してください。',
+      _ => isEnglish
+          ? 'The current location could not be determined. Please retry.'
+          : '現在位置を特定できませんでした。再取得してください。',
+    };
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 
@@ -3414,7 +3495,6 @@ class _CarSettingPageState extends State<CarSettingPage> {
   Widget _buildWeatherInfoCard() {
     final settingsProvider = Provider.of<SettingsProvider>(context);
     final isEnglish = settingsProvider.isEnglish;
-    final isIOSWeatherUnavailable = isIOSWebPlatform();
 
     if (_currentWeather == null && !_isWeatherLoading) {
       return Card(
@@ -3437,15 +3517,7 @@ class _CarSettingPageState extends State<CarSettingPage> {
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     Text(
-                      isIOSWeatherUnavailable
-                          ? (isEnglish
-                              ? 'Automatic weather retrieval is unavailable '
-                                  'on iOS. Please use manual input.'
-                              : 'iOSでは天気情報を自動取得できません。'
-                                  '手動で入力してください。')
-                          : (isEnglish
-                              ? 'Weather data not available. Using manual input.'
-                              : '天気データが利用できません。手動入力を使用してください。'),
+                      _weatherFailureMessage(isEnglish),
                       style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(context)
