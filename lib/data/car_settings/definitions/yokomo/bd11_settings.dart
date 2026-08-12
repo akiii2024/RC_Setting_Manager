@@ -2,7 +2,9 @@ import '../../../../models/car_setting_definition.dart';
 import '../../../motor_name_options.dart';
 import '../../../setting_name_options.dart';
 import '../../common/basic_settings.dart';
+import '../common/car_definition_builder.dart';
 import '../common/setting_item_helpers.dart';
+import 'yokomo_touring_common.dart';
 
 List<SettingItem> _bd11SetupSideSettings({
   required String prefix,
@@ -10,91 +12,17 @@ List<SettingItem> _bd11SetupSideSettings({
   required String labelPrefix,
   required List<String> hubOptions,
 }) {
-  return [
-    selectSetting(
-      key: '${prefix}CamHeight',
-      category: category,
-      label: '$labelPrefix カム',
-      options: const ['高', '低'],
-      defaultValue: '高',
-    ),
-    selectSetting(
-      key: '${prefix}WheelHub',
-      category: category,
-      label: '$labelPrefix ホイールハブ',
-      options: hubOptions,
-      defaultValue: hubOptions.first,
-    ),
-    numberSetting(
-      key: '${prefix}RideHeight',
-      category: category,
-      label: '$labelPrefix 車高',
-      unit: 'mm',
-      min: 3,
-      max: 10,
-      step: 0.1,
-      defaultValue: '5',
-    ),
-    numberSetting(
-      key: '${prefix}Camber',
-      category: category,
-      label: '$labelPrefix キャンバー',
-      unit: '°',
-      min: -5,
-      max: 5,
-      defaultValue: '-1',
-    ),
-    numberSetting(
-      key: '${prefix}SwayBar',
-      category: category,
-      label: '$labelPrefix スタビ',
-      unit: 'mm',
-      min: 1.0,
-      max: 2.0,
-      step: 0.1,
-      defaultValue: '1.2',
-      constraints: {
-        'composite': 'stabilizer',
-        'noteKey': '${prefix}SwayBarNote',
-      },
-    ),
-    numberSetting(
-      key: '${prefix}Droop',
-      category: category,
-      label: '$labelPrefix ドループ',
-      unit: 'mm',
-      max: 10,
-      step: 0.1,
-    ),
-    numberSetting(
-      key: '${prefix}ArmOuterLower',
-      category: category,
-      label: '$labelPrefix サスアーム外下',
-      unit: 'mm',
-      max: 10,
-    ),
-    numberSetting(
-      key: '${prefix}ToeAngle',
-      category: category,
-      label: '$labelPrefix トー角',
-      unit: '°',
-      min: -5,
-      max: 5,
-      step: 0.1,
-    ),
-    numberSetting(
-      key: '${prefix}Weight',
-      category: category,
-      label: '$labelPrefix ウェイト',
-      unit: 'g',
-      max: 200,
-    ),
-    textSetting(
-      key: '${prefix}Notes',
-      category: category,
-      label: '$labelPrefix メモ',
-    ),
-  ];
+  return yokomoTouringSideSettings(
+    prefix: prefix,
+    category: category,
+    labelPrefix: labelPrefix,
+    includeCamHeight: true,
+    wheelHubOptions: hubOptions,
+    camberLabel: 'キャンバー',
+    swayBarMax: 2.0,
+    swayBarDefaultValue: '1.2',
+    includeWeight: true,
+  );
 }
 
 List<SettingItem> _bd11ShockSettings({
@@ -102,63 +30,11 @@ List<SettingItem> _bd11ShockSettings({
   required String category,
   required String labelPrefix,
 }) {
-  return [
-    textSetting(
-      key: '${prefix}ShockOil',
-      category: category,
-      label: '$labelPrefix オイル',
-      unit: '#',
-      constraints: {
-        'composite': 'damperOil',
-        'oilKey': '${prefix}ShockOil',
-        'oilNameKey': '${prefix}ShockOilName',
-      },
-    ),
-    textSetting(
-      key: '${prefix}ShockOilName',
-      category: category,
-      label: '$labelPrefix オイル名',
-    ),
-    numberSetting(
-      key: '${prefix}Piston',
-      category: category,
-      label: '$labelPrefix ピストン',
-      unit: 'mm',
-      min: 0.5,
-      max: 3.0,
-      step: 0.1,
-      defaultValue: '1.0',
-      constraints: {
-        'composite': 'damperPiston',
-        'pistonKey': '${prefix}Piston',
-        'holeKey': '${prefix}PistonHole',
-      },
-    ),
-    numberSetting(
-      key: '${prefix}PistonHole',
-      category: category,
-      label: '$labelPrefix ピストン穴数',
-      min: 1,
-      max: 10,
-      step: 1,
-      defaultValue: '4',
-    ),
-    textSetting(
-      key: '${prefix}Spring',
-      category: category,
-      label: '$labelPrefix スプリング',
-    ),
-    textSetting(
-      key: '${prefix}Bladder',
-      category: category,
-      label: '$labelPrefix ブラダー',
-    ),
-    textSetting(
-      key: '${prefix}ShockNotes',
-      category: category,
-      label: '$labelPrefix ショックメモ',
-    ),
-  ];
+  return yokomoTouringShockSettings(
+    prefix: prefix,
+    category: category,
+    labelPrefix: labelPrefix,
+  );
 }
 
 final List<SettingItem> bd11SpecificSettings = [
@@ -409,8 +285,9 @@ final List<SettingItem> bd11SpecificSettings = [
   ),
 ];
 
-final bd11Settings = CarSettingDefinition(
+final bd11Settings = buildCarSettingDefinition(
   carId: 'yokomo/bd11',
-  availableSettings: [...basicSettings, ...bd11SpecificSettings],
+  basicSettings: basicSettings,
+  specificSettings: bd11SpecificSettings,
   isHumanVerified: false,
 );

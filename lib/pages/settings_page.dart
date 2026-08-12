@@ -9,6 +9,7 @@ import '../data/car_settings_definitions.dart';
 import '../models/car.dart';
 import '../models/car_setting_definition.dart';
 import '../models/visibility_settings.dart';
+import '../presentation/settings/visibility_settings_presenter.dart';
 import 'import_export_page.dart';
 import 'ai_provider_settings_page.dart';
 
@@ -1185,10 +1186,10 @@ class _SettingsPageState extends State<SettingsPage> {
     required bool isEnglish,
     required StateSetter setState,
   }) {
-    final groupedSettings = _groupVisibilitySettingKeys(
-      settingKeys,
-      definitionByKey,
-      isEnglish,
+    final groupedSettings = VisibilitySettingsPresenter.groupSettingKeys(
+      settingKeys: settingKeys,
+      definitionByKey: definitionByKey,
+      isEnglish: isEnglish,
     );
 
     return ListView.builder(
@@ -1205,7 +1206,7 @@ class _SettingsPageState extends State<SettingsPage> {
           childrenPadding: const EdgeInsets.only(left: 16.0, right: 16.0),
           children: settings.map((key) {
             final label = definitionByKey[key]?.label ??
-                _fallbackSettingLabel(key, isEnglish);
+                VisibilitySettingsPresenter.settingLabel(key, isEnglish);
             final isVisible =
                 visibilitySettings.settingsVisibility[key] ?? true;
 
@@ -1224,113 +1225,6 @@ class _SettingsPageState extends State<SettingsPage> {
         );
       },
     );
-  }
-
-  Map<String, List<String>> _groupVisibilitySettingKeys(
-    List<String> settingKeys,
-    Map<String, SettingItem> definitionByKey,
-    bool isEnglish,
-  ) {
-    final categoryOrder = <String>[
-      'basic',
-      'front',
-      'frontDamper',
-      'rear',
-      'rearDamper',
-      'top',
-      'other',
-      'memo',
-    ];
-    final groupedByKey = <String, List<String>>{};
-
-    for (final key in settingKeys) {
-      final definition = definitionByKey[key];
-      final categoryKey = definition == null
-          ? _fallbackDisplayCategoryForSettingKey(key)
-          : displayCategoryForSetting(definition);
-
-      groupedByKey.putIfAbsent(categoryKey, () => <String>[]).add(key);
-    }
-
-    final ordered = <String, List<String>>{};
-    for (final categoryKey in categoryOrder) {
-      final keys = groupedByKey.remove(categoryKey);
-      if (keys != null && keys.isNotEmpty) {
-        ordered[_visibilityCategoryLabel(categoryKey, isEnglish)] = keys;
-      }
-    }
-
-    for (final entry in groupedByKey.entries) {
-      ordered[_visibilityCategoryLabel(entry.key, isEnglish)] = entry.value;
-    }
-
-    return ordered;
-  }
-
-  String _fallbackDisplayCategoryForSettingKey(String key) {
-    if (key == 'date' ||
-        key == 'track' ||
-        key == 'surface' ||
-        key == 'airTemp' ||
-        key == 'humidity' ||
-        key == 'trackTemp' ||
-        key == 'condition' ||
-        key == 'memo') {
-      return key == 'memo' ? 'memo' : 'basic';
-    }
-
-    if (key.startsWith('front')) {
-      return isDamperSettingKey(key) ? 'frontDamper' : 'front';
-    }
-
-    if (key.startsWith('rear')) {
-      return isDamperSettingKey(key) ? 'rearDamper' : 'rear';
-    }
-
-    if (key.contains('upperDeck') ||
-        key.contains('ballast') ||
-        key.contains('knuckle') ||
-        key.contains('steering') ||
-        key.contains('lowerDeck')) {
-      return 'top';
-    }
-
-    return 'other';
-  }
-
-  String _visibilityCategoryLabel(String category, bool isEnglish) {
-    switch (category) {
-      case 'basic':
-        return isEnglish ? 'Basic Information' : '基本情報';
-      case 'front':
-        return isEnglish ? 'Front Settings' : 'フロント設定';
-      case 'frontDamper':
-        return isEnglish ? 'Front Damper Settings' : 'フロントダンパー設定';
-      case 'rear':
-        return isEnglish ? 'Rear Settings' : 'リア設定';
-      case 'rearDamper':
-        return isEnglish ? 'Rear Damper Settings' : 'リアダンパー設定';
-      case 'top':
-        return isEnglish ? 'Top Settings' : 'トップ設定';
-      case 'other':
-        return isEnglish ? 'Other Settings' : 'その他設定';
-      case 'memo':
-        return isEnglish ? 'Memo' : 'メモ';
-      default:
-        return category;
-    }
-  }
-
-  String _fallbackSettingLabel(String key, bool isEnglish) {
-    if (!isEnglish) {
-      return key;
-    }
-
-    final spaced = key.replaceAllMapped(
-      RegExp(r'([A-Z])'),
-      (match) => ' ${match.group(1)}',
-    );
-    return spaced.isEmpty ? key : spaced[0].toUpperCase() + spaced.substring(1);
   }
 
   void _showEditorLayoutDialog(BuildContext context) {

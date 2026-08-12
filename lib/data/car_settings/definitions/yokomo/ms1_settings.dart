@@ -1,12 +1,10 @@
-import '../../../../models/car_setting_definition.dart';
 import '../../common/basic_settings.dart';
+import '../common/car_definition_builder.dart';
 import 'master_speed_common.dart';
 
-final ms1Settings = CarSettingDefinition(
+final ms1Settings = buildCarSettingDefinition(
   carId: 'yokomo/ms1_0',
-  availableSettings: [
-    ...basicSettings,
-    ...masterSpeedSpecificSettings(isMs2: false),
-  ],
+  basicSettings: basicSettings,
+  specificSettings: masterSpeedSpecificSettings(isMs2: false),
   isHumanVerified: false,
 );

@@ -2,6 +2,7 @@ import '../../../../models/car_setting_definition.dart';
 import '../../../motor_name_options.dart';
 import '../../../setting_name_options.dart';
 import '../../common/basic_settings.dart';
+import '../common/car_definition_builder.dart';
 
 // TRF420X固有の設定
 final List<SettingItem> trf420xSpecificSettings = [
@@ -818,8 +819,9 @@ final List<SettingItem> trf420xSpecificSettings = [
 ];
 
 // TRF420Xの設定定義（基本設定 + 固有設定）
-final trf420xSettings = CarSettingDefinition(
+final trf420xSettings = buildCarSettingDefinition(
   carId: 'tamiya/trf420x',
-  availableSettings: [...basicSettings, ...trf420xSpecificSettings],
+  basicSettings: basicSettings,
+  specificSettings: trf420xSpecificSettings,
   isHumanVerified: true,
 );

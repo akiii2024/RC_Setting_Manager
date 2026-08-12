@@ -7,6 +7,7 @@ import '../models/ai_provider.dart';
 import '../models/car_setting_definition.dart';
 import 'ai_configuration_service.dart';
 import 'ai_provider_client.dart';
+import 'ocr_mapping_helper.dart';
 
 typedef OcrAiProviderClientFactory = AiProviderClient Function(
   AiConfiguration configuration,
@@ -361,63 +362,10 @@ class OCRService {
     Map<String, String> settings,
     List<SettingItem> settingDefinitions,
   ) {
-    final definitions = {
-      for (final item in settingDefinitions) item.key: item,
-    };
-    final validated = <String, String>{};
-
-    for (final entry in settings.entries) {
-      final item = definitions[entry.key];
-      if (item == null || entry.key.startsWith('_unmatched_')) continue;
-      final value = entry.value.trim();
-      if (value.isEmpty) continue;
-
-      final options = item.options;
-      if (options != null && options.isNotEmpty) {
-        if (options.contains(value)) validated[entry.key] = value;
-        continue;
-      }
-
-      if (item.type == 'number') {
-        var numericText = value.replaceAll(',', '.');
-        final unit = item.unit;
-        if (unit != null && unit.isNotEmpty) {
-          numericText = numericText.replaceAll(unit, '');
-        }
-        numericText = _cleanValue(numericText);
-        final number = double.tryParse(numericText);
-        if (number == null || !number.isFinite) continue;
-
-        final minValue = item.constraints['min'];
-        final maxValue = item.constraints['max'];
-        final stepValue = item.constraints['step'];
-        final min = minValue is num ? minValue.toDouble() : null;
-        final max = maxValue is num ? maxValue.toDouble() : null;
-        final step = stepValue is num ? stepValue.toDouble().abs() : null;
-        if ((min != null && (!min.isFinite || number < min)) ||
-            (max != null && (!max.isFinite || number > max))) {
-          continue;
-        }
-        if (step != null) {
-          if (!step.isFinite || step <= 0 || min == null) continue;
-          final stepsFromMin = (number - min) / step;
-          if ((stepsFromMin - stepsFromMin.round()).abs() > 0.000001) {
-            continue;
-          }
-        }
-
-        validated[entry.key] = number == number.truncateToDouble()
-            ? number.toInt().toString()
-            : number.toString();
-        continue;
-      }
-
-      if (item.type == 'text' && value.length <= 500) {
-        validated[entry.key] = value;
-      }
-    }
-
-    return validated;
+    return OcrMappingHelper.validateSettingsForImport(
+      settings,
+      settingDefinitions,
+    );
   }
 
   // AIを使用して値をマッピング
@@ -775,89 +723,7 @@ $itemsText
 
   // ローカルでの類似性チェック
   String? _findLocalMatch(String rawValue, List<String> availableOptions) {
-    final cleanRawValue =
-        rawValue.toLowerCase().replaceAll(RegExp(r'[^\w]'), '');
-
-    // 完全一致チェック
-    for (final option in availableOptions) {
-      if (option.toLowerCase() == rawValue.toLowerCase()) {
-        return option;
-      }
-    }
-
-    // 部分一致チェック（数値を含む場合）
-    final rawNumbers = RegExp(r'[0-9]+\.?[0-9]*').allMatches(rawValue);
-    if (rawNumbers.isNotEmpty) {
-      for (final option in availableOptions) {
-        final optionNumbers = RegExp(r'[0-9]+\.?[0-9]*').allMatches(option);
-        if (optionNumbers.isNotEmpty) {
-          final rawNum = rawNumbers.first.group(0);
-          final optionNum = optionNumbers.first.group(0);
-          if (rawNum == optionNum) {
-            return option;
-          }
-        }
-      }
-    }
-
-    // 文字列の類似性チェック
-    for (final option in availableOptions) {
-      final cleanOption = option.toLowerCase().replaceAll(RegExp(r'[^\w]'), '');
-
-      // 50%以上の類似性があれば候補とする
-      if (_calculateStringSimilarity(cleanRawValue, cleanOption) > 0.5) {
-        return option;
-      }
-
-      // 一方が他方を含む場合
-      if (cleanRawValue.contains(cleanOption) ||
-          cleanOption.contains(cleanRawValue)) {
-        return option;
-      }
-    }
-
-    return null;
-  }
-
-  // 文字列の類似性を計算（簡易版）
-  double _calculateStringSimilarity(String str1, String str2) {
-    if (str1.isEmpty || str2.isEmpty) return 0.0;
-
-    final longer = str1.length > str2.length ? str1 : str2;
-    final shorter = str1.length > str2.length ? str2 : str1;
-
-    if (longer.isEmpty) return 1.0;
-
-    final editDistance = _levenshteinDistance(longer, shorter);
-    return (longer.length - editDistance) / longer.length;
-  }
-
-  // レーベンシュタイン距離を計算
-  int _levenshteinDistance(String str1, String str2) {
-    final matrix = List.generate(
-      str1.length + 1,
-      (i) => List.generate(str2.length + 1, (j) => 0),
-    );
-
-    for (int i = 0; i <= str1.length; i++) {
-      matrix[i][0] = i;
-    }
-    for (int j = 0; j <= str2.length; j++) {
-      matrix[0][j] = j;
-    }
-
-    for (int i = 1; i <= str1.length; i++) {
-      for (int j = 1; j <= str2.length; j++) {
-        final cost = str1[i - 1] == str2[j - 1] ? 0 : 1;
-        matrix[i][j] = [
-          matrix[i - 1][j] + 1, // deletion
-          matrix[i][j - 1] + 1, // insertion
-          matrix[i - 1][j - 1] + cost, // substitution
-        ].reduce((a, b) => a < b ? a : b);
-      }
-    }
-
-    return matrix[str1.length][str2.length];
+    return OcrMappingHelper.findLocalMatch(rawValue, availableOptions);
   }
 
   // ラベルと値の処理を共通化（AI対応版）
@@ -907,26 +773,7 @@ $itemsText
 
   // 値から単位を除去してクリーンな値を取得
   String _cleanValue(String value) {
-    // 不要な文字を除去
-    String cleanedValue = value.replaceAll(RegExp(r'[()（）\[\]]'), '').trim();
-
-    // 単位を除去 (mm, °, φ, T, g など)
-    cleanedValue = cleanedValue
-        .replaceAll(RegExp(r'(mm|°|度|φ|T|g|#|点|ポイント)\s*$'), '')
-        .trim();
-
-    // 数値の妥当性をチェック
-    if (RegExp(r'^-?[0-9]+\.?[0-9]*$').hasMatch(cleanedValue)) {
-      return cleanedValue;
-    }
-
-    // 範囲表記の場合（例：1-3）
-    if (RegExp(r'^[0-9]+-[0-9]+$').hasMatch(cleanedValue)) {
-      return cleanedValue;
-    }
-
-    // テキスト値の場合はそのまま返す
-    return value.trim();
+    return OcrMappingHelper.cleanValue(value);
   }
 
   // 英語ラベルを取得（改良版）

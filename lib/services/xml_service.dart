@@ -9,6 +9,7 @@ import '../models/car.dart';
 import '../models/manufacturer.dart';
 import '../models/owned_part.dart';
 import '../models/visibility_settings.dart';
+import 'xml_data_codec.dart';
 
 // エクスポート・インポートのデータタイプ
 enum DataType {
@@ -299,16 +300,13 @@ class XmlService {
       {ExportImportOptions? options}) async {
     final importOptions = options ?? const ExportImportOptions();
     try {
-      if (xmlContent.length > maxImportCharacters) {
-        throw const FormatException('XMLデータは5 MiB以下にしてください。');
-      }
+      XmlImportValidator.validateContentLength(
+        xmlContent,
+        maxImportCharacters,
+      );
       final document = XmlDocument.parse(xmlContent);
       final root = document.rootElement;
-
-      if (root.name.local != 'RCCarSettingsData') {
-        throw Exception(
-            'Invalid XML format: Root element must be RCCarSettingsData');
-      }
+      XmlImportValidator.validateRoot(root);
 
       // メタデータを読み込み
       final metadataElement = root.findElements('metadata').firstOrNull;
@@ -461,18 +459,7 @@ class XmlService {
               for (final setting in settingsElement.findElements('setting')) {
                 final key = setting.getAttribute('key') ?? '';
                 final value = setting.innerText;
-
-                // 数値の場合は適切な型に変換
-                if (double.tryParse(value) != null) {
-                  settings[key] = double.parse(value);
-                } else if (int.tryParse(value) != null) {
-                  settings[key] = int.parse(value);
-                } else if (value.toLowerCase() == 'true' ||
-                    value.toLowerCase() == 'false') {
-                  settings[key] = value.toLowerCase() == 'true';
-                } else {
-                  settings[key] = value;
-                }
+                settings[key] = XmlDataCodec.parseSavedSettingValue(value);
               }
             }
 
@@ -483,13 +470,13 @@ class XmlService {
                 createdAt: createdAt,
                 car: car,
                 settings: settings,
-                kind: _parseSavedSettingKind(
+                kind: XmlDataCodec.parseSavedSettingKind(
                     settingElement.findElements('kind').firstOrNull?.innerText),
-                sourceRunLogId: _emptyToNull(settingElement
+                sourceRunLogId: XmlDataCodec.emptyToNull(settingElement
                     .findElements('sourceRunLogId')
                     .firstOrNull
                     ?.innerText),
-                parentSettingId: _emptyToNull(settingElement
+                parentSettingId: XmlDataCodec.emptyToNull(settingElement
                     .findElements('parentSettingId')
                     .firstOrNull
                     ?.innerText),
@@ -614,10 +601,14 @@ class XmlService {
                         '',
                     beforeValue: beforeElement == null
                         ? null
-                        : _parseXmlValue(beforeElement.innerText),
+                        : XmlDataCodec.parseRunChangeValue(
+                            beforeElement.innerText,
+                          ),
                     afterValue: afterElement == null
                         ? null
-                        : _parseXmlValue(afterElement.innerText),
+                        : XmlDataCodec.parseRunChangeValue(
+                            afterElement.innerText,
+                          ),
                   ),
                 );
               }
@@ -633,19 +624,19 @@ class XmlService {
                   createdAt: createdAt,
                   runAt: runAt,
                   car: car,
-                  baseSettingId: _emptyToNull(runLogElement
+                  baseSettingId: XmlDataCodec.emptyToNull(runLogElement
                       .findElements('baseSettingId')
                       .firstOrNull
                       ?.innerText),
-                  baseSettingName: _emptyToNull(runLogElement
+                  baseSettingName: XmlDataCodec.emptyToNull(runLogElement
                       .findElements('baseSettingName')
                       .firstOrNull
                       ?.innerText),
-                  resultSettingId: _emptyToNull(runLogElement
+                  resultSettingId: XmlDataCodec.emptyToNull(runLogElement
                       .findElements('resultSettingId')
                       .firstOrNull
                       ?.innerText),
-                  resultSettingName: _emptyToNull(runLogElement
+                  resultSettingName: XmlDataCodec.emptyToNull(runLogElement
                       .findElements('resultSettingName')
                       .firstOrNull
                       ?.innerText),
@@ -748,44 +739,9 @@ class XmlService {
     }
   }
 
-  // ファイルからXMLをインポート（部分的インポート対応）
-  static SavedSettingKind _parseSavedSettingKind(String? value) {
-    if (value != null) {
-      for (final kind in SavedSettingKind.values) {
-        if (kind.name == value) {
-          return kind;
-        }
-      }
-    }
-    return SavedSettingKind.manual;
-  }
-
   static double? _readOptionalDouble(XmlElement? parent, String elementName) {
     final value = parent?.findElements(elementName).firstOrNull?.innerText;
-    if (value == null || value.trim().isEmpty) {
-      return null;
-    }
-    return double.tryParse(value.trim().replaceAll(',', '.'));
-  }
-
-  static dynamic _parseXmlValue(String value) {
-    if (int.tryParse(value) != null) {
-      return int.parse(value);
-    }
-    if (double.tryParse(value) != null) {
-      return double.parse(value);
-    }
-    if (value.toLowerCase() == 'true' || value.toLowerCase() == 'false') {
-      return value.toLowerCase() == 'true';
-    }
-    return value;
-  }
-
-  static String? _emptyToNull(String? value) {
-    if (value == null || value.isEmpty) {
-      return null;
-    }
-    return value;
+    return XmlDataCodec.parseOptionalDouble(value);
   }
 
   static Future<ImportResult> importFromFile(String filePath,

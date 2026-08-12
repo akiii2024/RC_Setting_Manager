@@ -114,6 +114,10 @@ $RECYCLE.BIN/
 coverage/
 .nyc_output/
 
+# Local Codex and generated template workspaces
+.codex/
+.tmp_android_template_*/
+
 # FVM (Flutter Version Management)
 .fvm/flutter_sdk
 

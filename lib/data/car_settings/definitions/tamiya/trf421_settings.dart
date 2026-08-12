@@ -2,7 +2,9 @@ import '../../../../models/car_setting_definition.dart';
 import '../../../motor_name_options.dart';
 import '../../../setting_name_options.dart';
 import '../../common/basic_settings.dart';
+import '../common/car_definition_builder.dart';
 import '../common/setting_item_helpers.dart';
+import 'trf_common_settings.dart';
 
 List<SettingItem> _trf421EndSettings({
   required String prefix,
@@ -154,92 +156,12 @@ List<SettingItem> _trf421DamperSettings({
   required String category,
   required String labelPrefix,
 }) {
-  return [
-    selectSetting(
-      key: '${prefix}DamperPosition',
-      category: category,
-      label: '$labelPrefix ダンパーポジション',
-      options: const ['1', '2', '3'],
-      constraints: const {'selectGuide': 'insideOutside'},
-    ),
-    numberSetting(
-      key: '${prefix}SusArm',
-      category: category,
-      label: '$labelPrefix サスアーム',
-      unit: 'mm',
-      max: 10,
-    ),
-    textSetting(
-      key: '${prefix}DamperType',
-      category: category,
-      label: '$labelPrefix ダンパータイプ',
-    ),
-    textSetting(
-      key: '${prefix}DamperOilSeal',
-      category: category,
-      label: '$labelPrefix オイルシール',
-    ),
-    numberSetting(
-      key: '${prefix}DamperPiston',
-      category: category,
-      label: '$labelPrefix ピストン',
-      unit: 'φ',
-      min: 1.0,
-      max: 3.0,
-      step: 0.1,
-      defaultValue: '1.0',
-      constraints: {
-        'composite': 'damperPiston',
-        'pistonKey': '${prefix}DamperPiston',
-        'holeKey': '${prefix}DamperPistonHole',
-      },
-    ),
-    numberSetting(
-      key: '${prefix}DamperPistonHole',
-      category: category,
-      label: '$labelPrefix ピストン穴数',
-      min: 1,
-      max: 10,
-      step: 1,
-      defaultValue: '4',
-    ),
-    textSetting(
-      key: '${prefix}DamperOil',
-      category: category,
-      label: '$labelPrefix オイル',
-      unit: '#',
-      constraints: {
-        'composite': 'damperOil',
-        'oilKey': '${prefix}DamperOil',
-        'oilNameKey': '${prefix}DamperOilName',
-      },
-    ),
-    textSetting(
-      key: '${prefix}DamperOilName',
-      category: category,
-      label: '$labelPrefix オイル名',
-    ),
-    textSetting(
-      key: '${prefix}DamperSpring',
-      category: category,
-      label: '$labelPrefix スプリング',
-    ),
-    numberSetting(
-      key: '${prefix}DamperStroke',
-      category: category,
-      label: '$labelPrefix ストローク長',
-      unit: 'mm',
-      max: 50,
-    ),
-    numberSetting(
-      key: '${prefix}DamperAirHole',
-      category: category,
-      label: '$labelPrefix エア抜き用穴',
-      unit: 'mm',
-      max: 5,
-      step: 0.1,
-    ),
-  ];
+  return trfDamperSettings(
+    prefix: prefix,
+    category: category,
+    labelPrefix: labelPrefix,
+    airHoleLabel: 'エア抜き用穴',
+  );
 }
 
 final List<SettingItem> trf421SpecificSettings = [
@@ -480,8 +402,9 @@ final List<SettingItem> trf421SpecificSettings = [
   ),
 ];
 
-final trf421Settings = CarSettingDefinition(
+final trf421Settings = buildCarSettingDefinition(
   carId: 'tamiya/trf421',
-  availableSettings: [...basicSettings, ...trf421SpecificSettings],
+  basicSettings: basicSettings,
+  specificSettings: trf421SpecificSettings,
   isHumanVerified: false,
 );
