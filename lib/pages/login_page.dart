@@ -7,6 +7,9 @@ import '../providers/app_mode_provider.dart';
 import '../data/car_settings_definitions.dart';
 import '../models/car_setting_definition.dart';
 import '../models/car.dart';
+import '../models/saved_setting.dart';
+import '../models/settings_operation_result.dart';
+import '../utils/settings_operation_feedback.dart';
 import 'home_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -48,7 +51,6 @@ class _LoginPageState extends State<LoginPage> {
       final modeProvider = Provider.of<AppModeProvider>(context, listen: false);
 
       await modeProvider.setOffline();
-      await settingsProvider.setOfflineMode();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -65,13 +67,14 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } catch (e) {
+      debugLog('Failed to enable offline mode: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               Provider.of<SettingsProvider>(context, listen: false).isEnglish
-                  ? 'Failed to enable offline mode: $e'
-                  : 'オフラインモードの有効化に失敗しました: $e',
+                  ? 'Failed to enable offline mode.'
+                  : 'オフラインモードの有効化に失敗しました。',
             ),
             backgroundColor: Colors.red,
           ),
@@ -105,7 +108,6 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       await modeProvider.setOnlineAndInit();
-      await settingsProvider.setOnlineMode();
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -119,12 +121,13 @@ class _LoginPageState extends State<LoginPage> {
         Navigator.of(context).pushReplacementNamed('/');
       }
     } catch (e) {
+      debugLog('Failed to enable online mode: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(isEnglish
-                ? 'Failed to enable online mode: $e'
-                : 'オンラインモードの有効化に失敗しました: $e'),
+                ? 'Failed to enable online mode.'
+                : 'オンラインモードの有効化に失敗しました。'),
             backgroundColor: Colors.red,
           ),
         );
@@ -170,8 +173,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final modeProvider = Provider.of<AppModeProvider>(context, listen: false);
-      if (modeProvider.preferredOnline != true ||
-          !modeProvider.isFirebaseReady) {
+      if (!modeProvider.isOnlineActive) {
         throw Exception('オンラインモード（ベータ）を有効にしてください。');
       }
 
@@ -274,8 +276,9 @@ class _LoginPageState extends State<LoginPage> {
           ? 'Firebase authentication is not available. Please check Firebase configuration.'
           : 'Firebase認証が利用できません。Firebase設定を確認してください。';
     } else {
-      // 詳細なエラーメッセージをそのまま表示
-      return error;
+      return isEnglish
+          ? 'The operation failed. Please try again.'
+          : '処理に失敗しました。もう一度お試しください。';
     }
   }
 
@@ -296,8 +299,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final modeProvider = Provider.of<AppModeProvider>(context, listen: false);
-      if (modeProvider.preferredOnline != true ||
-          !modeProvider.isFirebaseReady) {
+      if (!modeProvider.isOnlineActive) {
         throw Exception('オンラインモード（ベータ）を有効にしてください。');
       }
 
@@ -338,8 +340,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final modeProvider = Provider.of<AppModeProvider>(context, listen: false);
-      if (modeProvider.preferredOnline != true ||
-          !modeProvider.isFirebaseReady) {
+      if (!modeProvider.isOnlineActive) {
         throw Exception('オンラインモード（ベータ）を有効にしてください。');
       }
 
@@ -389,8 +390,7 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final modeProvider = Provider.of<AppModeProvider>(context, listen: false);
-      if (modeProvider.preferredOnline != true ||
-          !modeProvider.isFirebaseReady) {
+      if (!modeProvider.isOnlineActive) {
         throw Exception('オンラインモード（ベータ）を有効にしてください。');
       }
 
@@ -417,6 +417,7 @@ class _LoginPageState extends State<LoginPage> {
         Navigator.of(context).pushReplacementNamed('/');
       }
     } catch (e) {
+      debugLog('Failed to start demo mode: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -488,10 +489,11 @@ class _LoginPageState extends State<LoginPage> {
 
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
+    final modeProvider = Provider.of<AppModeProvider>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
 
     try {
-      await settingsProvider.setOfflineMode();
+      await modeProvider.setOffline();
 
       final cars = settingsProvider.cars;
       if (cars.isEmpty) {
@@ -500,12 +502,29 @@ class _LoginPageState extends State<LoginPage> {
             : 'デモ設定を作成できる車種が見つかりません。');
       }
 
-      for (final car in cars) {
+      final inputs = cars.map((car) {
         final definition = getCarSettingDefinition(car.id);
-        final demoSettings = _generateDemoSettingsForCar(car, definition);
-        final settingName =
-            isEnglish ? 'Demo - ${car.name}' : 'デモ - ${car.name}';
-        await settingsProvider.addSetting(settingName, car, demoSettings);
+        return NewSavedSettingInput(
+          name: isEnglish ? 'Demo - ${car.name}' : 'デモ - ${car.name}',
+          car: car,
+          settings: _generateDemoSettingsForCar(car, definition),
+        );
+      }).toList(growable: false);
+      final result = await settingsProvider.addSettingsBatch(inputs);
+      if (!mounted ||
+          !handleSettingsOperationResult(
+            context,
+            result,
+            isEnglish: isEnglish,
+          )) {
+        return;
+      }
+      final saved = switch (result) {
+        SettingsOperationSuccess<List<SavedSetting>>(:final value) => value,
+        SettingsOperationFailure<List<SavedSetting>>() => null,
+      };
+      if (saved == null || saved.length != inputs.length) {
+        return;
       }
 
       if (mounted) {
@@ -523,9 +542,8 @@ class _LoginPageState extends State<LoginPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(isEnglish
-              ? 'Failed to start demo mode: $e'
-              : 'デモモードの開始に失敗しました: $e'),
+          content: Text(
+              isEnglish ? 'Failed to start demo mode.' : 'デモモードの開始に失敗しました。'),
           backgroundColor: Colors.red,
         ));
       }

@@ -41,8 +41,10 @@ class _OCRImportPageState extends State<OCRImportPage> {
     super.initState();
     try {
       _ocrService = OCRService();
-    } catch (e) {
-      _serviceInitError = e.toString();
+    } catch (error, stackTrace) {
+      debugLog('OCR service initialization failed: $error');
+      debugLog('Stack trace: $stackTrace');
+      _serviceInitError = 'OCRサービスを初期化できませんでした。アプリを再起動してください。';
     }
   }
 
@@ -116,12 +118,18 @@ class _OCRImportPageState extends State<OCRImportPage> {
       if (source == ImageSource.camera) {
         try {
           imageFile = await ocrService.pickImageFromCamera();
-        } catch (e) {
+        } catch (error, stackTrace) {
           // Web環境でカメラが利用できない場合のエラーハンドリング
-          if (kIsWeb && e is UnsupportedError) {
+          if (kIsWeb && error is UnsupportedError) {
+            debugLog('Web camera is unavailable: $error');
+            debugLog('Stack trace: $stackTrace');
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(e.message ?? 'カメラが利用できません')),
+                const SnackBar(
+                  content: Text(
+                    'この環境ではカメラを利用できません。ギャラリーから画像を選択してください。',
+                  ),
+                ),
               );
             }
             return;
@@ -150,7 +158,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('画像の取得に失敗しました: ${e.toString()}'),
+            content: const Text('画像の取得に失敗しました。もう一度お試しください。'),
             duration: const Duration(seconds: 5),
           ),
         );
@@ -337,7 +345,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('テキスト認識に失敗しました: ${e.toString()}'),
+            content: const Text('テキスト認識に失敗しました。別の画像でお試しください。'),
             duration: const Duration(seconds: 5),
           ),
         );

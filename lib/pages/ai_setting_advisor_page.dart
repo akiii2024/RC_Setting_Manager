@@ -5,11 +5,14 @@ import '../models/ai_advisor.dart';
 import '../models/car.dart';
 import '../models/car_setting_definition.dart';
 import '../models/saved_setting.dart';
+import '../models/settings_operation_result.dart';
 import '../models/track_location.dart';
 import '../providers/settings_provider.dart';
 import '../services/ai_advisor_context_builder.dart';
 import '../services/ai_advisor_service.dart';
 import '../services/weather_service.dart';
+import '../utils/settings_operation_feedback.dart';
+import '../utils/app_logger.dart';
 import '../widgets/ai_provider_indicator.dart';
 
 class AISettingAdvisorPage extends StatefulWidget {
@@ -106,6 +109,7 @@ class _AISettingAdvisorPageState extends State<AISettingAdvisorPage> {
   int _userFollowups = 0;
   bool _includeHistory = true;
   bool _isLoading = false;
+  bool _isSavingDerivedSetting = false;
   bool _readyForAdvice = false;
   String _severity = 'medium';
   String _trackGrip = 'unknown';
@@ -215,10 +219,9 @@ class _AISettingAdvisorPageState extends State<AISettingAdvisorPage> {
         _step = 1;
       });
     } catch (e) {
+      debugLog('Failed to start AI consultation: $e');
       _showMessage(
-        _isEnglish
-            ? 'Failed to start AI consultation: $e'
-            : 'AI相談を開始できませんでした: $e',
+        _isEnglish ? 'Failed to start AI consultation.' : 'AI相談を開始できませんでした。',
       );
     } finally {
       if (mounted) {
@@ -270,6 +273,7 @@ class _AISettingAdvisorPageState extends State<AISettingAdvisorPage> {
         _readyForAdvice = turn.readyForAdvice || _userFollowups >= 2;
       });
     } catch (e) {
+      debugLog('Failed to send AI consultation message: $e');
       if (!mounted) return;
       setState(() {
         if (_messages.isNotEmpty && identical(_messages.last, userMessage)) {
@@ -277,7 +281,7 @@ class _AISettingAdvisorPageState extends State<AISettingAdvisorPage> {
           _userFollowups -= 1;
         }
       });
-      _showMessage(_isEnglish ? 'Failed to send: $e' : '送信に失敗しました: $e');
+      _showMessage(_isEnglish ? 'Failed to send.' : '送信に失敗しました。');
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -323,8 +327,9 @@ class _AISettingAdvisorPageState extends State<AISettingAdvisorPage> {
         _step = 2;
       });
     } catch (e) {
+      debugLog('Failed to generate AI advice: $e');
       _showMessage(
-        _isEnglish ? 'Failed to generate advice: $e' : '提案の生成に失敗しました: $e',
+        _isEnglish ? 'Failed to generate advice.' : '提案の生成に失敗しました。',
       );
     } finally {
       if (mounted) {
@@ -351,17 +356,13 @@ class _AISettingAdvisorPageState extends State<AISettingAdvisorPage> {
       return;
     }
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _isSavingDerivedSetting = true;
+    });
     try {
       final provider = Provider.of<SettingsProvider>(context, listen: false);
-      var baseSetting = _findSavedSetting(provider, widget.savedSettingId);
-      baseSetting ??= await provider.addSetting(
-        widget.settingName.trim().isEmpty
-            ? widget.car.name
-            : widget.settingName.trim(),
-        widget.car,
-        Map<String, dynamic>.from(widget.currentSettings),
-      );
+      final baseSetting = _findSavedSetting(provider, widget.savedSettingId);
 
       final derivedSettings = Map<String, dynamic>.from(widget.currentSettings);
       for (final index in _selectedChangeIndexes) {
@@ -371,49 +372,91 @@ class _AISettingAdvisorPageState extends State<AISettingAdvisorPage> {
         }
       }
 
-      final derived = await provider.addSetting(
-        name,
-        widget.car,
-        derivedSettings,
-        kind: SavedSettingKind.aiSuggestion,
-        parentSettingId: baseSetting.id,
+      final derivedResult = await provider.addDerivedSettingWithBase(
+        existingBaseSettingId: baseSetting?.id,
+        base: NewSavedSettingInput(
+          name: widget.settingName.trim().isEmpty
+              ? widget.car.name
+              : widget.settingName.trim(),
+          car: widget.car,
+          settings: Map<String, dynamic>.from(widget.currentSettings),
+        ),
+        derived: NewSavedSettingInput(
+          name: name,
+          car: widget.car,
+          settings: derivedSettings,
+          kind: SavedSettingKind.aiSuggestion,
+          parentSettingId: baseSetting?.id,
+        ),
       );
-      if (mounted) Navigator.of(context).pop(derived);
+      if (!mounted ||
+          !handleSettingsOperationResult(
+            context,
+            derivedResult,
+            isEnglish: _isEnglish,
+          )) {
+        return;
+      }
+      final derived = switch (derivedResult) {
+        SettingsOperationSuccess<
+              ({SavedSetting baseSetting, SavedSetting derivedSetting})>(
+          :final value
+        ) =>
+          value?.derivedSetting,
+        SettingsOperationFailure<
+              ({SavedSetting baseSetting, SavedSetting derivedSetting})>() =>
+          null,
+      };
+      if (derived == null) {
+        return;
+      }
+      setState(() {
+        _isLoading = false;
+        _isSavingDerivedSetting = false;
+      });
+      Navigator.of(context).pop(derived);
     } catch (e) {
+      debugLog('Failed to save the derived setting: $e');
       _showMessage(
         _isEnglish
-            ? 'Failed to save the derived setting: $e'
-            : '派生セットを保存できませんでした: $e',
+            ? 'Failed to save the derived setting.'
+            : '派生セットを保存できませんでした。',
       );
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          _isSavingDerivedSetting = false;
+        });
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEnglish ? 'AI Setup Advisor' : 'AIセッティング相談'),
-      ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            LinearProgressIndicator(
-              value: (_step + 1) / 3,
-              minHeight: 3,
-            ),
-            if (_isLoading) const LinearProgressIndicator(minHeight: 2),
-            Expanded(
-              child: switch (_step) {
-                0 => _buildIntake(),
-                1 => _buildConversation(),
-                _ => _buildResult(),
-              },
-            ),
-          ],
+    return PopScope(
+      canPop: !_isSavingDerivedSetting,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_isEnglish ? 'AI Setup Advisor' : 'AIセッティング相談'),
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              LinearProgressIndicator(
+                value: (_step + 1) / 3,
+                minHeight: 3,
+              ),
+              if (_isLoading) const LinearProgressIndicator(minHeight: 2),
+              Expanded(
+                child: switch (_step) {
+                  0 => _buildIntake(),
+                  1 => _buildConversation(),
+                  _ => _buildResult(),
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );

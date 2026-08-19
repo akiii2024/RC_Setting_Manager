@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:rc_setting_manager/utils/app_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
@@ -6,9 +8,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 class AuthService extends ChangeNotifier {
   final FirebaseAuth? _firebaseAuth;
   User? _user;
+  StreamSubscription<User?>? _authStateSubscription;
+  bool _isDisposed = false;
 
-  AuthService() : _firebaseAuth = _getFirebaseAuth() {
-    _firebaseAuth?.authStateChanges().listen((User? user) {
+  AuthService({@visibleForTesting Stream<User?>? authStateChanges})
+      : _firebaseAuth = authStateChanges == null ? _getFirebaseAuth() : null {
+    _user = _firebaseAuth?.currentUser;
+    final changes = authStateChanges ?? _firebaseAuth?.authStateChanges();
+    _authStateSubscription = changes?.listen((User? user) {
+      if (_isDisposed) {
+        return;
+      }
       _user = user;
       notifyListeners();
     });
@@ -163,5 +173,23 @@ class AuthService extends ChangeNotifier {
       }
       throw Exception('アカウント作成に失敗しました: $e');
     }
+  }
+
+  @override
+  void dispose() {
+    if (_isDisposed) {
+      return;
+    }
+    _isDisposed = true;
+    final subscription = _authStateSubscription;
+    _authStateSubscription = null;
+    if (subscription != null) {
+      unawaited(
+        subscription.cancel().catchError((Object error, StackTrace stackTrace) {
+          debugLog('Failed to cancel Firebase auth subscription: $error');
+        }),
+      );
+    }
+    super.dispose();
   }
 }

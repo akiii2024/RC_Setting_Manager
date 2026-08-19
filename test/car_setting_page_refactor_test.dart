@@ -9,6 +9,7 @@ import 'package:rc_setting_manager/models/car.dart';
 import 'package:rc_setting_manager/models/manufacturer.dart';
 import 'package:rc_setting_manager/models/saved_setting.dart';
 import 'package:rc_setting_manager/pages/car_setting_page.dart';
+import 'package:rc_setting_manager/providers/app_mode_provider.dart';
 import 'package:rc_setting_manager/providers/settings_provider.dart';
 
 final _manufacturer = Manufacturer(
@@ -59,7 +60,12 @@ Future<SettingsProvider> _pumpEditor(
     'editor_layout_paper': paperEditor,
     'weather_location_api_prompt_suppressed_v1': true,
   });
-  final provider = SettingsProvider();
+  final provider = SettingsProvider(
+    appModeProvider: AppModeProvider(
+      preferredOnline: false,
+      isFirebaseReady: false,
+    ),
+  );
 
   await tester.pumpWidget(
     ChangeNotifierProvider.value(

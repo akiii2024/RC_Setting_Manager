@@ -7,6 +7,7 @@ import 'package:rc_setting_manager/models/car_setting_definition.dart';
 import 'package:rc_setting_manager/models/manufacturer.dart';
 import 'package:rc_setting_manager/models/saved_setting.dart';
 import 'package:rc_setting_manager/pages/ai_setting_advisor_page.dart';
+import 'package:rc_setting_manager/providers/app_mode_provider.dart';
 import 'package:rc_setting_manager/providers/settings_provider.dart';
 import 'package:rc_setting_manager/services/ai_advisor_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -75,7 +76,12 @@ void main() {
 
   testWidgets('creates a linked AI-derived setting from validated advice',
       (tester) async {
-    final provider = SettingsProvider();
+    final provider = SettingsProvider(
+      appModeProvider: AppModeProvider(
+        preferredOnline: false,
+        isFirebaseReady: false,
+      ),
+    );
     final car = Car(
       id: 'car-1',
       name: 'Test car',

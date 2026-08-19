@@ -64,12 +64,13 @@ class _ConversationDialogState extends State<_ConversationDialog> {
         _scrollToBottom();
       }
     } catch (e) {
+      debugLog('Failed to start AI conversation: $e');
       if (mounted) {
         setState(() {
           _messages.add(ChatMessage(
             text: widget.isEnglish
-                ? 'Failed to start conversation: $e'
-                : '会話の開始に失敗しました: $e',
+                ? 'Failed to start the conversation.'
+                : '会話の開始に失敗しました。',
             isUser: false,
             timestamp: DateTime.now(),
           ));
@@ -111,10 +112,13 @@ class _ConversationDialogState extends State<_ConversationDialog> {
         _scrollToBottom();
       }
     } catch (e) {
+      debugLog('Failed to send AI conversation message: $e');
       if (mounted) {
         setState(() {
           _messages.add(ChatMessage(
-            text: widget.isEnglish ? 'Error: $e' : 'エラー: $e',
+            text: widget.isEnglish
+                ? 'Failed to send the message.'
+                : 'メッセージの送信に失敗しました。',
             isUser: false,
             timestamp: DateTime.now(),
           ));
@@ -161,6 +165,7 @@ class _ConversationDialogState extends State<_ConversationDialog> {
         _showAdviceDialog(advice);
       }
     } catch (e) {
+      debugLog('Failed to generate final AI advice: $e');
       if (mounted) {
         // プログレスダイアログを閉じる
         Navigator.of(context).pop();
@@ -168,8 +173,8 @@ class _ConversationDialogState extends State<_ConversationDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(widget.isEnglish
-                ? 'Failed to generate advice: $e'
-                : '最終アドバイスの生成に失敗しました: $e'),
+                ? 'Failed to generate advice.'
+                : '最終アドバイスの生成に失敗しました。'),
             duration: const Duration(seconds: 5),
           ),
         );

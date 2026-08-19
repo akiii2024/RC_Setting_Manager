@@ -11,17 +11,32 @@ abstract interface class SettingsCloudRepository {
 
   Future<void> saveSetting(SavedSetting setting);
 
+  Future<void> saveSettingsAndCarsAtomically({
+    required List<SavedSetting> settings,
+    List<Car>? cars,
+  });
+
   Future<List<SavedSetting>> getSavedSettings();
 
   Future<void> deleteSetting(String settingId);
 
   Future<void> saveRunLog(RunLog runLog);
 
+  Future<void> saveRunLogWithResultSetting({
+    required RunLog runLog,
+    SavedSetting? resultSetting,
+  });
+
   Future<List<RunLog>> getRunLogs();
 
   Future<void> deleteRunLog(String runLogId);
 
   Future<void> saveCars(List<Car> cars);
+
+  Future<void> saveCarsAndVisibilityAtomically({
+    required List<Car> cars,
+    required Map<String, VisibilitySettings> visibilitySettings,
+  });
 
   Future<List<Car>> getCars();
 
@@ -66,6 +81,13 @@ class FirestoreSettingsCloudRepository implements SettingsCloudRepository {
       _service.saveSetting(setting);
 
   @override
+  Future<void> saveSettingsAndCarsAtomically({
+    required List<SavedSetting> settings,
+    List<Car>? cars,
+  }) =>
+      _service.saveSettingsAndCarsAtomically(settings: settings, cars: cars);
+
+  @override
   Future<List<SavedSetting>> getSavedSettings() => _service.getSavedSettings();
 
   @override
@@ -76,6 +98,16 @@ class FirestoreSettingsCloudRepository implements SettingsCloudRepository {
   Future<void> saveRunLog(RunLog runLog) => _service.saveRunLog(runLog);
 
   @override
+  Future<void> saveRunLogWithResultSetting({
+    required RunLog runLog,
+    SavedSetting? resultSetting,
+  }) =>
+      _service.saveRunLogWithResultSetting(
+        runLog: runLog,
+        resultSetting: resultSetting,
+      );
+
+  @override
   Future<List<RunLog>> getRunLogs() => _service.getRunLogs();
 
   @override
@@ -83,6 +115,16 @@ class FirestoreSettingsCloudRepository implements SettingsCloudRepository {
 
   @override
   Future<void> saveCars(List<Car> cars) => _service.saveCars(cars);
+
+  @override
+  Future<void> saveCarsAndVisibilityAtomically({
+    required List<Car> cars,
+    required Map<String, VisibilitySettings> visibilitySettings,
+  }) =>
+      _service.saveCarsAndVisibilityAtomically(
+        cars: cars,
+        visibilitySettings: visibilitySettings,
+      );
 
   @override
   Future<List<Car>> getCars() => _service.getCars();

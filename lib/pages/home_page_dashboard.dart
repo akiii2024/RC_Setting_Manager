@@ -1198,46 +1198,87 @@ class _HomeSettingCard extends StatelessWidget {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
+    final messenger = ScaffoldMessenger.of(context);
+    var deleteInFlight = false;
 
     showDialog(
       context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(_t(isEnglish, 'Delete setting', '設定を削除')),
-          content: Text(
-            _t(
-              isEnglish,
-              'Delete "${setting.name}"? This action cannot be undone.',
-              '「${setting.name}」を削除しますか？この操作は元に戻せません。',
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text(_t(isEnglish, 'Cancel', 'キャンセル')),
-            ),
-            TextButton(
-              onPressed: () {
-                settingsProvider.deleteSetting(setting.id);
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      _t(isEnglish, 'Setting deleted', '設定を削除しました'),
-                    ),
-                  ),
-                );
-              },
-              child: Text(
-                _t(isEnglish, 'Delete', '削除'),
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) => PopScope(
+            canPop: !deleteInFlight,
+            child: AlertDialog(
+              title: Text(_t(isEnglish, 'Delete setting', '設定を削除')),
+              content: Text(
+                _t(
+                  isEnglish,
+                  'Delete "${setting.name}"? This action cannot be undone.',
+                  '「${setting.name}」を削除しますか？この操作は元に戻せません。',
                 ),
               ),
+              actions: [
+                TextButton(
+                  onPressed: deleteInFlight
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: Text(_t(isEnglish, 'Cancel', 'キャンセル')),
+                ),
+                TextButton(
+                  onPressed: deleteInFlight
+                      ? null
+                      : () async {
+                          deleteInFlight = true;
+                          setDialogState(() {});
+                          try {
+                            final result = await settingsProvider
+                                .deleteSetting(setting.id);
+                            if (!dialogContext.mounted ||
+                                !handleSettingsOperationResult(
+                                  dialogContext,
+                                  result,
+                                  isEnglish: isEnglish,
+                                )) {
+                              return;
+                            }
+                            final deleted = switch (result) {
+                              SettingsOperationSuccess<bool>(:final value) =>
+                                value ?? false,
+                              SettingsOperationFailure<bool>() => false,
+                            };
+                            if (!deleted) return;
+                            deleteInFlight = false;
+                            setDialogState(() {});
+                            Navigator.of(dialogContext).pop();
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  _t(isEnglish, 'Setting deleted', '設定を削除しました'),
+                                ),
+                              ),
+                            );
+                          } finally {
+                            deleteInFlight = false;
+                            if (dialogContext.mounted) {
+                              setDialogState(() {});
+                            }
+                          }
+                        },
+                  child: deleteInFlight
+                      ? const SizedBox.square(
+                          dimension: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(
+                          _t(isEnglish, 'Delete', '削除'),
+                          style: TextStyle(
+                            color: Theme.of(dialogContext).colorScheme.error,
+                          ),
+                        ),
+                ),
+              ],
             ),
-          ],
+          ),
         );
       },
     );

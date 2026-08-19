@@ -12,6 +12,7 @@ import 'package:rc_setting_manager/pages/car_selection_page.dart';
 import 'package:rc_setting_manager/pages/car_setting_page.dart';
 import 'package:rc_setting_manager/pages/history_page.dart';
 import 'package:rc_setting_manager/pages/my_garage_page.dart';
+import 'package:rc_setting_manager/providers/app_mode_provider.dart';
 import 'package:rc_setting_manager/providers/settings_provider.dart';
 
 Future<void> _pumpUntilInitialized(
@@ -62,7 +63,12 @@ SettingsProvider _createProvider(
         jsonEncode(savedSettings.map((setting) => setting.toJson()).toList()),
   });
 
-  return SettingsProvider();
+  return SettingsProvider(
+    appModeProvider: AppModeProvider(
+      preferredOnline: false,
+      isFirebaseReady: false,
+    ),
+  );
 }
 
 void main() {

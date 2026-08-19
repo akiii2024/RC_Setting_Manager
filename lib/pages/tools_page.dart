@@ -7,6 +7,7 @@ import '../services/file_service.dart';
 import '../services/xml_service.dart';
 import 'simple_import_page.dart';
 import 'statistics_page.dart';
+import '../utils/app_logger.dart';
 
 class ToolsPage extends StatelessWidget {
   const ToolsPage({super.key});
@@ -179,9 +180,10 @@ class ToolsPage extends StatelessWidget {
         ),
       );
     } catch (e) {
+      debugLog('Backup export failed: $e');
       messenger.showSnackBar(
         SnackBar(
-          content: Text(isEnglish ? 'Backup failed: $e' : 'バックアップに失敗しました: $e'),
+          content: Text(isEnglish ? 'Backup failed.' : 'バックアップに失敗しました。'),
           backgroundColor: Colors.red,
         ),
       );

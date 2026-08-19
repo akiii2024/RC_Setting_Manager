@@ -8,6 +8,7 @@ import '../models/car.dart';
 import '../models/car_setting_definition.dart';
 import '../models/run_log.dart';
 import '../models/saved_setting.dart';
+import '../models/settings_operation_result.dart';
 import '../models/track_location.dart';
 import '../providers/settings_provider.dart';
 import '../services/api_consent_service.dart';
@@ -15,6 +16,7 @@ import '../services/location_service.dart';
 import '../services/track_location_service.dart';
 import '../services/weather_service.dart';
 import '../utils/run_log_formatters.dart';
+import '../utils/settings_operation_feedback.dart';
 import 'car_setting_page.dart';
 
 part 'quick_run_log_widgets.dart';
@@ -642,7 +644,7 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
     });
 
     try {
-      await provider.addRunLog(
+      final result = await provider.addRunLog(
         runAt: DateTime.now(),
         car: car,
         baseSetting: _selectedBaseSetting,
@@ -658,7 +660,20 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
         changes: List<RunSettingChange>.from(_changes),
       );
 
-      if (!mounted) {
+      if (!mounted ||
+          !handleSettingsOperationResult(
+            context,
+            result,
+            isEnglish: isEnglish,
+          )) {
+        return;
+      }
+
+      final savedRunLog = switch (result) {
+        SettingsOperationSuccess<RunLog>(:final value) => value,
+        SettingsOperationFailure<RunLog>() => null,
+      };
+      if (savedRunLog == null) {
         return;
       }
 
@@ -671,6 +686,7 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
           )),
         ),
       );
+      setState(() => _isSaving = false);
       Navigator.pop(context);
     } finally {
       if (mounted) {
@@ -949,356 +965,362 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
           _scheduleInitialWeatherFetch();
         }
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(_t(isEnglish, 'Quick Run Log', '走行メモ')),
-          ),
-          body: selectedCar == null
-              ? Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      _t(
-                        isEnglish,
-                        'Add a car before creating run logs.',
-                        '走行ログを作成する前に車両を追加してください。',
+        return PopScope(
+          canPop: !_isSaving,
+          child: Scaffold(
+            appBar: AppBar(
+              title: Text(_t(isEnglish, 'Quick Run Log', '走行メモ')),
+            ),
+            body: selectedCar == null
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        _t(
+                          isEnglish,
+                          'Add a car before creating run logs.',
+                          '走行ログを作成する前に車両を追加してください。',
+                        ),
+                        textAlign: TextAlign.center,
                       ),
-                      textAlign: TextAlign.center,
                     ),
-                  ),
-                )
-              : SafeArea(
-                  child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
-                    children: [
-                      _SectionCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _t(isEnglish, 'Run Target', '走行対象'),
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            DropdownButtonFormField<String>(
-                              key: ValueKey('car-${selectedCar.id}'),
-                              initialValue: selectedCar.id,
-                              decoration: InputDecoration(
-                                labelText: _t(isEnglish, 'Car', '車両'),
-                                prefixIcon: const Icon(Icons.directions_car),
-                              ),
-                              items: provider.cars
-                                  .map(
-                                    (car) => DropdownMenuItem<String>(
-                                      value: car.id,
-                                      child: Text(car.name),
-                                    ),
-                                  )
-                                  .toList(),
-                              onChanged: (value) {
-                                if (value != null) {
-                                  _selectCar(provider, value);
-                                }
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                            DropdownButtonFormField<String>(
-                              key: ValueKey(
-                                'base-${selectedCar.id}-${_selectedBaseSetting?.id ?? ''}',
-                              ),
-                              initialValue: _selectedBaseSetting?.id ?? '',
-                              decoration: InputDecoration(
-                                labelText: _t(
-                                  isEnglish,
-                                  'Base Setting',
-                                  'ベース設定',
+                  )
+                : SafeArea(
+                    child: ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+                      children: [
+                        _SectionCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _t(isEnglish, 'Run Target', '走行対象'),
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
                                 ),
-                                prefixIcon: const Icon(Icons.tune),
                               ),
-                              items: [
-                                DropdownMenuItem<String>(
-                                  value: '',
-                                  child: Text(_t(
+                              const SizedBox(height: 16),
+                              DropdownButtonFormField<String>(
+                                key: ValueKey('car-${selectedCar.id}'),
+                                initialValue: selectedCar.id,
+                                decoration: InputDecoration(
+                                  labelText: _t(isEnglish, 'Car', '車両'),
+                                  prefixIcon: const Icon(Icons.directions_car),
+                                ),
+                                items: provider.cars
+                                    .map(
+                                      (car) => DropdownMenuItem<String>(
+                                        value: car.id,
+                                        child: Text(car.name),
+                                      ),
+                                    )
+                                    .toList(),
+                                onChanged: (value) {
+                                  if (value != null) {
+                                    _selectCar(provider, value);
+                                  }
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              DropdownButtonFormField<String>(
+                                key: ValueKey(
+                                  'base-${selectedCar.id}-${_selectedBaseSetting?.id ?? ''}',
+                                ),
+                                initialValue: _selectedBaseSetting?.id ?? '',
+                                decoration: InputDecoration(
+                                  labelText: _t(
                                     isEnglish,
-                                    'No base setting',
-                                    'ベース設定なし',
-                                  )),
+                                    'Base Setting',
+                                    'ベース設定',
+                                  ),
+                                  prefixIcon: const Icon(Icons.tune),
                                 ),
-                                ...carSettings.map(
-                                  (setting) => DropdownMenuItem<String>(
-                                    value: setting.id,
-                                    child: Text(
-                                      setting.name,
-                                      overflow: TextOverflow.ellipsis,
+                                items: [
+                                  DropdownMenuItem<String>(
+                                    value: '',
+                                    child: Text(_t(
+                                      isEnglish,
+                                      'No base setting',
+                                      'ベース設定なし',
+                                    )),
+                                  ),
+                                  ...carSettings.map(
+                                    (setting) => DropdownMenuItem<String>(
+                                      value: setting.id,
+                                      child: Text(
+                                        setting.name,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
-                              onChanged: (value) {
-                                _selectBaseSetting(provider, value ?? '');
-                              },
-                            ),
-                            const SizedBox(height: 12),
-                            _buildCourseNameField(isEnglish),
-                          ],
+                                ],
+                                onChanged: (value) {
+                                  _selectBaseSetting(provider, value ?? '');
+                                },
+                              ),
+                              const SizedBox(height: 12),
+                              _buildCourseNameField(isEnglish),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      _SectionCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _t(isEnglish, 'Conditions', 'コンディション'),
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            _buildWeatherStatus(isEnglish),
-                            const SizedBox(height: 16),
-                            TextField(
-                              controller: _airTempController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                decimal: true,
-                                signed: true,
-                              ),
-                              decoration: InputDecoration(
-                                labelText: _t(isEnglish, 'Air Temp', '気温'),
-                                suffixText: '°C',
-                                prefixIcon: const Icon(Icons.thermostat),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _humidityController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                decimal: true,
-                              ),
-                              decoration: InputDecoration(
-                                labelText: _t(isEnglish, 'Humidity', '湿度'),
-                                suffixText: '%',
-                                prefixIcon: const Icon(Icons.water_drop),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _weatherConditionController,
-                              decoration: InputDecoration(
-                                labelText: _t(isEnglish, 'Weather', '天候'),
-                                hintText: _t(
-                                  isEnglish,
-                                  'Sunny, cloudy, rain...',
-                                  '晴れ、くもり、雨など',
+                        const SizedBox(height: 12),
+                        _SectionCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _t(isEnglish, 'Conditions', 'コンディション'),
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
                                 ),
-                                prefixIcon: const Icon(Icons.cloud),
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _trackTempController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                decimal: true,
-                                signed: true,
+                              const SizedBox(height: 12),
+                              _buildWeatherStatus(isEnglish),
+                              const SizedBox(height: 16),
+                              TextField(
+                                controller: _airTempController,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                  signed: true,
+                                ),
+                                decoration: InputDecoration(
+                                  labelText: _t(isEnglish, 'Air Temp', '気温'),
+                                  suffixText: '°C',
+                                  prefixIcon: const Icon(Icons.thermostat),
+                                ),
                               ),
-                              decoration: InputDecoration(
-                                labelText: _t(isEnglish, 'Track Temp', '路面温度'),
-                                suffixText: '°C',
-                                prefixIcon: const Icon(Icons.device_thermostat),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _humidityController,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                ),
+                                decoration: InputDecoration(
+                                  labelText: _t(isEnglish, 'Humidity', '湿度'),
+                                  suffixText: '%',
+                                  prefixIcon: const Icon(Icons.water_drop),
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 12),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: [
-                                for (final value in const [
-                                  'very_good',
-                                  'good',
-                                  'normal',
-                                  'bad',
-                                  'very_bad',
-                                ])
-                                  ChoiceChip(
-                                    label: Text(
-                                      _trackConditionLabel(value, isEnglish),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _weatherConditionController,
+                                decoration: InputDecoration(
+                                  labelText: _t(isEnglish, 'Weather', '天候'),
+                                  hintText: _t(
+                                    isEnglish,
+                                    'Sunny, cloudy, rain...',
+                                    '晴れ、くもり、雨など',
+                                  ),
+                                  prefixIcon: const Icon(Icons.cloud),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _trackTempController,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                  signed: true,
+                                ),
+                                decoration: InputDecoration(
+                                  labelText:
+                                      _t(isEnglish, 'Track Temp', '路面温度'),
+                                  suffixText: '°C',
+                                  prefixIcon:
+                                      const Icon(Icons.device_thermostat),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: [
+                                  for (final value in const [
+                                    'very_good',
+                                    'good',
+                                    'normal',
+                                    'bad',
+                                    'very_bad',
+                                  ])
+                                    ChoiceChip(
+                                      label: Text(
+                                        _trackConditionLabel(value, isEnglish),
+                                      ),
+                                      selected:
+                                          _selectedTrackCondition == value,
+                                      onSelected: (selected) {
+                                        setState(() {
+                                          _selectedTrackCondition =
+                                              selected ? value : null;
+                                        });
+                                      },
                                     ),
-                                    selected: _selectedTrackCondition == value,
-                                    onSelected: (selected) {
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              TextField(
+                                controller: _trackConditionController,
+                                decoration: InputDecoration(
+                                  labelText: _t(
+                                    isEnglish,
+                                    'Track Condition Note',
+                                    '路面状況メモ',
+                                  ),
+                                  hintText: _t(
+                                    isEnglish,
+                                    'Low grip, high grip, dusty...',
+                                    'グリップ感、ほこり、荒れ具合など',
+                                  ),
+                                  prefixIcon: const Icon(Icons.route),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _SectionCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _t(isEnglish, 'Result', '走行結果'),
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              TextField(
+                                controller: _bestLapController,
+                                keyboardType:
+                                    const TextInputType.numberWithOptions(
+                                  decimal: true,
+                                ),
+                                decoration: InputDecoration(
+                                  labelText: _t(
+                                    isEnglish,
+                                    'Best Lap',
+                                    'ベストラップ',
+                                  ),
+                                  hintText: '13.52 / 0:13.52',
+                                  prefixIcon: const Icon(Icons.timer),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 8,
+                                children: runFeelTags.map((tag) {
+                                  final selected =
+                                      _selectedFeelTagIds.contains(tag.id);
+                                  return FilterChip(
+                                    label: Text(
+                                      isEnglish ? tag.labelEn : tag.labelJa,
+                                    ),
+                                    selected: selected,
+                                    onSelected: (value) {
                                       setState(() {
-                                        _selectedTrackCondition =
-                                            selected ? value : null;
+                                        if (value) {
+                                          _selectedFeelTagIds.add(tag.id);
+                                        } else {
+                                          _selectedFeelTagIds.remove(tag.id);
+                                        }
                                       });
                                     },
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _trackConditionController,
-                              decoration: InputDecoration(
-                                labelText: _t(
-                                  isEnglish,
-                                  'Track Condition Note',
-                                  '路面状況メモ',
-                                ),
-                                hintText: _t(
-                                  isEnglish,
-                                  'Low grip, high grip, dusty...',
-                                  'グリップ感、ほこり、荒れ具合など',
-                                ),
-                                prefixIcon: const Icon(Icons.route),
+                                  );
+                                }).toList(),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _SectionCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _t(isEnglish, 'Result', '走行結果'),
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            TextField(
-                              controller: _bestLapController,
-                              keyboardType:
-                                  const TextInputType.numberWithOptions(
-                                decimal: true,
-                              ),
-                              decoration: InputDecoration(
-                                labelText: _t(
-                                  isEnglish,
-                                  'Best Lap',
-                                  'ベストラップ',
-                                ),
-                                hintText: '13.52 / 0:13.52',
-                                prefixIcon: const Icon(Icons.timer),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Wrap(
-                              spacing: 8,
-                              runSpacing: 8,
-                              children: runFeelTags.map((tag) {
-                                final selected =
-                                    _selectedFeelTagIds.contains(tag.id);
-                                return FilterChip(
-                                  label: Text(
-                                    isEnglish ? tag.labelEn : tag.labelJa,
-                                  ),
-                                  selected: selected,
-                                  onSelected: (value) {
-                                    setState(() {
-                                      if (value) {
-                                        _selectedFeelTagIds.add(tag.id);
-                                      } else {
-                                        _selectedFeelTagIds.remove(tag.id);
-                                      }
-                                    });
-                                  },
-                                );
-                              }).toList(),
-                            ),
-                            const SizedBox(height: 16),
-                            TextField(
-                              controller: _memoController,
-                              minLines: 3,
-                              maxLines: 6,
-                              decoration: InputDecoration(
-                                labelText: _t(isEnglish, 'Memo', 'メモ'),
-                                hintText: _t(
-                                  isEnglish,
-                                  'Grip, balance, mistakes, tires...',
-                                  'グリップ感、バランス、ミス、タイヤなど',
-                                ),
-                                prefixIcon: const Icon(Icons.notes),
-                                alignLabelWithHint: true,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      _SectionCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
-                                    _t(
-                                      isEnglish,
-                                      'Setting Changes',
-                                      'セッティング変更',
-                                    ),
-                                    style:
-                                        theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                  ),
-                                ),
-                                IconButton(
-                                  onPressed: () =>
-                                      _addChange(provider, isEnglish),
-                                  icon: const Icon(Icons.add_circle_outline),
-                                  tooltip: _t(
+                              const SizedBox(height: 16),
+                              TextField(
+                                controller: _memoController,
+                                minLines: 3,
+                                maxLines: 6,
+                                decoration: InputDecoration(
+                                  labelText: _t(isEnglish, 'Memo', 'メモ'),
+                                  hintText: _t(
                                     isEnglish,
-                                    'Add change',
-                                    '変更を追加',
+                                    'Grip, balance, mistakes, tires...',
+                                    'グリップ感、バランス、ミス、タイヤなど',
                                   ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            if (_changes.isEmpty)
-                              Text(
-                                _t(
-                                  isEnglish,
-                                  'No setting changes recorded.',
-                                  'セッティング変更は未入力です。',
-                                ),
-                                style: theme.textTheme.bodyMedium?.copyWith(
-                                  color: colorScheme.onSurfaceVariant,
-                                ),
-                              )
-                            else
-                              ..._changes.map(
-                                (change) => _ChangeTile(
-                                  change: change,
-                                  onRemove: () => _removeChange(change),
+                                  prefixIcon: const Icon(Icons.notes),
+                                  alignLabelWithHint: true,
                                 ),
                               ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 12),
+                        _SectionCard(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      _t(
+                                        isEnglish,
+                                        'Setting Changes',
+                                        'セッティング変更',
+                                      ),
+                                      style:
+                                          theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () =>
+                                        _addChange(provider, isEnglish),
+                                    icon: const Icon(Icons.add_circle_outline),
+                                    tooltip: _t(
+                                      isEnglish,
+                                      'Add change',
+                                      '変更を追加',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              if (_changes.isEmpty)
+                                Text(
+                                  _t(
+                                    isEnglish,
+                                    'No setting changes recorded.',
+                                    'セッティング変更は未入力です。',
+                                  ),
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                )
+                              else
+                                ..._changes.map(
+                                  (change) => _ChangeTile(
+                                    change: change,
+                                    onRemove: () => _removeChange(change),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-          bottomNavigationBar: SafeArea(
-            minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-            child: FilledButton.icon(
-              onPressed:
-                  _isSaving ? null : () => _saveRunLog(provider, isEnglish),
-              icon: _isSaving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.save),
-              label: Text(_t(isEnglish, 'Save Run Log', '走行ログを保存')),
+            bottomNavigationBar: SafeArea(
+              minimum: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+              child: FilledButton.icon(
+                onPressed:
+                    _isSaving ? null : () => _saveRunLog(provider, isEnglish),
+                icon: _isSaving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.save),
+                label: Text(_t(isEnglish, 'Save Run Log', '走行ログを保存')),
+              ),
             ),
           ),
         );

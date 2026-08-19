@@ -5,8 +5,10 @@ import '../data/run_feel_tags.dart';
 import '../models/car.dart';
 import '../models/run_log.dart';
 import '../models/saved_setting.dart';
+import '../models/settings_operation_result.dart';
 import '../providers/settings_provider.dart';
 import '../utils/run_log_formatters.dart';
+import '../utils/settings_operation_feedback.dart';
 import 'car_setting_page.dart';
 
 class HistoryPage extends StatefulWidget {
@@ -32,6 +34,7 @@ enum _RunLogSort {
 }
 
 class _HistoryPageState extends State<HistoryPage> {
+  final Set<String> _runLogDeletesInFlight = <String>{};
   _HistoryView _selectedView = _HistoryView.settings;
   _RunLogSort _runLogSort = _RunLogSort.newest;
   String? _runLogCarId;
@@ -691,6 +694,7 @@ class _HistoryPageState extends State<HistoryPage> {
     RunLog runLog,
     bool isEnglish,
   ) async {
+    if (_runLogDeletesInFlight.contains(runLog.id)) return;
     final messenger = ScaffoldMessenger.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
@@ -714,20 +718,35 @@ class _HistoryPageState extends State<HistoryPage> {
       ),
     );
 
-    if (confirmed != true || !mounted) {
+    if (confirmed != true || !context.mounted) {
       return;
     }
 
-    await settingsProvider.deleteRunLog(runLog.id);
-    if (!mounted) {
-      return;
-    }
+    if (!_runLogDeletesInFlight.add(runLog.id)) return;
+    try {
+      final result = await settingsProvider.deleteRunLog(runLog.id);
+      if (!context.mounted ||
+          !handleSettingsOperationResult(
+            context,
+            result,
+            isEnglish: isEnglish,
+          )) {
+        return;
+      }
+      final deleted = switch (result) {
+        SettingsOperationSuccess<bool>(:final value) => value ?? false,
+        SettingsOperationFailure<bool>() => false,
+      };
+      if (!deleted) return;
 
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(isEnglish ? 'Run log deleted.' : '走行ログを削除しました。'),
-      ),
-    );
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(isEnglish ? 'Run log deleted.' : '走行ログを削除しました。'),
+        ),
+      );
+    } finally {
+      _runLogDeletesInFlight.remove(runLog.id);
+    }
   }
 
   String _formatDate(DateTime dateTime, bool isEnglish) {

@@ -5,9 +5,11 @@ class VisibilitySettings {
 
   VisibilitySettings({
     required this.carId,
-    required this.settingsVisibility,
+    required Map<String, bool> settingsVisibility,
     Map<String, bool>? favoriteSettings,
-  }) : favoriteSettings = favoriteSettings ?? {};
+  })  : settingsVisibility = Map<String, bool>.unmodifiable(settingsVisibility),
+        favoriteSettings =
+            Map<String, bool>.unmodifiable(favoriteSettings ?? const {});
 
   // Deserialize from JSON
   factory VisibilitySettings.fromJson(Map<String, dynamic> json) {
@@ -18,6 +20,34 @@ class VisibilitySettings {
       favoriteSettings: json['favoriteSettings'] != null
           ? Map<String, bool>.from(json['favoriteSettings'] as Map)
           : {},
+    );
+  }
+
+  factory VisibilitySettings.fromJsonStrict(Map<String, dynamic> json) {
+    final carId = json['carId'];
+    final visibilityJson = json['settingsVisibility'];
+    final favoritesJson = json['favoriteSettings'];
+    if (carId is! String || carId.trim().isEmpty) {
+      throw const FormatException(
+        'VisibilitySettings carId must be a non-empty string.',
+      );
+    }
+    if (visibilityJson is! Map<String, dynamic> ||
+        visibilityJson.values.any((value) => value is! bool)) {
+      throw const FormatException(
+        'VisibilitySettings settingsVisibility must contain booleans.',
+      );
+    }
+    if (favoritesJson is! Map<String, dynamic> ||
+        favoritesJson.values.any((value) => value is! bool)) {
+      throw const FormatException(
+        'VisibilitySettings favoriteSettings must contain booleans.',
+      );
+    }
+    return VisibilitySettings(
+      carId: carId,
+      settingsVisibility: Map<String, bool>.from(visibilityJson),
+      favoriteSettings: Map<String, bool>.from(favoritesJson),
     );
   }
 

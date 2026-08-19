@@ -3,6 +3,11 @@
 part of 'car_setting_page.dart';
 
 mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
+  Future<bool> _handleSettingsMutation<T>(
+    String operationKey,
+    Future<SettingsOperationResult<T>> Function() operation,
+  );
+
   Map<String, dynamic> get settings;
 
   _SelectGuideLabels _insideOutsideSelectGuideLabels();
@@ -746,11 +751,14 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
               color: isFavorite ? Colors.amber : null,
               size: 20,
             ),
-            onPressed: () {
-              settingsProvider.toggleFavoriteSetting(
-                widget.originalCar.id,
-                key,
-                !isFavorite,
+            onPressed: () async {
+              await _handleSettingsMutation(
+                'favorite:${widget.originalCar.id}:$key',
+                () => settingsProvider.toggleFavoriteSetting(
+                  widget.originalCar.id,
+                  key,
+                  !isFavorite,
+                ),
               );
             },
             tooltip: settingsProvider.isEnglish
@@ -786,11 +794,14 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
               color: isFavorite ? Colors.amber : null,
               size: 20,
             ),
-            onPressed: () {
-              settingsProvider.toggleFavoriteSetting(
-                widget.originalCar.id,
-                key,
-                !isFavorite,
+            onPressed: () async {
+              await _handleSettingsMutation(
+                'favorite:${widget.originalCar.id}:$key',
+                () => settingsProvider.toggleFavoriteSetting(
+                  widget.originalCar.id,
+                  key,
+                  !isFavorite,
+                ),
               );
             },
             tooltip: settingsProvider.isEnglish

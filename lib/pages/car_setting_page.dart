@@ -6,6 +6,7 @@ import '../models/car.dart';
 import '../providers/settings_provider.dart';
 import 'package:provider/provider.dart';
 import '../models/saved_setting.dart';
+import '../models/settings_operation_result.dart';
 
 import '../data/car_settings_definitions.dart';
 import '../models/car_setting_definition.dart';
@@ -21,6 +22,7 @@ import '../services/ai_advisor_service.dart';
 import '../services/ai_configuration_service.dart';
 import '../services/api_consent_service.dart';
 import '../widgets/ai_provider_indicator.dart';
+import '../utils/settings_operation_feedback.dart';
 
 part 'car_setting_page_ui_helpers.dart';
 part 'car_setting_page_track_search_dialog.dart';
@@ -113,6 +115,9 @@ class _CarSettingPageState extends State<CarSettingPage>
   @override
   bool _isWeatherLoading = false;
   bool _isAIAnalyzing = false;
+  @override
+  bool _isSavingSetting = false;
+  final Set<String> _settingsMutationsInFlight = <String>{};
 
   @override
   void initState() {
@@ -141,6 +146,28 @@ class _CarSettingPageState extends State<CarSettingPage>
   void dispose() {
     _editController.dispose();
     super.dispose();
+  }
+
+  @override
+  Future<bool> _handleSettingsMutation<T>(
+    String operationKey,
+    Future<SettingsOperationResult<T>> Function() operation,
+  ) async {
+    if (!_settingsMutationsInFlight.add(operationKey)) return false;
+    try {
+      final result = await operation();
+      if (!mounted) {
+        return result.isSuccess;
+      }
+      return handleSettingsOperationResult(
+        context,
+        result,
+        isEnglish:
+            Provider.of<SettingsProvider>(context, listen: false).isEnglish,
+      );
+    } finally {
+      _settingsMutationsInFlight.remove(operationKey);
+    }
   }
 
   Future<void> _initializeSettings() async {
@@ -372,6 +399,7 @@ class _CarSettingPageState extends State<CarSettingPage>
         _showAdviceDialog(advice);
       }
     } catch (e) {
+      debugLog('Failed to get AI advice: $e');
       // プログレスダイアログを閉じる
       if (mounted) {
         Navigator.of(context).pop();
@@ -379,9 +407,8 @@ class _CarSettingPageState extends State<CarSettingPage>
         // エラーメッセージを表示
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isEnglish
-                ? 'Failed to get AI advice: $e'
-                : 'AIアドバイスの取得に失敗しました: $e'),
+            content: Text(
+                isEnglish ? 'Failed to get AI advice.' : 'AIアドバイスの取得に失敗しました。'),
             duration: const Duration(seconds: 5),
           ),
         );
@@ -630,31 +657,34 @@ class _CarSettingPageState extends State<CarSettingPage>
     final isEnglish = settingsProvider.isEnglish;
     final usePaperStyleEditor = settingsProvider.usePaperStyleEditor;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_isEditing
-            ? (isEnglish ? 'Edit Setting' : 'セッティング編集')
-            : (isEnglish ? 'New Setting' : '新規セッティング')),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.psychology),
-            onPressed: _isAIAnalyzing ? null : _getAIAdvice,
-            tooltip: isEnglish ? 'AI Advice' : 'AIアドバイス',
-          ),
-          IconButton(
-            icon: const Icon(Icons.document_scanner),
-            onPressed: _importFromOCR,
-            tooltip: isEnglish ? 'Import from Image' : '画像から読み込み',
-          ),
-        ],
+    return PopScope(
+      canPop: !_isSavingSetting,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(_isEditing
+              ? (isEnglish ? 'Edit Setting' : 'セッティング編集')
+              : (isEnglish ? 'New Setting' : '新規セッティング')),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.psychology),
+              onPressed: _isAIAnalyzing ? null : _getAIAdvice,
+              tooltip: isEnglish ? 'AI Advice' : 'AIアドバイス',
+            ),
+            IconButton(
+              icon: const Icon(Icons.document_scanner),
+              onPressed: _importFromOCR,
+              tooltip: isEnglish ? 'Import from Image' : '画像から読み込み',
+            ),
+          ],
+        ),
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: usePaperStyleEditor
+              ? _buildPaperEditorBody(context, isEnglish)
+              : _buildSettingTabs(context),
+        ),
+        bottomNavigationBar: _buildSaveActionBar(isEnglish),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: usePaperStyleEditor
-            ? _buildPaperEditorBody(context, isEnglish)
-            : _buildSettingTabs(context),
-      ),
-      bottomNavigationBar: _buildSaveActionBar(isEnglish),
     );
   }
 
@@ -771,18 +801,24 @@ class _CarSettingPageState extends State<CarSettingPage>
           ChoiceChip(
             label: Text(isEnglish ? 'App UI' : 'アプリUI'),
             selected: !usePaperStyleEditor,
-            onSelected: (selected) {
+            onSelected: (selected) async {
               if (selected) {
-                settingsProvider.setPaperStyleEditor(false);
+                await _handleSettingsMutation(
+                  'editor-layout',
+                  () => settingsProvider.setPaperStyleEditor(false),
+                );
               }
             },
           ),
           ChoiceChip(
             label: Text(isEnglish ? 'Paper UI' : '紙UI'),
             selected: usePaperStyleEditor,
-            onSelected: (selected) {
+            onSelected: (selected) async {
               if (selected) {
-                settingsProvider.setPaperStyleEditor(true);
+                await _handleSettingsMutation(
+                  'editor-layout',
+                  () => settingsProvider.setPaperStyleEditor(true),
+                );
               }
             },
           ),

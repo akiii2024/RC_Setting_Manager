@@ -7,6 +7,7 @@ import '../models/owned_part.dart';
 import '../models/run_log.dart';
 import '../models/saved_setting.dart';
 import '../models/visibility_settings.dart';
+import 'firestore_batch_planner.dart';
 
 class FirestoreService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -61,9 +62,44 @@ class FirestoreService {
     }
   }
 
+  Future<void> saveSettingsAndCarsAtomically({
+    required List<SavedSetting> settings,
+    List<Car>? cars,
+  }) async {
+    final collection = userCollection;
+    if (collection == null) {
+      throw Exception('User is not signed in.');
+    }
+    final operationCount = settings.length + (cars == null ? 0 : 1);
+    if (operationCount > 500) {
+      throw StateError(
+        'Atomic settings batch exceeds the Firestore 500-write limit.',
+      );
+    }
+
+    try {
+      final batch = _firestore.batch();
+      final settingsCollection =
+          collection.doc('settings').collection('saved_settings');
+      for (final setting in settings) {
+        batch.set(settingsCollection.doc(setting.id), setting.toJson());
+      }
+      if (cars != null) {
+        batch.set(
+          collection.doc('cars'),
+          {'cars': cars.map((car) => car.toJson()).toList(growable: false)},
+        );
+      }
+      await batch.commit();
+    } catch (error) {
+      debugLog('Error saving settings and cars atomically: $error');
+      rethrow;
+    }
+  }
+
   Future<List<SavedSetting>> getSavedSettings() async {
     if (userCollection == null) {
-      return [];
+      throw StateError('User is not signed in.');
     }
 
     try {
@@ -77,7 +113,7 @@ class FirestoreService {
       }).toList();
     } catch (e) {
       debugLog('Error loading settings: $e');
-      return [];
+      rethrow;
     }
   }
 
@@ -115,9 +151,40 @@ class FirestoreService {
     }
   }
 
+  Future<void> saveRunLogWithResultSetting({
+    required RunLog runLog,
+    SavedSetting? resultSetting,
+  }) async {
+    final collection = userCollection;
+    if (collection == null) {
+      throw Exception('User is not signed in.');
+    }
+
+    try {
+      final batch = _firestore.batch();
+
+      if (resultSetting != null) {
+        final settingRef = collection
+            .doc('settings')
+            .collection('saved_settings')
+            .doc(resultSetting.id);
+        batch.set(settingRef, resultSetting.toJson());
+      }
+
+      final runLogRef =
+          collection.doc('run_logs').collection('items').doc(runLog.id);
+      batch.set(runLogRef, runLog.toJson());
+
+      await batch.commit();
+    } catch (e) {
+      debugLog('Error saving run log with result setting: $e');
+      rethrow;
+    }
+  }
+
   Future<List<RunLog>> getRunLogs() async {
     if (userCollection == null) {
-      return [];
+      throw StateError('User is not signed in.');
     }
 
     try {
@@ -129,7 +196,7 @@ class FirestoreService {
       }).toList();
     } catch (e) {
       debugLog('Error loading run logs: $e');
-      return [];
+      rethrow;
     }
   }
 
@@ -164,9 +231,33 @@ class FirestoreService {
     }
   }
 
+  Future<void> saveCarsAndVisibilityAtomically({
+    required List<Car> cars,
+    required Map<String, VisibilitySettings> visibilitySettings,
+  }) async {
+    final collection = userCollection;
+    if (collection == null) {
+      throw Exception('User is not signed in.');
+    }
+
+    try {
+      final carsJson = cars.map((car) => car.toJson()).toList(growable: false);
+      final visibilityJson = visibilitySettings.map(
+        (carId, settings) => MapEntry(carId, settings.toJson()),
+      );
+      final batch = _firestore.batch();
+      batch.set(collection.doc('cars'), {'cars': carsJson});
+      batch.set(collection.doc('visibility_settings'), visibilityJson);
+      await batch.commit();
+    } catch (error) {
+      debugLog('Error saving cars and visibility settings atomically: $error');
+      rethrow;
+    }
+  }
+
   Future<List<Car>> getCars() async {
     if (userCollection == null) {
-      return [];
+      throw StateError('User is not signed in.');
     }
 
     try {
@@ -182,7 +273,7 @@ class FirestoreService {
           .toList();
     } catch (e) {
       debugLog('Error loading cars: $e');
-      return [];
+      rethrow;
     }
   }
 
@@ -204,7 +295,7 @@ class FirestoreService {
 
   Future<List<OwnedPart>> getOwnedParts() async {
     if (userCollection == null) {
-      return [];
+      throw StateError('User is not signed in.');
     }
 
     try {
@@ -222,7 +313,7 @@ class FirestoreService {
           .toList();
     } catch (e) {
       debugLog('Error loading owned parts: $e');
-      return [];
+      rethrow;
     }
   }
 
@@ -246,7 +337,7 @@ class FirestoreService {
 
   Future<Map<String, VisibilitySettings>> getVisibilitySettings() async {
     if (userCollection == null) {
-      return {};
+      throw StateError('User is not signed in.');
     }
 
     try {
@@ -264,7 +355,7 @@ class FirestoreService {
       return visibilitySettings;
     } catch (e) {
       debugLog('Error loading visibility settings: $e');
-      return {};
+      rethrow;
     }
   }
 
@@ -285,7 +376,7 @@ class FirestoreService {
 
   Future<bool> getLanguageSettings() async {
     if (userCollection == null) {
-      return false;
+      throw StateError('User is not signed in.');
     }
 
     try {
@@ -298,7 +389,7 @@ class FirestoreService {
       return data['isEnglish'] as bool? ?? false;
     } catch (e) {
       debugLog('Error loading language settings: $e');
-      return false;
+      rethrow;
     }
   }
 
@@ -310,62 +401,103 @@ class FirestoreService {
     required Map<String, VisibilitySettings> visibilitySettings,
     required bool isEnglish,
   }) async {
-    if (userCollection == null) {
+    final collection = userCollection;
+    if (collection == null) {
       throw Exception('User is not signed in.');
     }
 
     try {
       final settingsCollection =
-          userCollection!.doc('settings').collection('saved_settings');
+          collection.doc('settings').collection('saved_settings');
       final existingSnapshot = await settingsCollection.get();
       final localSettingIds =
           savedSettings.map((setting) => setting.id).toSet();
-      final runLogsCollection =
-          userCollection!.doc('run_logs').collection('items');
+      final runLogsCollection = collection.doc('run_logs').collection('items');
       final existingRunLogsSnapshot = await runLogsCollection.get();
       final localRunLogIds = runLogs.map((runLog) => runLog.id).toSet();
-      final batch = _firestore.batch();
-
-      for (final doc in existingSnapshot.docs) {
-        if (!localSettingIds.contains(doc.id)) {
-          batch.delete(doc.reference);
-        }
-      }
-
-      for (final doc in existingRunLogsSnapshot.docs) {
-        if (!localRunLogIds.contains(doc.id)) {
-          batch.delete(doc.reference);
-        }
-      }
+      final upserts = <void Function(WriteBatch)>[];
+      final staleDeletes = <void Function(WriteBatch)>[];
 
       for (final setting in savedSettings) {
-        batch.set(settingsCollection.doc(setting.id), setting.toJson());
+        upserts.add(
+          (batch) =>
+              batch.set(settingsCollection.doc(setting.id), setting.toJson()),
+        );
       }
 
       for (final runLog in runLogs) {
-        batch.set(runLogsCollection.doc(runLog.id), runLog.toJson());
+        upserts.add(
+          (batch) => batch.set(
+            runLogsCollection.doc(runLog.id),
+            runLog.toJson(),
+          ),
+        );
       }
 
       final carsJson = cars.map((car) => car.toJson()).toList();
-      batch.set(userCollection!.doc('cars'), {'cars': carsJson});
+      upserts.add(
+        (batch) => batch.set(collection.doc('cars'), {'cars': carsJson}),
+      );
 
       final ownedPartsJson = ownedParts.map((part) => part.toJson()).toList();
-      batch.set(
-          userCollection!.doc('owned_parts'), {'ownedParts': ownedPartsJson});
+      upserts.add(
+        (batch) => batch.set(
+          collection.doc('owned_parts'),
+          {'ownedParts': ownedPartsJson},
+        ),
+      );
 
       final visibilityJson = <String, dynamic>{};
       visibilitySettings.forEach((key, value) {
         visibilityJson[key] = value.toJson();
       });
-      batch.set(userCollection!.doc('visibility_settings'), visibilityJson);
+      upserts.add(
+        (batch) => batch.set(
+          collection.doc('visibility_settings'),
+          visibilityJson,
+        ),
+      );
 
-      batch.set(
-          userCollection!.doc('language_settings'), {'isEnglish': isEnglish});
+      upserts.add(
+        (batch) => batch.set(
+          collection.doc('language_settings'),
+          {'isEnglish': isEnglish},
+        ),
+      );
 
-      await batch.commit();
+      for (final doc in existingSnapshot.docs) {
+        if (!localSettingIds.contains(doc.id)) {
+          staleDeletes.add((batch) => batch.delete(doc.reference));
+        }
+      }
+
+      for (final doc in existingRunLogsSnapshot.docs) {
+        if (!localRunLogIds.contains(doc.id)) {
+          staleDeletes.add((batch) => batch.delete(doc.reference));
+        }
+      }
+
+      // Upserts are committed first so a partially completed sync never drops
+      // remote-only data before the local authoritative state is present.
+      // Every operation is idempotent; retrying converges after any failed
+      // chunk without exceeding Firestore's per-batch write limit.
+      await _commitBatchOperations(upserts);
+      await _commitBatchOperations(staleDeletes);
     } catch (e) {
       debugLog('Error syncing data: $e');
       rethrow;
+    }
+  }
+
+  Future<void> _commitBatchOperations(
+    List<void Function(WriteBatch)> operations,
+  ) async {
+    for (final operationsBatch in planFirestoreSyncBatches(operations)) {
+      final batch = _firestore.batch();
+      for (final operation in operationsBatch) {
+        operation(batch);
+      }
+      await batch.commit();
     }
   }
 }

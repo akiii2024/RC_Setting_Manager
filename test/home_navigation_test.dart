@@ -4,10 +4,16 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:rc_setting_manager/pages/home_page.dart';
+import 'package:rc_setting_manager/providers/app_mode_provider.dart';
 import 'package:rc_setting_manager/providers/settings_provider.dart';
 
 Future<void> _pumpHome(WidgetTester tester) async {
-  final provider = SettingsProvider();
+  final provider = SettingsProvider(
+    appModeProvider: AppModeProvider(
+      preferredOnline: false,
+      isFirebaseReady: false,
+    ),
+  );
   await tester.pumpWidget(
     ChangeNotifierProvider.value(
       value: provider,

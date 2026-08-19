@@ -4,6 +4,10 @@ import 'setting_name_policy.dart';
 
 /// 保存済みセッティングの状態と命名規則を保持する内部ストア。
 class SavedSettingStore {
+  SavedSettingStore({required String Function() idGenerator})
+      : _idGenerator = idGenerator;
+
+  final String Function() _idGenerator;
   List<SavedSetting> _settings = [];
 
   List<SavedSetting> get settings => _settings;
@@ -53,7 +57,7 @@ class SavedSettingStore {
     String? parentSettingId,
   }) {
     final newSetting = SavedSetting(
-      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      id: _idGenerator(),
       name: SettingNamePolicy.uniqueName(name, _settings),
       createdAt: DateTime.now(),
       car: car,

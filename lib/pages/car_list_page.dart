@@ -5,7 +5,9 @@ import 'car_setting_page.dart';
 import '../models/manufacturer.dart';
 import '../models/car.dart';
 import '../models/visibility_settings.dart';
+import '../models/settings_operation_result.dart';
 import '../data/car_settings_definitions.dart';
+import '../utils/settings_operation_feedback.dart';
 
 // ユーティリティクラス - 車種ごとの設定を管理
 class CarSettingsUtil {
@@ -99,6 +101,8 @@ class CarListPage extends StatefulWidget {
 }
 
 class _CarListPageState extends State<CarListPage> {
+  final Set<String> _garageMutationsInFlight = <String>{};
+
   @override
   Widget build(BuildContext context) {
     final settingsProvider = Provider.of<SettingsProvider>(context);
@@ -150,30 +154,46 @@ class _CarListPageState extends State<CarListPage> {
   }
 
   Future<void> _toggleGarageMembership(Car car) async {
+    if (!_garageMutationsInFlight.add(car.id)) return;
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
     final willAddToGarage = !car.isInGarage;
 
-    await settingsProvider.setGarageMembership(car.id, willAddToGarage);
+    try {
+      final result =
+          await settingsProvider.setGarageMembership(car.id, willAddToGarage);
 
-    if (!mounted) {
-      return;
-    }
+      if (!mounted ||
+          !handleSettingsOperationResult(
+            context,
+            result,
+            isEnglish: isEnglish,
+          )) {
+        return;
+      }
+      final changed = switch (result) {
+        SettingsOperationSuccess<bool>(:final value) => value ?? false,
+        SettingsOperationFailure<bool>() => false,
+      };
+      if (!changed) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          isEnglish
-              ? willAddToGarage
-                  ? '${car.name} added to My Garage'
-                  : '${car.name} removed from My Garage'
-              : willAddToGarage
-                  ? '${car.name} をマイガレージに追加しました'
-                  : '${car.name} をマイガレージから外しました',
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isEnglish
+                ? willAddToGarage
+                    ? '${car.name} added to My Garage'
+                    : '${car.name} removed from My Garage'
+                : willAddToGarage
+                    ? '${car.name} をマイガレージに追加しました'
+                    : '${car.name} をマイガレージから外しました',
+          ),
         ),
-      ),
-    );
+      );
+    } finally {
+      _garageMutationsInFlight.remove(car.id);
+    }
   }
 
   void _showAddCarDialog() {
@@ -199,9 +219,11 @@ class _CarListPageState extends State<CarListPage> {
       availableSettingsState[key] = false;
       settingTypes[key] = 'select'; // デフォルトは選択式
     }
+    var isSubmitting = false;
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
@@ -220,83 +242,117 @@ class _CarListPageState extends State<CarListPage> {
               }
             }
 
-            return AlertDialog(
-              title: Text(isEnglish ? 'Add New Model' : '新しい車種を追加'),
-              content: SizedBox(
-                width: double.maxFinite,
-                height: 500, // より多くの内容を表示するために高さを増やす
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(
-                        labelText: isEnglish ? 'Model Name' : '車種名',
+            return PopScope(
+              canPop: !isSubmitting,
+              child: AlertDialog(
+                title: Text(isEnglish ? 'Add New Model' : '新しい車種を追加'),
+                content: SizedBox(
+                  width: double.maxFinite,
+                  height: 500, // より多くの内容を表示するために高さを増やす
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        controller: nameController,
+                        decoration: InputDecoration(
+                          labelText: isEnglish ? 'Model Name' : '車種名',
+                        ),
+                        onChanged: (value) {
+                          updateAdditionalSettings();
+                        },
                       ),
-                      onChanged: (value) {
-                        updateAdditionalSettings();
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      isEnglish ? 'Available Settings' : '利用可能な設定項目',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: ListView(
-                        children: _buildSettingCheckboxesWithType(
-                            context,
-                            availableSettingsState,
-                            settingTypes,
-                            setState,
-                            isEnglish),
+                      const SizedBox(height: 16),
+                      Text(
+                        isEnglish ? 'Available Settings' : '利用可能な設定項目',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: ListView(
+                          children: _buildSettingCheckboxesWithType(
+                              context,
+                              availableSettingsState,
+                              settingTypes,
+                              setState,
+                              isEnglish),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                actions: [
+                  TextButton(
+                    onPressed:
+                        isSubmitting ? null : () => Navigator.of(context).pop(),
+                    child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
+                  ),
+                  TextButton(
+                    onPressed: isSubmitting
+                        ? null
+                        : () async {
+                            if (isSubmitting) return;
+                            if (nameController.text.isNotEmpty) {
+                              setState(() => isSubmitting = true);
+                              try {
+                                // 選択された設定項目のリストを作成
+                                List<String> selectedSettings = [];
+                                Map<String, String> selectedTypes = {};
+
+                                availableSettingsState.forEach((key, value) {
+                                  if (value) {
+                                    selectedSettings.add(key);
+                                    selectedTypes[key] = settingTypes[key]!;
+                                  }
+                                });
+
+                                // 新しい車種を作成
+                                final newCar = Car(
+                                  id: DateTime.now()
+                                      .millisecondsSinceEpoch
+                                      .toString(),
+                                  name: nameController.text,
+                                  imageUrl: 'assets/images/default_car.png',
+                                  manufacturer: widget.manufacturer,
+                                  category: 'Custom',
+                                  availableSettings: selectedSettings,
+                                  settingTypes: selectedTypes,
+                                );
+
+                                // SettingsProviderの車種リストにも追加
+                                final result =
+                                    await settingsProvider.addCar(newCar);
+                                if (!context.mounted ||
+                                    !handleSettingsOperationResult(
+                                      context,
+                                      result,
+                                      isEnglish: isEnglish,
+                                    )) {
+                                  return;
+                                }
+                                final addedCar = switch (result) {
+                                  SettingsOperationSuccess<Car>(:final value) =>
+                                    value,
+                                  SettingsOperationFailure<Car>() => null,
+                                };
+                                if (addedCar == null) return;
+                                setState(() => isSubmitting = false);
+                                Navigator.of(context).pop();
+                              } finally {
+                                if (context.mounted) {
+                                  setState(() => isSubmitting = false);
+                                }
+                              }
+                            }
+                          },
+                    child: isSubmitting
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(isEnglish ? 'Add' : '追加'),
+                  ),
+                ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    if (nameController.text.isNotEmpty) {
-                      // 選択された設定項目のリストを作成
-                      List<String> selectedSettings = [];
-                      Map<String, String> selectedTypes = {};
-
-                      availableSettingsState.forEach((key, value) {
-                        if (value) {
-                          selectedSettings.add(key);
-                          selectedTypes[key] = settingTypes[key]!;
-                        }
-                      });
-
-                      // 新しい車種を作成
-                      final newCar = Car(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        name: nameController.text,
-                        imageUrl: 'assets/images/default_car.png',
-                        manufacturer: widget.manufacturer,
-                        category: 'Custom',
-                        availableSettings: selectedSettings,
-                        settingTypes: selectedTypes,
-                      );
-
-                      // SettingsProviderの車種リストにも追加
-                      settingsProvider.addCar(newCar);
-
-                      Navigator.of(context).pop();
-                    }
-                  },
-                  child: Text(isEnglish ? 'Add' : '追加'),
-                ),
-              ],
             );
           },
         );
@@ -606,9 +662,11 @@ class CarListItem extends StatelessWidget {
         }
       }
     }
+    var isSubmitting = false;
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
@@ -626,103 +684,127 @@ class CarListItem extends StatelessWidget {
               }
             }
 
-            return AlertDialog(
-              title: Text(isEnglish ? 'Edit Model Settings' : '車種設定の編集'),
-              content: SizedBox(
-                width: double.maxFinite,
-                height: 400,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(
-                        labelText: isEnglish ? 'Model Name' : '車種名',
+            return PopScope(
+              canPop: !isSubmitting,
+              child: AlertDialog(
+                title: Text(isEnglish ? 'Edit Model Settings' : '車種設定の編集'),
+                content: SizedBox(
+                  width: double.maxFinite,
+                  height: 400,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        controller: nameController,
+                        decoration: InputDecoration(
+                          labelText: isEnglish ? 'Model Name' : '車種名',
+                        ),
+                        onChanged: (value) {
+                          updateAdditionalSettings(value);
+                        },
                       ),
-                      onChanged: (value) {
-                        updateAdditionalSettings(value);
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      isEnglish ? 'Available Settings' : '利用可能な設定項目',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: ListView(
-                        children: _buildSettingCheckboxesWithType(
-                            context,
-                            availableSettingsState,
-                            settingTypes,
-                            setState,
-                            isEnglish),
+                      const SizedBox(height: 16),
+                      Text(
+                        isEnglish ? 'Available Settings' : '利用可能な設定項目',
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      Expanded(
+                        child: ListView(
+                          children: _buildSettingCheckboxesWithType(
+                              context,
+                              availableSettingsState,
+                              settingTypes,
+                              setState,
+                              isEnglish),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+                actions: [
+                  TextButton(
+                    onPressed:
+                        isSubmitting ? null : () => Navigator.of(context).pop(),
+                    child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
+                  ),
+                  TextButton(
+                    onPressed: isSubmitting
+                        ? null
+                        : () async {
+                            if (isSubmitting) return;
+                            setState(() => isSubmitting = true);
+                            try {
+                              // 選択された設定項目のリストを作成
+                              List<String> selectedSettings = [];
+                              Map<String, String> selectedTypes = {};
+
+                              availableSettingsState.forEach((key, value) {
+                                if (value) {
+                                  selectedSettings.add(key);
+                                  selectedTypes[key] = settingTypes[key]!;
+                                }
+                              });
+
+                              // 車種を更新
+                              final updatedCar = Car(
+                                id: car.id,
+                                name: nameController.text,
+                                imageUrl: car.imageUrl,
+                                manufacturer: car.manufacturer,
+                                category: car.category,
+                                settings: car.settings,
+                                availableSettings: selectedSettings,
+                                settingTypes: selectedTypes,
+                                isInGarage: car.isInGarage,
+                                suppressGaragePrompt: car.suppressGaragePrompt,
+                              );
+
+                              // SettingsProviderを通じて更新
+                              final result =
+                                  await settingsProvider.updateCar(updatedCar);
+                              if (!context.mounted ||
+                                  !handleSettingsOperationResult(
+                                    context,
+                                    result,
+                                    isEnglish: isEnglish,
+                                  )) {
+                                return;
+                              }
+                              final updated = switch (result) {
+                                SettingsOperationSuccess<bool>(:final value) =>
+                                  value ?? false,
+                                SettingsOperationFailure<bool>() => false,
+                              };
+                              if (!updated) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(isEnglish
+                                        ? 'The model was not updated.'
+                                        : '車種は更新されませんでした。'),
+                                    backgroundColor:
+                                        Theme.of(context).colorScheme.error,
+                                  ),
+                                );
+                                return;
+                              }
+                              setState(() => isSubmitting = false);
+                              Navigator.of(context).pop();
+                            } finally {
+                              if (context.mounted) {
+                                setState(() => isSubmitting = false);
+                              }
+                            }
+                          },
+                    child: isSubmitting
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(isEnglish ? 'Save' : '保存'),
+                  ),
+                ],
               ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    // 選択された設定項目のリストを作成
-                    List<String> selectedSettings = [];
-                    Map<String, String> selectedTypes = {};
-
-                    availableSettingsState.forEach((key, value) {
-                      if (value) {
-                        selectedSettings.add(key);
-                        selectedTypes[key] = settingTypes[key]!;
-                      }
-                    });
-
-                    // 車種を更新
-                    final updatedCar = Car(
-                      id: car.id,
-                      name: nameController.text,
-                      imageUrl: car.imageUrl,
-                      manufacturer: car.manufacturer,
-                      category: car.category,
-                      settings: car.settings,
-                      availableSettings: selectedSettings,
-                      settingTypes: selectedTypes,
-                      isInGarage: car.isInGarage,
-                      suppressGaragePrompt: car.suppressGaragePrompt,
-                    );
-
-                    // SettingsProviderを通じて更新
-                    settingsProvider.updateCar(updatedCar);
-
-                    // 表示設定も更新（新しい利用可能な設定項目に基づいて）
-                    final visibilitySettings =
-                        settingsProvider.getVisibilitySettings(car.id);
-                    Map<String, bool> updatedVisibility = {};
-
-                    // 選択された設定項目のみを含める
-                    for (var key in selectedSettings) {
-                      updatedVisibility[key] =
-                          visibilitySettings.settingsVisibility[key] ?? true;
-                    }
-
-                    final updatedVisibilitySettings = VisibilitySettings(
-                      carId: car.id,
-                      settingsVisibility: updatedVisibility,
-                    );
-
-                    settingsProvider
-                        .updateVisibilitySettings(updatedVisibilitySettings);
-
-                    Navigator.of(context).pop();
-                  },
-                  child: Text(isEnglish ? 'Save' : '保存'),
-                ),
-              ],
             );
           },
         );

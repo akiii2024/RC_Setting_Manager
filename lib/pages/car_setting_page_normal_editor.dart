@@ -3,6 +3,11 @@
 part of 'car_setting_page.dart';
 
 mixin _CarSettingNormalEditor on State<CarSettingPage> {
+  Future<bool> _handleSettingsMutation<T>(
+    String operationKey,
+    Future<SettingsOperationResult<T>> Function() operation,
+  );
+
   Map<String, dynamic> get settings;
   CarSettingDefinition? get _carSettingDefinition;
   TrackLocation? get _currentTrack;
@@ -317,11 +322,14 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
                 color: isFavorite ? Colors.amber : null,
                 size: 20,
               ),
-              onPressed: () {
-                settingsProvider.toggleFavoriteSetting(
-                  widget.originalCar.id,
-                  setting.key,
-                  !isFavorite,
+              onPressed: () async {
+                await _handleSettingsMutation(
+                  'favorite:${widget.originalCar.id}:${setting.key}',
+                  () => settingsProvider.toggleFavoriteSetting(
+                    widget.originalCar.id,
+                    setting.key,
+                    !isFavorite,
+                  ),
                 );
               },
               tooltip: settingsProvider.isEnglish
@@ -366,11 +374,14 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
             isFavorite ? Icons.star : Icons.star_border,
             color: isFavorite ? Colors.amber : null,
           ),
-          onPressed: () {
-            settingsProvider.toggleFavoriteSetting(
-              widget.originalCar.id,
-              setting.key,
-              !isFavorite,
+          onPressed: () async {
+            await _handleSettingsMutation(
+              'favorite:${widget.originalCar.id}:${setting.key}',
+              () => settingsProvider.toggleFavoriteSetting(
+                widget.originalCar.id,
+                setting.key,
+                !isFavorite,
+              ),
             );
           },
           tooltip: settingsProvider.isEnglish

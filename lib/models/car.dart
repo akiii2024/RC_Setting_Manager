@@ -1,4 +1,5 @@
 import 'manufacturer.dart';
+import 'immutable_json.dart';
 
 class Car {
   final String id;
@@ -12,18 +13,20 @@ class Car {
   final bool isInGarage;
   final bool suppressGaragePrompt;
 
-  const Car({
+  Car({
     required this.id,
     required this.name,
     required this.imageUrl,
     required this.manufacturer,
     required this.category,
-    this.settings,
-    this.availableSettings = const [],
-    this.settingTypes = const {},
+    Map<String, dynamic>? settings,
+    List<String> availableSettings = const [],
+    Map<String, String> settingTypes = const {},
     this.isInGarage = false,
     this.suppressGaragePrompt = false,
-  });
+  })  : settings = settings == null ? null : freezeJsonMap(settings),
+        availableSettings = List<String>.unmodifiable(availableSettings),
+        settingTypes = Map<String, String>.unmodifiable(settingTypes);
 
   Car copyWith({
     String? id,
@@ -75,6 +78,57 @@ class Car {
     );
   }
 
+  factory Car.fromJsonStrict(Map<String, dynamic> json) {
+    final id = _requiredString(json, 'id', allowEmpty: false);
+    final name = _requiredString(json, 'name', allowEmpty: false);
+    final imageUrl = _requiredString(json, 'imageUrl');
+    final category = _requiredString(json, 'category');
+    final manufacturerJson = json['manufacturer'];
+    if (manufacturerJson is! Map<String, dynamic>) {
+      throw const FormatException('Car manufacturer must be a JSON object.');
+    }
+    _requiredString(manufacturerJson, 'id', allowEmpty: false);
+    _requiredString(manufacturerJson, 'name', allowEmpty: false);
+    _requiredString(manufacturerJson, 'logoPath');
+
+    if (!json.containsKey('settings')) {
+      throw const FormatException('Car settings field is required.');
+    }
+    final settingsJson = json['settings'];
+    if (settingsJson != null && settingsJson is! Map<String, dynamic>) {
+      throw const FormatException(
+          'Car settings must be a JSON object or null.');
+    }
+    final availableSettingsJson = json['availableSettings'];
+    if (availableSettingsJson is! List<dynamic> ||
+        availableSettingsJson.any((value) => value is! String)) {
+      throw const FormatException(
+          'Car availableSettings must contain strings.');
+    }
+    final settingTypesJson = json['settingTypes'];
+    if (settingTypesJson is! Map<String, dynamic> ||
+        settingTypesJson.values.any((value) => value is! String)) {
+      throw const FormatException('Car settingTypes must contain strings.');
+    }
+    if (json['isInGarage'] is! bool || json['suppressGaragePrompt'] is! bool) {
+      throw const FormatException('Car garage flags must be booleans.');
+    }
+
+    return Car(
+      id: id,
+      name: name,
+      imageUrl: imageUrl,
+      manufacturer: Manufacturer.fromJson(manufacturerJson),
+      category: category,
+      settings:
+          settingsJson == null ? null : Map<String, dynamic>.from(settingsJson),
+      availableSettings: List<String>.from(availableSettingsJson),
+      settingTypes: Map<String, String>.from(settingTypesJson),
+      isInGarage: json['isInGarage'] as bool,
+      suppressGaragePrompt: json['suppressGaragePrompt'] as bool,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -88,5 +142,18 @@ class Car {
       'isInGarage': isInGarage,
       'suppressGaragePrompt': suppressGaragePrompt,
     };
+  }
+
+  static String _requiredString(
+    Map<String, dynamic> json,
+    String key, {
+    bool allowEmpty = true,
+  }) {
+    final value = json[key];
+    if (value is! String || (!allowEmpty && value.trim().isEmpty)) {
+      throw FormatException(
+          'Car $key must be a${allowEmpty ? '' : ' non-empty'} string.');
+    }
+    return value;
   }
 }

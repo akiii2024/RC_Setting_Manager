@@ -3,17 +3,15 @@ import '../../models/visibility_settings.dart';
 
 typedef AvailableSettingsLookup = List<String> Function(String carId);
 
-/// 表示、言語、編集形式、接続モードの状態を保持する内部ストア。
+/// 表示、言語、編集形式の状態を保持する内部ストア。
 class DisplaySettingsStore {
   Map<String, VisibilitySettings> _visibilitySettings = {};
   bool _isEnglish = false;
   bool _usePaperStyleEditor = false;
-  bool _isOnlineMode = false;
 
   Map<String, VisibilitySettings> get visibilitySettings => _visibilitySettings;
   bool get isEnglish => _isEnglish;
   bool get usePaperStyleEditor => _usePaperStyleEditor;
-  bool get isOnlineMode => _isOnlineMode;
 
   void replaceVisibilitySettings(
     Map<String, VisibilitySettings> visibilitySettings,
@@ -38,15 +36,6 @@ class DisplaySettingsStore {
     return true;
   }
 
-  void setOnlineMode(bool value) {
-    _isOnlineMode = value;
-  }
-
-  bool toggleOnlineMode() {
-    _isOnlineMode = !_isOnlineMode;
-    return _isOnlineMode;
-  }
-
   bool initializeVisibilityDefaults(
     Iterable<Car> cars,
     AvailableSettingsLookup availableSettingsForCar,
@@ -69,10 +58,8 @@ class DisplaySettingsStore {
     String carId,
     AvailableSettingsLookup availableSettingsForCar,
   ) {
-    return _visibilitySettings.putIfAbsent(
-      carId,
-      () => _createDefault(carId, availableSettingsForCar),
-    );
+    return _visibilitySettings[carId] ??
+        _createDefault(carId, availableSettingsForCar);
   }
 
   VisibilitySettings withVisibility(
@@ -124,6 +111,10 @@ class DisplaySettingsStore {
 
   void updateVisibility(VisibilitySettings settings) {
     _visibilitySettings[settings.carId] = settings;
+  }
+
+  void removeVisibility(String carId) {
+    _visibilitySettings.remove(carId);
   }
 
   VisibilitySettings _createDefault(

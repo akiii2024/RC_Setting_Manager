@@ -2,19 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:rc_setting_manager/pages/settings_page.dart';
+import 'package:rc_setting_manager/providers/app_mode_provider.dart';
 import 'package:rc_setting_manager/providers/settings_provider.dart';
 import 'package:rc_setting_manager/providers/theme_provider.dart';
 import 'package:rc_setting_manager/services/api_consent_service.dart';
+import 'package:rc_setting_manager/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> _pumpSettingsPage(WidgetTester tester) async {
-  final settingsProvider = SettingsProvider();
+  final settingsProvider = SettingsProvider(
+    appModeProvider: AppModeProvider(
+      preferredOnline: false,
+      isFirebaseReady: false,
+    ),
+  );
 
   await tester.pumpWidget(
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: settingsProvider),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        Provider<AuthService?>.value(value: null),
       ],
       child: const MaterialApp(home: SettingsPage()),
     ),

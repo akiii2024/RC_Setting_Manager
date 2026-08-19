@@ -41,6 +41,31 @@ class OwnedPart {
     );
   }
 
+  factory OwnedPart.fromJsonStrict(Map<String, dynamic> json) {
+    final id = json['id'];
+    final category = json['category'];
+    final name = json['name'];
+    final createdAt = json['createdAt'];
+    if (id is! String || id.trim().isEmpty) {
+      throw const FormatException('OwnedPart id must be a non-empty string.');
+    }
+    if (category is! String || !ownedPartCategories.contains(category)) {
+      throw FormatException('Unsupported OwnedPart category: $category.');
+    }
+    if (name is! String || name.trim().isEmpty) {
+      throw const FormatException('OwnedPart name must be a non-empty string.');
+    }
+    if (createdAt is! String) {
+      throw const FormatException('OwnedPart createdAt must be a string.');
+    }
+    return OwnedPart(
+      id: id,
+      category: category,
+      name: name,
+      createdAt: DateTime.parse(createdAt),
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,

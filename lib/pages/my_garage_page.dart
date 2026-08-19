@@ -4,10 +4,15 @@ import 'package:provider/provider.dart';
 import '../models/car.dart';
 import '../models/manufacturer.dart';
 import '../models/owned_part.dart';
+import '../models/settings_operation_result.dart';
 import '../providers/settings_provider.dart';
+import '../utils/settings_operation_feedback.dart';
 import 'history_page.dart';
 
 String _garageText(bool isEnglish, String en, String ja) => isEnglish ? en : ja;
+
+final Set<String> _ownedPartOperationsInFlight = <String>{};
+final Set<String> _garageOperationsInFlight = <String>{};
 
 class MyGaragePage extends StatelessWidget {
   final bool embedded;
@@ -369,33 +374,69 @@ class _OwnedPartsSection extends StatelessWidget {
 
     final name = controller.text;
     controller.dispose();
+    final operationKey = part == null
+        ? 'add:$selectedCategory:${name.trim().toLowerCase()}'
+        : 'update:${part.id}';
+    if (!_ownedPartOperationsInFlight.add(operationKey)) return;
 
-    if (part == null) {
-      final added = await settingsProvider.addOwnedPart(selectedCategory, name);
-      if (added == null && context.mounted) {
+    try {
+      if (part == null) {
+        final existingIds = settingsProvider
+            .getOwnedPartsByCategory(selectedCategory)
+            .map((part) => part.id)
+            .toSet();
+        final result =
+            await settingsProvider.addOwnedPart(selectedCategory, name);
+        if (!context.mounted ||
+            !handleSettingsOperationResult(
+              context,
+              result,
+              isEnglish: isEnglish,
+            )) {
+          return;
+        }
+        final added = (result as SettingsOperationSuccess<OwnedPart?>).value;
+        if (added == null || existingIds.contains(added.id)) {
+          _showPartSnackBar(
+            context,
+            _garageText(
+              isEnglish,
+              added == null
+                  ? 'Enter a valid part name.'
+                  : 'This part is already registered.',
+              added == null ? '有効なパーツ名を入力してください。' : 'このパーツは登録済みです。',
+            ),
+          );
+        }
+        return;
+      }
+
+      final result = await settingsProvider.updateOwnedPart(
+        part.id,
+        category: selectedCategory,
+        name: name,
+      );
+      if (!context.mounted ||
+          !handleSettingsOperationResult(
+            context,
+            result,
+            isEnglish: isEnglish,
+          )) {
+        return;
+      }
+      final updated = (result as SettingsOperationSuccess<bool>).value ?? false;
+      if (!updated) {
         _showPartSnackBar(
           context,
           _garageText(
-              isEnglish, 'Enter a valid part name.', '有効なパーツ名を入力してください。'),
+            isEnglish,
+            'Part name is empty or already registered.',
+            'パーツ名が空、または同じカテゴリに登録済みです。',
+          ),
         );
       }
-      return;
-    }
-
-    final updated = await settingsProvider.updateOwnedPart(
-      part.id,
-      category: selectedCategory,
-      name: name,
-    );
-    if (!updated && context.mounted) {
-      _showPartSnackBar(
-        context,
-        _garageText(
-          isEnglish,
-          'Part name is empty or already registered.',
-          'パーツ名が空、または同じカテゴリに登録済みです。',
-        ),
-      );
+    } finally {
+      _ownedPartOperationsInFlight.remove(operationKey);
     }
   }
 
@@ -421,8 +462,32 @@ class _OwnedPartsSection extends StatelessWidget {
         ) ??
         false;
 
-    if (confirmed) {
-      await settingsProvider.deleteOwnedPart(part.id);
+    if (!confirmed || !_ownedPartOperationsInFlight.add('delete:${part.id}')) {
+      return;
+    }
+    try {
+      final result = await settingsProvider.deleteOwnedPart(part.id);
+      if (!context.mounted ||
+          !handleSettingsOperationResult(
+            context,
+            result,
+            isEnglish: isEnglish,
+          )) {
+        return;
+      }
+      final deleted = (result as SettingsOperationSuccess<bool>).value ?? false;
+      if (!deleted) {
+        _showPartSnackBar(
+          context,
+          _garageText(
+            isEnglish,
+            'The part was already removed.',
+            'パーツはすでに削除されています。',
+          ),
+        );
+      }
+    } finally {
+      _ownedPartOperationsInFlight.remove('delete:${part.id}');
     }
   }
 
@@ -446,9 +511,11 @@ class _OwnedPartsSection extends StatelessWidget {
 
     final selectedKeys =
         candidates.map((candidate) => _candidateKey(candidate)).toSet();
+    var isSubmitting = false;
 
     await showDialog<void>(
       context: context,
+      barrierDismissible: false,
       builder: (dialogContext) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -457,54 +524,97 @@ class _OwnedPartsSection extends StatelessWidget {
                     selectedKeys.contains(_candidateKey(candidate)))
                 .toList(growable: false);
 
-            return AlertDialog(
-              title: Text(
-                _garageText(isEnglish, 'Import from History', '履歴から追加'),
+            return PopScope(
+              canPop: !isSubmitting,
+              child: AlertDialog(
+                title: Text(
+                  _garageText(isEnglish, 'Import from History', '履歴から追加'),
+                ),
+                content: SizedBox(
+                  width: 420,
+                  child: ListView.builder(
+                    shrinkWrap: true,
+                    itemCount: candidates.length,
+                    itemBuilder: (context, index) {
+                      final candidate = candidates[index];
+                      final key = _candidateKey(candidate);
+                      return CheckboxListTile(
+                        value: selectedKeys.contains(key),
+                        title: Text(candidate.name),
+                        subtitle: Text(
+                            _partCategoryLabel(candidate.category, isEnglish)),
+                        onChanged: isSubmitting
+                            ? null
+                            : (value) {
+                                setDialogState(() {
+                                  if (value ?? false) {
+                                    selectedKeys.add(key);
+                                  } else {
+                                    selectedKeys.remove(key);
+                                  }
+                                });
+                              },
+                      );
+                    },
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: isSubmitting
+                        ? null
+                        : () => Navigator.of(dialogContext).pop(),
+                    child: Text(_garageText(isEnglish, 'Cancel', 'キャンセル')),
+                  ),
+                  FilledButton(
+                    onPressed: selectedCandidates.isEmpty || isSubmitting
+                        ? null
+                        : () async {
+                            if (isSubmitting) return;
+                            setDialogState(() => isSubmitting = true);
+                            try {
+                              final result = await settingsProvider
+                                  .importOwnedPartsFromHistory(
+                                      selectedCandidates);
+                              if (!dialogContext.mounted ||
+                                  !handleSettingsOperationResult(
+                                    dialogContext,
+                                    result,
+                                    isEnglish: isEnglish,
+                                  )) {
+                                return;
+                              }
+                              final imported =
+                                  (result as SettingsOperationSuccess<bool>)
+                                          .value ??
+                                      false;
+                              if (!imported) {
+                                _showPartSnackBar(
+                                  dialogContext,
+                                  _garageText(
+                                    isEnglish,
+                                    'No new parts were imported.',
+                                    '追加できる新しいパーツはありませんでした。',
+                                  ),
+                                );
+                                return;
+                              }
+                              setDialogState(() => isSubmitting = false);
+                              Navigator.of(dialogContext).pop();
+                            } finally {
+                              if (dialogContext.mounted) {
+                                setDialogState(() => isSubmitting = false);
+                              }
+                            }
+                          },
+                    child: isSubmitting
+                        ? const SizedBox.square(
+                            dimension: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Text(_garageText(isEnglish, 'Import', '追加')),
+                  ),
+                ],
               ),
-              content: SizedBox(
-                width: 420,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: candidates.length,
-                  itemBuilder: (context, index) {
-                    final candidate = candidates[index];
-                    final key = _candidateKey(candidate);
-                    return CheckboxListTile(
-                      value: selectedKeys.contains(key),
-                      title: Text(candidate.name),
-                      subtitle: Text(
-                          _partCategoryLabel(candidate.category, isEnglish)),
-                      onChanged: (value) {
-                        setDialogState(() {
-                          if (value ?? false) {
-                            selectedKeys.add(key);
-                          } else {
-                            selectedKeys.remove(key);
-                          }
-                        });
-                      },
-                    );
-                  },
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(dialogContext).pop(),
-                  child: Text(_garageText(isEnglish, 'Cancel', 'キャンセル')),
-                ),
-                FilledButton(
-                  onPressed: selectedCandidates.isEmpty
-                      ? null
-                      : () async {
-                          await settingsProvider
-                              .importOwnedPartsFromHistory(selectedCandidates);
-                          if (dialogContext.mounted) {
-                            Navigator.of(dialogContext).pop();
-                          }
-                        },
-                  child: Text(_garageText(isEnglish, 'Import', '追加')),
-                ),
-              ],
             );
           },
         );
@@ -772,9 +882,23 @@ class _GarageCarCard extends StatelessWidget {
                     const SizedBox(height: 12),
                     FilledButton.tonalIcon(
                       onPressed: () async {
-                        await settingsProvider.setGarageMembership(
-                            car.id, false);
-                        if (context.mounted) {
+                        if (!_garageOperationsInFlight.add(car.id)) return;
+                        try {
+                          final result = await settingsProvider
+                              .setGarageMembership(car.id, false);
+                          if (!context.mounted ||
+                              !handleSettingsOperationResult(
+                                context,
+                                result,
+                                isEnglish: isEnglish,
+                              )) {
+                            return;
+                          }
+                          final changed =
+                              (result as SettingsOperationSuccess<bool>)
+                                      .value ??
+                                  false;
+                          if (!changed) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
@@ -786,6 +910,8 @@ class _GarageCarCard extends StatelessWidget {
                               ),
                             ),
                           );
+                        } finally {
+                          _garageOperationsInFlight.remove(car.id);
                         }
                       },
                       icon: const Icon(Icons.remove_circle_outline_rounded),

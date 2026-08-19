@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/settings_provider.dart';
+import '../providers/app_mode_provider.dart';
 import '../services/api_consent_service.dart';
 import '../services/ai_configuration_service.dart';
 import '../services/auth_service.dart';
@@ -9,7 +10,10 @@ import '../data/car_settings_definitions.dart';
 import '../models/car.dart';
 import '../models/car_setting_definition.dart';
 import '../models/visibility_settings.dart';
+import '../models/settings_operation_result.dart';
 import '../presentation/settings/visibility_settings_presenter.dart';
+import '../utils/settings_operation_feedback.dart';
+import '../utils/app_logger.dart';
 import 'import_export_page.dart';
 import 'ai_provider_settings_page.dart';
 
@@ -42,6 +46,12 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isLoadingAiConsent = true;
   String? _aiProviderSummary;
   bool _isLoadingAiProvider = true;
+  bool _isThemeMutationInFlight = false;
+  bool _isOnlineModeMutationInFlight = false;
+  bool _isCloudOperationInFlight = false;
+  bool _isEditorLayoutMutationInFlight = false;
+  bool _isLanguageMutationInFlight = false;
+  final Set<String> _visibilityMutationsInFlight = <String>{};
 
   @override
   void initState() {
@@ -81,13 +91,8 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final settingsProvider = Provider.of<SettingsProvider>(context);
-    // AuthServiceを安全に取得（Firebaseが初期化されていない場合はnull）
-    AuthService? authService;
-    try {
-      authService = Provider.of<AuthService>(context, listen: false);
-    } catch (e) {
-      authService = null;
-    }
+    final appModeProvider = Provider.of<AppModeProvider?>(context);
+    final authService = Provider.of<AuthService?>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
     final messenger = ScaffoldMessenger.of(context);
 
@@ -103,9 +108,24 @@ class _SettingsPageState extends State<SettingsPage> {
             subtitle:
                 Text(isEnglish ? 'Switch to dark appearance' : 'アプリの外観を暗くします'),
             value: themeProvider.isDarkMode,
-            onChanged: (bool value) {
-              themeProvider.toggleTheme();
-            },
+            onChanged: _isThemeMutationInFlight
+                ? null
+                : (bool value) async {
+                    setState(() => _isThemeMutationInFlight = true);
+                    try {
+                      final result = await themeProvider.setDarkMode(value);
+                      if (!context.mounted) return;
+                      handleSettingsOperationResult(
+                        context,
+                        result,
+                        isEnglish: isEnglish,
+                      );
+                    } finally {
+                      if (mounted) {
+                        setState(() => _isThemeMutationInFlight = false);
+                      }
+                    }
+                  },
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           ),
@@ -309,37 +329,76 @@ class _SettingsPageState extends State<SettingsPage> {
                 subtitle: Text(isEnglish
                     ? 'Automatically sync data to cloud'
                     : 'データを自動的にクラウドに同期'),
-                value: settingsProvider.isOnlineMode,
-                onChanged: (bool value) async {
-                  try {
-                    await settingsProvider.toggleOnlineMode();
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(value
-                              ? (isEnglish
-                                  ? 'Online sync enabled'
-                                  : 'オンライン同期が有効になりました')
-                              : (isEnglish
-                                  ? 'Online sync disabled'
-                                  : 'オンライン同期が無効になりました')),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(isEnglish
-                              ? 'Failed to toggle sync: $e'
-                              : '同期の切り替えに失敗しました: $e'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
-                },
+                value: appModeProvider?.isOnlineActive ?? false,
+                onChanged: appModeProvider == null ||
+                        _isOnlineModeMutationInFlight
+                    ? null
+                    : (bool value) async {
+                        setState(() => _isOnlineModeMutationInFlight = true);
+                        try {
+                          if (value) {
+                            await appModeProvider.setOnlineAndInit();
+                            final syncResult =
+                                await settingsProvider.syncToFirebase();
+                            if (!context.mounted) return;
+                            if (syncResult is SettingsOperationFailure<void>) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text(isEnglish
+                                      ? 'Online sync was enabled, but the initial upload failed. Your data remains saved on this device.'
+                                      : 'オンライン同期は有効になりましたが、初回同期に失敗しました。データは端末に保存されています。'),
+                                  backgroundColor: Colors.orange,
+                                ),
+                              );
+                              return;
+                            }
+                            final warning =
+                                (syncResult as SettingsOperationSuccess<void>)
+                                    .warning;
+                            if (warning != null) {
+                              handleSettingsOperationResult(
+                                context,
+                                syncResult,
+                                isEnglish: isEnglish,
+                              );
+                              return;
+                            }
+                          } else {
+                            await appModeProvider.setOffline();
+                          }
+                          if (mounted) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(value
+                                    ? (isEnglish
+                                        ? 'Online sync enabled'
+                                        : 'オンライン同期が有効になりました')
+                                    : (isEnglish
+                                        ? 'Online sync disabled'
+                                        : 'オンライン同期が無効になりました')),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          debugLog('Online mode toggle failed: $e');
+                          if (mounted) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(isEnglish
+                                    ? 'Failed to toggle sync.'
+                                    : '同期の切り替えに失敗しました。'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        } finally {
+                          if (mounted) {
+                            setState(
+                                () => _isOnlineModeMutationInFlight = false);
+                          }
+                        }
+                      },
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               ),
@@ -350,31 +409,45 @@ class _SettingsPageState extends State<SettingsPage> {
                     : '手動でデータをクラウドに同期'),
                 leading: const Icon(Icons.sync),
                 trailing: const Icon(Icons.arrow_forward_ios),
-                onTap: () async {
-                  try {
-                    await settingsProvider.syncToFirebase();
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(isEnglish
-                              ? 'Data synced successfully'
-                              : 'データの同期が完了しました'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(
-                              isEnglish ? 'Sync failed: $e' : '同期に失敗しました: $e'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
-                },
+                onTap: !(appModeProvider?.isOnlineActive ?? false) ||
+                        _isCloudOperationInFlight
+                    ? null
+                    : () async {
+                        setState(() => _isCloudOperationInFlight = true);
+                        try {
+                          final result =
+                              await settingsProvider.syncToFirebase();
+                          if (context.mounted &&
+                              handleSettingsOperationResult(
+                                context,
+                                result,
+                                isEnglish: isEnglish,
+                              )) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(isEnglish
+                                    ? 'Data synced successfully'
+                                    : 'データの同期が完了しました'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                    isEnglish ? 'Sync failed.' : '同期に失敗しました。'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        } finally {
+                          if (mounted) {
+                            setState(() => _isCloudOperationInFlight = false);
+                          }
+                        }
+                      },
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               ),
@@ -385,32 +458,46 @@ class _SettingsPageState extends State<SettingsPage> {
                     : 'クラウドストレージからデータを読み込み'),
                 leading: const Icon(Icons.cloud_download),
                 trailing: const Icon(Icons.arrow_forward_ios),
-                onTap: () async {
-                  try {
-                    await settingsProvider.loadFromFirebase();
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(isEnglish
-                              ? 'Data loaded successfully'
-                              : 'データの読み込みが完了しました'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(isEnglish
-                              ? 'Load failed: $e'
-                              : '読み込みに失敗しました: $e'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
-                },
+                onTap: !(appModeProvider?.isOnlineActive ?? false) ||
+                        _isCloudOperationInFlight
+                    ? null
+                    : () async {
+                        setState(() => _isCloudOperationInFlight = true);
+                        try {
+                          final result =
+                              await settingsProvider.loadFromFirebase();
+                          if (context.mounted &&
+                              handleSettingsOperationResult(
+                                context,
+                                result,
+                                isEnglish: isEnglish,
+                              )) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(isEnglish
+                                    ? 'Data loaded successfully'
+                                    : 'データの読み込みが完了しました'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(isEnglish
+                                    ? 'Load failed.'
+                                    : '読み込みに失敗しました。'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        } finally {
+                          if (mounted) {
+                            setState(() => _isCloudOperationInFlight = false);
+                          }
+                        }
+                      },
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               ),
@@ -420,9 +507,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 trailing: const Icon(Icons.arrow_forward_ios),
                 onTap: () async {
                   try {
-                    if (authService != null) {
-                      await authService.signOut();
-                    }
+                    await authService.signOut();
                     if (mounted) {
                       messenger.showSnackBar(
                         SnackBar(
@@ -438,8 +523,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       messenger.showSnackBar(
                         SnackBar(
                           content: Text(isEnglish
-                              ? 'Sign out failed: $e'
-                              : 'サインアウトに失敗しました: $e'),
+                              ? 'Sign out failed.'
+                              : 'サインアウトに失敗しました。'),
                           backgroundColor: Colors.red,
                         ),
                       );
@@ -803,65 +888,112 @@ class _SettingsPageState extends State<SettingsPage> {
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return AlertDialog(
-              title: Text(isEnglish ? 'Display Settings' : '表示設定'),
-              contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Car selection dropdown
-                    DropdownButtonFormField<Car>(
-                      decoration: InputDecoration(
-                        labelText: isEnglish ? 'Select Car' : '車両を選択',
-                        border: const OutlineInputBorder(),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16.0, vertical: 16.0),
+            return PopScope(
+              canPop: _visibilityMutationsInFlight.isEmpty,
+              child: AlertDialog(
+                title: Text(isEnglish ? 'Display Settings' : '表示設定'),
+                contentPadding:
+                    const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
+                content: SizedBox(
+                  width: double.maxFinite,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Car selection dropdown
+                      DropdownButtonFormField<Car>(
+                        decoration: InputDecoration(
+                          labelText: isEnglish ? 'Select Car' : '車両を選択',
+                          border: const OutlineInputBorder(),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16.0, vertical: 16.0),
+                        ),
+                        initialValue: _selectedCar,
+                        items: _cars.map((car) {
+                          return DropdownMenuItem<Car>(
+                            value: car,
+                            child: Text(car.name),
+                          );
+                        }).toList(),
+                        onChanged: _visibilityMutationsInFlight.isNotEmpty
+                            ? null
+                            : (Car? value) {
+                                setState(() {
+                                  _selectedCar = value;
+                                });
+                              },
                       ),
-                      initialValue: _selectedCar,
-                      items: _cars.map((car) {
-                        return DropdownMenuItem<Car>(
-                          value: car,
-                          child: Text(car.name),
-                        );
-                      }).toList(),
-                      onChanged: (Car? value) {
-                        setState(() {
-                          _selectedCar = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 20.0),
-                    // Selected car visibility settings
-                    if (_selectedCar != null)
-                      Expanded(
-                        child: _buildVisibilitySettings(
-                            context, _selectedCar!, setState),
-                      ),
-                  ],
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0, vertical: 10.0),
+                      const SizedBox(height: 20.0),
+                      // Selected car visibility settings
+                      if (_selectedCar != null)
+                        Expanded(
+                          child: _buildVisibilitySettings(
+                              context, _selectedCar!, setState),
+                        ),
+                    ],
                   ),
-                  child: Text(isEnglish ? 'Close' : '閉じる'),
                 ),
-              ],
+                actions: [
+                  TextButton(
+                    onPressed: _visibilityMutationsInFlight.isNotEmpty
+                        ? null
+                        : () => Navigator.of(context).pop(),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 10.0),
+                    ),
+                    child: Text(isEnglish ? 'Close' : '閉じる'),
+                  ),
+                ],
+              ),
             );
           },
         );
       },
     );
+  }
+
+  Future<void> _changeSettingVisibility({
+    required BuildContext dialogContext,
+    required StateSetter setDialogState,
+    required SettingsProvider settingsProvider,
+    required String carId,
+    required String settingKey,
+    required bool value,
+    required bool isEnglish,
+  }) async {
+    final operationKey = '$carId::$settingKey';
+    if (!_visibilityMutationsInFlight.add(operationKey)) return;
+    setDialogState(() {});
+    try {
+      final result = await settingsProvider.toggleSettingVisibility(
+        carId,
+        settingKey,
+        value,
+      );
+      if (!dialogContext.mounted ||
+          !handleSettingsOperationResult(
+            dialogContext,
+            result,
+            isEnglish: isEnglish,
+          )) {
+        return;
+      }
+      final changed = switch (result) {
+        SettingsOperationSuccess<bool>(:final value) => value ?? false,
+        SettingsOperationFailure<bool>() => false,
+      };
+      if (!changed) return;
+      setDialogState(() {});
+    } finally {
+      _visibilityMutationsInFlight.remove(operationKey);
+      if (dialogContext.mounted) {
+        setDialogState(() {});
+      }
+    }
   }
 
   Widget _buildVisibilitySettings(
@@ -1027,11 +1159,16 @@ class _SettingsPageState extends State<SettingsPage> {
                 value: isVisible,
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                onChanged: (bool value) {
-                  setState(() {
-                    settingsProvider.toggleSettingVisibility(
-                        car.id, key, value);
-                  });
+                onChanged: (bool value) async {
+                  await _changeSettingVisibility(
+                    dialogContext: context,
+                    setDialogState: setState,
+                    settingsProvider: settingsProvider,
+                    carId: car.id,
+                    settingKey: key,
+                    value: value,
+                    isEnglish: isEnglish,
+                  );
                 },
               );
             }).toList(),
@@ -1163,11 +1300,16 @@ class _SettingsPageState extends State<SettingsPage> {
                 value: isVisible,
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-                onChanged: (bool value) {
-                  setState(() {
-                    settingsProvider.toggleSettingVisibility(
-                        car.id, key, value);
-                  });
+                onChanged: (bool value) async {
+                  await _changeSettingVisibility(
+                    dialogContext: context,
+                    setDialogState: setState,
+                    settingsProvider: settingsProvider,
+                    carId: car.id,
+                    settingKey: key,
+                    value: value,
+                    isEnglish: isEnglish,
+                  );
                 },
               );
             }).toList(),
@@ -1215,16 +1357,85 @@ class _SettingsPageState extends State<SettingsPage> {
               value: isVisible,
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-              onChanged: (bool value) {
-                setState(() {
-                  settingsProvider.toggleSettingVisibility(car.id, key, value);
-                });
+              onChanged: (bool value) async {
+                await _changeSettingVisibility(
+                  dialogContext: context,
+                  setDialogState: setState,
+                  settingsProvider: settingsProvider,
+                  carId: car.id,
+                  settingKey: key,
+                  value: value,
+                  isEnglish: isEnglish,
+                );
               },
             );
           }).toList(),
         );
       },
     );
+  }
+
+  Future<bool> _setEditorLayout(
+    BuildContext dialogContext,
+    StateSetter setDialogState,
+    SettingsProvider settingsProvider,
+    bool value,
+    bool isEnglish,
+  ) async {
+    if (_isEditorLayoutMutationInFlight) return false;
+    _isEditorLayoutMutationInFlight = true;
+    setDialogState(() {});
+    try {
+      final result = await settingsProvider.setPaperStyleEditor(value);
+      if (!dialogContext.mounted ||
+          !handleSettingsOperationResult(
+            dialogContext,
+            result,
+            isEnglish: isEnglish,
+          )) {
+        return false;
+      }
+      return switch (result) {
+        SettingsOperationSuccess<bool>(:final value) => value ?? false,
+        SettingsOperationFailure<bool>() => false,
+      };
+    } finally {
+      _isEditorLayoutMutationInFlight = false;
+      if (dialogContext.mounted) {
+        setDialogState(() {});
+      }
+    }
+  }
+
+  Future<bool> _toggleLanguage(
+    BuildContext dialogContext,
+    StateSetter setDialogState,
+    SettingsProvider settingsProvider,
+    bool isEnglish,
+  ) async {
+    if (_isLanguageMutationInFlight) return false;
+    _isLanguageMutationInFlight = true;
+    setDialogState(() {});
+    try {
+      final result = await settingsProvider.toggleLanguage();
+      if (!dialogContext.mounted ||
+          !handleSettingsOperationResult(
+            dialogContext,
+            result,
+            isEnglish: isEnglish,
+          )) {
+        return false;
+      }
+      return switch (result) {
+        SettingsOperationSuccess<bool>(:final value) => value ?? false,
+        SettingsOperationFailure<bool>() => false,
+      };
+    } finally {
+      _isLanguageMutationInFlight = false;
+      if (dialogContext.mounted) {
+        setDialogState(() {});
+      }
+    }
   }
 
   void _showEditorLayoutDialog(BuildContext context) {
@@ -1235,70 +1446,110 @@ class _SettingsPageState extends State<SettingsPage> {
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(isEnglish ? 'Select Editor Layout' : '編集レイアウトを選択'),
-          contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
-          content: RadioGroup<bool>(
-            groupValue: usePaperStyleEditor,
-            onChanged: (value) async {
-              if (value == null) {
-                return;
-              }
-              await settingsProvider.setPaperStyleEditor(value);
-              if (context.mounted) {
-                Navigator.of(context).pop();
-              }
-            },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  title: Text(isEnglish ? 'App UI' : 'アプリUI'),
-                  subtitle: Text(isEnglish
-                      ? 'Optimized for quick entry and tab navigation'
-                      : 'タブ中心で素早く入力する通常レイアウト'),
-                  leading: const Radio<bool>(value: false),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8.0, vertical: 4.0),
-                  onTap: () async {
-                    await settingsProvider.setPaperStyleEditor(false);
-                    if (context.mounted) {
-                      Navigator.of(context).pop();
-                    }
-                  },
+        return StatefulBuilder(
+          builder: (context, setDialogState) => PopScope(
+            canPop: !_isEditorLayoutMutationInFlight,
+            child: AlertDialog(
+              title: Text(isEnglish ? 'Select Editor Layout' : '編集レイアウトを選択'),
+              contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
+              content: RadioGroup<bool>(
+                groupValue: usePaperStyleEditor,
+                onChanged: (value) async {
+                  if (_isEditorLayoutMutationInFlight) return;
+                  if (value == null) {
+                    return;
+                  }
+                  if (value == usePaperStyleEditor) {
+                    Navigator.of(context).pop();
+                    return;
+                  }
+                  final changed = await _setEditorLayout(
+                    context,
+                    setDialogState,
+                    settingsProvider,
+                    value,
+                    isEnglish,
+                  );
+                  if (!context.mounted || !changed) return;
+                  Navigator.of(context).pop();
+                },
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      title: Text(isEnglish ? 'App UI' : 'アプリUI'),
+                      subtitle: Text(isEnglish
+                          ? 'Optimized for quick entry and tab navigation'
+                          : 'タブ中心で素早く入力する通常レイアウト'),
+                      leading: const Radio<bool>(value: false),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8.0, vertical: 4.0),
+                      onTap: _isEditorLayoutMutationInFlight
+                          ? null
+                          : () async {
+                              if (!usePaperStyleEditor) {
+                                Navigator.of(context).pop();
+                                return;
+                              }
+                              final changed = await _setEditorLayout(
+                                context,
+                                setDialogState,
+                                settingsProvider,
+                                false,
+                                isEnglish,
+                              );
+                              if (!context.mounted || !changed) return;
+                              Navigator.of(context).pop();
+                            },
+                    ),
+                    const SizedBox(height: 8.0),
+                    ListTile(
+                      title: Text(isEnglish ? 'Paper UI' : '紙UI'),
+                      subtitle: Text(isEnglish
+                          ? 'Closer to a real setup sheet for paper users'
+                          : '紙のセットアップシートに近い見た目'),
+                      leading: const Radio<bool>(value: true),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8.0, vertical: 4.0),
+                      onTap: _isEditorLayoutMutationInFlight
+                          ? null
+                          : () async {
+                              if (usePaperStyleEditor) {
+                                Navigator.of(context).pop();
+                                return;
+                              }
+                              final changed = await _setEditorLayout(
+                                context,
+                                setDialogState,
+                                settingsProvider,
+                                true,
+                                isEnglish,
+                              );
+                              if (!context.mounted || !changed) return;
+                              Navigator.of(context).pop();
+                            },
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8.0),
-                ListTile(
-                  title: Text(isEnglish ? 'Paper UI' : '紙UI'),
-                  subtitle: Text(isEnglish
-                      ? 'Closer to a real setup sheet for paper users'
-                      : '紙のセットアップシートに近い見た目'),
-                  leading: const Radio<bool>(value: true),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8.0, vertical: 4.0),
-                  onTap: () async {
-                    await settingsProvider.setPaperStyleEditor(true);
-                    if (context.mounted) {
-                      Navigator.of(context).pop();
-                    }
-                  },
+              ),
+              actions: [
+                TextButton(
+                  onPressed: _isEditorLayoutMutationInFlight
+                      ? null
+                      : () {
+                          Navigator.of(context).pop();
+                        },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0, vertical: 10.0),
+                  ),
+                  child: Text(isEnglish ? 'Close' : '閉じる'),
                 ),
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0, vertical: 10.0),
-              ),
-              child: Text(isEnglish ? 'Close' : '閉じる'),
-            ),
-          ],
         );
       },
     );
@@ -1311,61 +1562,98 @@ class _SettingsPageState extends State<SettingsPage> {
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text(isEnglish ? 'Select Language' : '言語を選択'),
-          contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
-          content: RadioGroup<bool>(
-            groupValue: isEnglish,
-            onChanged: (value) {
-              if (value != isEnglish) {
-                settingsProvider.toggleLanguage();
-              }
-              Navigator.of(context).pop();
-            },
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                ListTile(
-                  title: const Text('日本語'),
-                  leading: const Radio<bool>(value: false),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8.0, vertical: 4.0),
-                  onTap: () {
-                    if (isEnglish) {
-                      settingsProvider.toggleLanguage();
-                      Navigator.of(context).pop();
-                    }
-                  },
+        return StatefulBuilder(
+          builder: (context, setDialogState) => PopScope(
+            canPop: !_isLanguageMutationInFlight,
+            child: AlertDialog(
+              title: Text(isEnglish ? 'Select Language' : '言語を選択'),
+              contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
+              content: RadioGroup<bool>(
+                groupValue: isEnglish,
+                onChanged: (value) async {
+                  if (_isLanguageMutationInFlight) return;
+                  if (value == isEnglish) {
+                    Navigator.of(context).pop();
+                    return;
+                  }
+                  final changed = await _toggleLanguage(
+                    context,
+                    setDialogState,
+                    settingsProvider,
+                    isEnglish,
+                  );
+                  if (!context.mounted || !changed) return;
+                  Navigator.of(context).pop();
+                },
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ListTile(
+                      title: const Text('日本語'),
+                      leading: const Radio<bool>(value: false),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8.0, vertical: 4.0),
+                      onTap: _isLanguageMutationInFlight
+                          ? null
+                          : () async {
+                              if (isEnglish) {
+                                final changed = await _toggleLanguage(
+                                  context,
+                                  setDialogState,
+                                  settingsProvider,
+                                  isEnglish,
+                                );
+                                if (!context.mounted || !changed) return;
+                                Navigator.of(context).pop();
+                              } else {
+                                Navigator.of(context).pop();
+                              }
+                            },
+                    ),
+                    const SizedBox(height: 8.0),
+                    ListTile(
+                      title: const Text('English'),
+                      leading: const Radio<bool>(value: true),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 8.0, vertical: 4.0),
+                      onTap: _isLanguageMutationInFlight
+                          ? null
+                          : () async {
+                              if (!isEnglish) {
+                                final changed = await _toggleLanguage(
+                                  context,
+                                  setDialogState,
+                                  settingsProvider,
+                                  isEnglish,
+                                );
+                                if (!context.mounted || !changed) return;
+                                Navigator.of(context).pop();
+                              } else {
+                                Navigator.of(context).pop();
+                              }
+                            },
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8.0),
-                ListTile(
-                  title: const Text('English'),
-                  leading: const Radio<bool>(value: true),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 8.0, vertical: 4.0),
-                  onTap: () {
-                    if (!isEnglish) {
-                      settingsProvider.toggleLanguage();
-                      Navigator.of(context).pop();
-                    }
-                  },
+              ),
+              actions: [
+                TextButton(
+                  onPressed: _isLanguageMutationInFlight
+                      ? null
+                      : () {
+                          Navigator.of(context).pop();
+                        },
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0, vertical: 10.0),
+                  ),
+                  child: Text(isEnglish ? 'Close' : '閉じる'),
                 ),
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0, vertical: 10.0),
-              ),
-              child: Text(isEnglish ? 'Close' : '閉じる'),
-            ),
-          ],
         );
       },
     );

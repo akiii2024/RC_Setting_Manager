@@ -70,6 +70,15 @@ TrackLocation _testTrack({
   );
 }
 
+SettingsProvider _createSettingsProvider() {
+  return SettingsProvider(
+    appModeProvider: AppModeProvider(
+      preferredOnline: false,
+      isFirebaseReady: false,
+    ),
+  );
+}
+
 void main() {
   testWidgets('Home page includes My Garage tab and empty state',
       (WidgetTester tester) async {
@@ -78,7 +87,7 @@ void main() {
       'cars_settings': jsonEncode([_testCar().toJson()]),
     });
 
-    final provider = SettingsProvider();
+    final provider = _createSettingsProvider();
 
     await tester.pumpWidget(
       ChangeNotifierProvider.value(
@@ -111,7 +120,7 @@ void main() {
       'language_settings': true,
       'cars_settings': jsonEncode([_testCar().toJson()]),
     });
-    final provider = SettingsProvider();
+    final provider = _createSettingsProvider();
 
     await tester.pumpWidget(
       ChangeNotifierProvider.value(
@@ -134,7 +143,7 @@ void main() {
       'cars_settings': jsonEncode([_testCar().toJson()]),
     });
 
-    final settingsProvider = SettingsProvider();
+    final settingsProvider = _createSettingsProvider();
     final appModeProvider = AppModeProvider(
       preferredOnline: false,
       isFirebaseReady: false,
@@ -167,7 +176,7 @@ void main() {
       'cars_settings': jsonEncode([_testCar().toJson()]),
     });
 
-    final provider = SettingsProvider();
+    final provider = _createSettingsProvider();
 
     await tester.pumpWidget(
       ChangeNotifierProvider.value(
@@ -196,7 +205,7 @@ void main() {
       ApiConsentType.weatherAndLocation,
     );
 
-    final provider = SettingsProvider();
+    final provider = _createSettingsProvider();
 
     await tester.pumpWidget(
       ChangeNotifierProvider.value(
@@ -231,7 +240,7 @@ void main() {
       'cars_settings': jsonEncode([_testCar().toJson()]),
     });
 
-    final provider = SettingsProvider();
+    final provider = _createSettingsProvider();
     final weather = WeatherData(
       temperature: 24.6,
       humidity: 58,
@@ -288,7 +297,7 @@ void main() {
       'cars_settings': jsonEncode([_testCar().toJson()]),
     });
 
-    final provider = SettingsProvider();
+    final provider = _createSettingsProvider();
 
     await tester.pumpWidget(
       ChangeNotifierProvider.value(
@@ -325,7 +334,7 @@ void main() {
       'cars_settings': jsonEncode([_testCar().toJson()]),
     });
 
-    final provider = SettingsProvider();
+    final provider = _createSettingsProvider();
     final track = _testTrack(name: 'Test Course Alpha');
 
     await tester.pumpWidget(
@@ -363,7 +372,7 @@ void main() {
       'cars_settings': jsonEncode([_testCar().toJson()]),
     });
 
-    final provider = SettingsProvider();
+    final provider = _createSettingsProvider();
 
     await tester.pumpWidget(
       ChangeNotifierProvider.value(
@@ -398,7 +407,7 @@ void main() {
       'cars_settings': jsonEncode([_testCar().toJson()]),
     });
 
-    final provider = SettingsProvider();
+    final provider = _createSettingsProvider();
     final track = _testTrack(name: 'Nearest Course');
 
     await tester.pumpWidget(

@@ -6,6 +6,10 @@ typedef OwnedPartAddResult = ({OwnedPart? part, bool changed});
 
 /// 所有パーツの状態とCRUD規則を保持する内部ストア。
 class OwnedPartStore {
+  OwnedPartStore({required String Function() idGenerator})
+      : _idGenerator = idGenerator;
+
+  final String Function() _idGenerator;
   List<OwnedPart> _parts = [];
 
   List<OwnedPart> get parts => _parts;
@@ -53,7 +57,7 @@ class OwnedPartStore {
 
     final now = DateTime.now();
     final part = OwnedPart(
-      id: now.microsecondsSinceEpoch.toString(),
+      id: _idGenerator(),
       category: category,
       name: normalizedName,
       createdAt: now,
@@ -119,7 +123,7 @@ class OwnedPartStore {
       final now = DateTime.now();
       _parts.add(
         OwnedPart(
-          id: '${now.microsecondsSinceEpoch}-${_parts.length}',
+          id: _idGenerator(),
           category: category,
           name: name,
           createdAt: now,

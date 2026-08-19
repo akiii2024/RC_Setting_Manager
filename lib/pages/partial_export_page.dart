@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/xml_service.dart';
 import '../services/file_service.dart';
+import '../utils/app_logger.dart';
 
 class PartialExportPage extends StatefulWidget {
   const PartialExportPage({super.key});
@@ -87,13 +88,14 @@ class _PartialExportPageState extends State<PartialExportPage> {
         Navigator.of(context).pop();
       }
     } catch (e) {
+      debugLog('Partial export failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               Provider.of<SettingsProvider>(context, listen: false).isEnglish
-                  ? 'Export failed: $e'
-                  : 'エクスポートに失敗しました: $e',
+                  ? 'Export failed.'
+                  : 'エクスポートに失敗しました。',
             ),
             backgroundColor: Colors.red,
           ),

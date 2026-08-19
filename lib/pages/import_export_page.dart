@@ -5,6 +5,7 @@ import '../services/xml_service.dart';
 import '../services/file_service.dart';
 import 'partial_export_page.dart';
 import 'simple_import_page.dart';
+import '../utils/app_logger.dart';
 
 class ImportExportPage extends StatefulWidget {
   const ImportExportPage({super.key});
@@ -51,13 +52,14 @@ class _ImportExportPageState extends State<ImportExportPage> {
         );
       }
     } catch (e) {
+      debugLog('Export failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               Provider.of<SettingsProvider>(context, listen: false).isEnglish
-                  ? 'Export failed: $e'
-                  : 'エクスポートに失敗しました: $e',
+                  ? 'Export failed.'
+                  : 'エクスポートに失敗しました。',
             ),
             backgroundColor: Colors.red,
           ),
@@ -190,8 +192,8 @@ class _ImportExportPageState extends State<ImportExportPage> {
                       decoration: BoxDecoration(
                         color: Colors.orange.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border:
-                            Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                        border: Border.all(
+                            color: Colors.orange.withValues(alpha: 0.3)),
                       ),
                       child: Row(
                         children: [

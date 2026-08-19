@@ -8,6 +8,8 @@ import 'package:rc_setting_manager/models/manufacturer.dart';
 import 'package:rc_setting_manager/models/owned_part.dart';
 import 'package:rc_setting_manager/models/run_log.dart';
 import 'package:rc_setting_manager/models/saved_setting.dart';
+import 'package:rc_setting_manager/models/settings_operation_result.dart';
+import 'package:rc_setting_manager/providers/app_mode_provider.dart';
 import 'package:rc_setting_manager/providers/settings_provider.dart';
 
 Future<void> _waitForProvider(SettingsProvider provider) async {
@@ -42,6 +44,20 @@ Car _buildCar({
   );
 }
 
+SettingsProvider _createProvider() {
+  return SettingsProvider(
+    appModeProvider: AppModeProvider(
+      preferredOnline: false,
+      isFirebaseReady: false,
+    ),
+  );
+}
+
+T _successfulValue<T>(SettingsOperationResult<T> result) {
+  expect(result, isA<SettingsOperationSuccess<T>>());
+  return (result as SettingsOperationSuccess<T>).value as T;
+}
+
 void main() {
   test('persists garage membership and suppression flags', () async {
     final initialCar = _buildCar();
@@ -51,7 +67,7 @@ void main() {
       'language_settings': true,
     });
 
-    final provider = SettingsProvider();
+    final provider = _createProvider();
     await _waitForProvider(provider);
 
     await provider.setGarageMembership(initialCar.id, true);
@@ -60,7 +76,7 @@ void main() {
     expect(provider.garageCars.map((car) => car.id), contains(initialCar.id));
     expect(provider.getCarById(initialCar.id)?.suppressGaragePrompt, isTrue);
 
-    final reloadedProvider = SettingsProvider();
+    final reloadedProvider = _createProvider();
     await _waitForProvider(reloadedProvider);
 
     final reloadedCar = reloadedProvider.getCarById(initialCar.id);
@@ -76,7 +92,7 @@ void main() {
       'cars_settings': jsonEncode([car.toJson()]),
     });
 
-    final provider = SettingsProvider();
+    final provider = _createProvider();
     await _waitForProvider(provider);
 
     await provider.addSetting('Race Setup', car, const {});
@@ -97,13 +113,13 @@ void main() {
       'cars_settings': jsonEncode([car.toJson()]),
     });
 
-    final provider = SettingsProvider();
+    final provider = _createProvider();
     await _waitForProvider(provider);
 
     await provider.addSetting('Base Setup', car, const {'frontCamber': 1.0});
     final baseSetting = provider.savedSettings.first;
 
-    final runLog = await provider.addRunLog(
+    final runLog = _successfulValue(await provider.addRunLog(
       runAt: DateTime(2026, 6, 19, 10, 0),
       car: car,
       baseSetting: baseSetting,
@@ -116,7 +132,7 @@ void main() {
       trackCondition: 'High grip',
       feelTagIds: const ['stable'],
       memo: 'Good',
-    );
+    ));
 
     expect(provider.runLogs, hasLength(1));
     expect(runLog.trackName, 'Test Course');
@@ -136,13 +152,13 @@ void main() {
       'cars_settings': jsonEncode([car.toJson()]),
     });
 
-    final provider = SettingsProvider();
+    final provider = _createProvider();
     await _waitForProvider(provider);
 
     await provider.addSetting('Base Setup', car, const {'frontCamber': 1.0});
     final baseSetting = provider.savedSettings.first;
 
-    final runLog = await provider.addRunLog(
+    final runLog = _successfulValue(await provider.addRunLog(
       runAt: DateTime(2026, 6, 19, 10, 0),
       car: car,
       baseSetting: baseSetting,
@@ -157,7 +173,7 @@ void main() {
           afterValue: 1.5,
         ),
       ],
-    );
+    ));
 
     expect(provider.runLogs, hasLength(1));
     expect(runLog.resultSettingId, isNotNull);
@@ -168,7 +184,7 @@ void main() {
     expect(resultSetting.sourceRunLogId, runLog.id);
     expect(resultSetting.parentSettingId, baseSetting.id);
 
-    final reloadedProvider = SettingsProvider();
+    final reloadedProvider = _createProvider();
     await _waitForProvider(reloadedProvider);
 
     expect(reloadedProvider.runLogs, hasLength(1));
@@ -207,7 +223,7 @@ void main() {
           jsonEncode(savedSettings.map((setting) => setting.toJson()).toList()),
     });
 
-    final provider = SettingsProvider();
+    final provider = _createProvider();
     await _waitForProvider(provider);
 
     final settingToUpdate = provider.savedSettings
@@ -236,7 +252,7 @@ void main() {
       'cars_settings': jsonEncode([car.toJson()]),
     });
 
-    final provider = SettingsProvider();
+    final provider = _createProvider();
     await _waitForProvider(provider);
 
     expect(
@@ -285,7 +301,7 @@ void main() {
           jsonEncode(savedSettings.map((setting) => setting.toJson()).toList()),
     });
 
-    final provider = SettingsProvider();
+    final provider = _createProvider();
     await _waitForProvider(provider);
 
     final suggestions = provider.getSuggestionsForSetting(
@@ -345,7 +361,7 @@ void main() {
       'cars_settings': jsonEncode([_buildCar().toJson()]),
     });
 
-    final provider = SettingsProvider();
+    final provider = _createProvider();
     await _waitForProvider(provider);
 
     expect(provider.ownedParts, isEmpty);
@@ -356,12 +372,15 @@ void main() {
       'cars_settings': jsonEncode([_buildCar().toJson()]),
     });
 
-    final provider = SettingsProvider();
+    final provider = _createProvider();
     await _waitForProvider(provider);
 
-    final added = await provider.addOwnedPart('motor', ' Custom Motor 17.5T ');
-    final duplicate =
-        await provider.addOwnedPart('motor', 'custom motor 17.5t');
+    final added = _successfulValue(
+      await provider.addOwnedPart('motor', ' Custom Motor 17.5T '),
+    );
+    final duplicate = _successfulValue(
+      await provider.addOwnedPart('motor', 'custom motor 17.5t'),
+    );
 
     expect(added, isNotNull);
     expect(duplicate?.id, added?.id);
@@ -369,14 +388,16 @@ void main() {
     expect(provider.getOwnedPartsByCategory('motor').single.name,
         'Custom Motor 17.5T');
 
-    final updated = await provider.updateOwnedPart(
-      added!.id,
-      category: 'motor',
-      name: 'Updated Motor 17.5T',
+    final updated = _successfulValue(
+      await provider.updateOwnedPart(
+        added!.id,
+        category: 'motor',
+        name: 'Updated Motor 17.5T',
+      ),
     );
     expect(updated, isTrue);
 
-    final reloadedProvider = SettingsProvider();
+    final reloadedProvider = _createProvider();
     await _waitForProvider(reloadedProvider);
 
     expect(reloadedProvider.getOwnedPartsByCategory('motor'), hasLength(1));
@@ -385,7 +406,7 @@ void main() {
 
     await reloadedProvider.deleteOwnedPart(added.id);
 
-    final deletedProvider = SettingsProvider();
+    final deletedProvider = _createProvider();
     await _waitForProvider(deletedProvider);
     expect(deletedProvider.ownedParts, isEmpty);
   });
@@ -412,7 +433,7 @@ void main() {
           jsonEncode(savedSettings.map((setting) => setting.toJson()).toList()),
     });
 
-    final provider = SettingsProvider();
+    final provider = _createProvider();
     await _waitForProvider(provider);
 
     await provider.addOwnedPart('motor', 'Owned Motor 17.5T');
@@ -474,7 +495,7 @@ void main() {
           jsonEncode(savedSettings.map((setting) => setting.toJson()).toList()),
     });
 
-    final provider = SettingsProvider();
+    final provider = _createProvider();
     await _waitForProvider(provider);
     await provider.addOwnedPart('motor', 'Custom Brand XYZ 17.5T');
 
@@ -508,7 +529,7 @@ void main() {
       'cars_settings': jsonEncode([car.toJson()]),
     });
 
-    final provider = SettingsProvider();
+    final provider = _createProvider();
     await _waitForProvider(provider);
 
     final carIds = provider.cars.map((car) => car.id).toSet();

@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/xml_service.dart';
 import '../services/file_service.dart';
+import '../utils/settings_operation_feedback.dart';
+import '../utils/app_logger.dart';
 
 class SimpleImportPage extends StatefulWidget {
   const SimpleImportPage({super.key});
@@ -21,6 +23,7 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
   bool _includeVisibilitySettings = true;
   bool _includeLanguageSettings = false;
   bool _isLoading = false;
+  bool _isImporting = false;
   List<dynamic> _xmlFiles = [];
   dynamic _selectedFile;
   ImportResult? _previewData;
@@ -68,13 +71,17 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
 
       _adjustCheckboxesBasedOnFileContent();
     } catch (e) {
+      debugLog('Failed to read import file: $e');
       if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               Provider.of<SettingsProvider>(context, listen: false).isEnglish
-                  ? 'Failed to read file: $e'
-                  : 'ファイルの読み込みに失敗しました: $e',
+                  ? 'Failed to read the selected file.'
+                  : '選択したファイルの読み込みに失敗しました。',
             ),
             backgroundColor: Colors.red,
           ),
@@ -139,10 +146,11 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
 
     setState(() {
       _isLoading = true;
+      _isImporting = true;
     });
 
     try {
-      await settingsProvider.replacePartialData(
+      final result = await settingsProvider.replacePartialData(
         cars: _includeCars ? _previewData!.cars : null,
         savedSettings:
             _includeSavedSettings ? _previewData!.savedSettings : null,
@@ -156,7 +164,20 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
             : null,
       );
 
+      if (!mounted ||
+          !handleSettingsOperationResult(
+            context,
+            result,
+            isEnglish: settingsProvider.isEnglish,
+          )) {
+        return;
+      }
+
       if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isImporting = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -171,13 +192,14 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
         Navigator.of(context).pop();
       }
     } catch (e) {
+      debugLog('Import failed: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
               Provider.of<SettingsProvider>(context, listen: false).isEnglish
-                  ? 'Import failed: $e'
-                  : 'インポートに失敗しました: $e',
+                  ? 'Import failed. No additional changes were applied.'
+                  : 'インポートに失敗しました。追加の変更は適用されていません。',
             ),
             backgroundColor: Colors.red,
           ),
@@ -187,6 +209,7 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
       if (mounted) {
         setState(() {
           _isLoading = false;
+          _isImporting = false;
         });
       }
     }
@@ -236,7 +259,8 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
                     decoration: BoxDecoration(
                       color: Colors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                      border: Border.all(
+                          color: Colors.orange.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: [
@@ -332,11 +356,12 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
           );
         }
       } catch (e) {
+        debugLog('Failed to delete import file: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                isEnglish ? 'Failed to delete file: $e' : 'ファイルの削除に失敗しました: $e',
+                isEnglish ? 'Failed to delete the file.' : 'ファイルの削除に失敗しました。',
               ),
               backgroundColor: Colors.red,
             ),
@@ -392,161 +417,51 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
       );
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(isEnglish ? 'Import from Saved Files' : '保存されたファイルからインポート'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadXmlFiles,
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (_xmlFiles.isEmpty && !_isLoading) ...[
-              SizedBox(
-                height: 300,
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.folder_open,
-                          size: 64, color: Colors.grey),
-                      const SizedBox(height: 16),
-                      Text(
-                        isEnglish ? 'No XML files found' : 'XMLファイルが見つかりません',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        isEnglish
-                            ? 'Export some data first to create XML files.'
-                            : 'まずデータをエクスポートしてXMLファイルを作成してください。',
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ] else if (_selectedFile == null) ...[
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isEnglish ? 'Select XML File' : 'XMLファイルを選択',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        isEnglish
-                            ? 'Choose an XML file to preview and import.'
-                            : 'プレビューとインポートするXMLファイルを選択してください。',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              _isLoading
-                  ? const SizedBox(
-                      height: 100,
-                      child: Center(child: CircularProgressIndicator()),
-                    )
-                  : Column(
-                      children: _xmlFiles.map((file) {
-                        final fileName = file.path.split('/').last;
-                        final stat = file.statSync();
-
-                        return Card(
-                          child: ListTile(
-                            leading: const Icon(Icons.description,
-                                color: Colors.blue),
-                            title: Text(fileName),
-                            subtitle: Text(
-                              '${isEnglish ? "Modified" : "更新日"}: ${stat.modified.toString().split('.')[0]}',
-                            ),
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.delete,
-                                      color: Colors.red),
-                                  onPressed: () => _deleteFile(file),
-                                ),
-                                const Icon(Icons.arrow_forward_ios),
-                              ],
-                            ),
-                            onTap: () => _selectFile(file),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-            ] else ...[
-              // ファイルが選択されている場合のプレビューとインポート画面
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Icons.preview, color: Colors.green),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              _selectedFile!.path.split('/').last,
-                              style: Theme.of(context).textTheme.titleLarge,
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close),
-                            onPressed: () {
-                              setState(() {
-                                _selectedFile = null;
-                                _previewData = null;
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                      if (_previewData != null) ...[
-                        const SizedBox(height: 8),
-                        if (_previewData!.metadata.exportDate != null)
-                          Text(
-                              '${isEnglish ? "Export Date" : "エクスポート日"}: ${_previewData!.metadata.exportDate}'),
-                        if (_previewData!.metadata.version != null)
-                          Text(
-                              '${isEnglish ? "Version" : "バージョン"}: ${_previewData!.metadata.version}'),
-                        const SizedBox(height: 8),
+    return PopScope(
+      canPop: !_isImporting,
+      child: Scaffold(
+        appBar: AppBar(
+          title:
+              Text(isEnglish ? 'Import from Saved Files' : '保存されたファイルからインポート'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh),
+              onPressed: _isLoading ? null : _loadXmlFiles,
+            ),
+          ],
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (_xmlFiles.isEmpty && !_isLoading) ...[
+                SizedBox(
+                  height: 300,
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.folder_open,
+                            size: 64, color: Colors.grey),
+                        const SizedBox(height: 16),
                         Text(
-                          isEnglish ? 'Available Data:' : '利用可能なデータ:',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          isEnglish ? 'No XML files found' : 'XMLファイルが見つかりません',
+                          style: Theme.of(context).textTheme.titleLarge,
                         ),
+                        const SizedBox(height: 8),
                         Text(
-                            '• ${isEnglish ? "Cars" : "車種"}: ${_previewData!.cars.length} ${isEnglish ? "items" : "件"}'),
-                        Text(
-                            '• ${isEnglish ? "Saved Settings" : "保存された設定"}: ${_previewData!.savedSettings.length} ${isEnglish ? "items" : "件"}'),
-                        Text(
-                            '• ${isEnglish ? "Run Logs" : "走行ログ"}: ${_previewData!.runLogs.length} ${isEnglish ? "items" : "件"}'),
-                        Text(
-                            '• ${isEnglish ? "Visibility Settings" : "表示設定"}: ${_previewData!.visibilitySettings.length} ${isEnglish ? "cars" : "台分"}'),
+                          isEnglish
+                              ? 'Export some data first to create XML files.'
+                              : 'まずデータをエクスポートしてXMLファイルを作成してください。',
+                          textAlign: TextAlign.center,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
                       ],
-                    ],
+                    ),
                   ),
                 ),
-              ),
-              const SizedBox(height: 16),
-              if (_previewData != null) ...[
+              ] else if (_selectedFile == null) ...[
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -554,116 +469,238 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          isEnglish ? 'Select Data to Import' : 'インポートするデータを選択',
+                          isEnglish ? 'Select XML File' : 'XMLファイルを選択',
                           style: Theme.of(context).textTheme.titleLarge,
                         ),
-                        const SizedBox(height: 16),
-                        CheckboxListTile(
-                          title: Text(isEnglish ? 'Cars' : '車種'),
-                          subtitle: Text(
-                              '${_previewData!.cars.length} ${isEnglish ? "items available" : "件利用可能"}'),
-                          value: _includeCars,
-                          onChanged: _previewData!.cars.isNotEmpty
-                              ? (value) {
-                                  setState(() {
-                                    _includeCars = value ?? false;
-                                  });
-                                }
-                              : null,
-                        ),
-                        CheckboxListTile(
-                          title: Text(isEnglish ? 'Saved Settings' : '保存された設定'),
-                          subtitle: Text(
-                              '${_previewData!.savedSettings.length} ${isEnglish ? "items available" : "件利用可能"}'),
-                          value: _includeSavedSettings,
-                          onChanged: _previewData!.savedSettings.isNotEmpty
-                              ? (value) {
-                                  setState(() {
-                                    _includeSavedSettings = value ?? false;
-                                  });
-                                }
-                              : null,
-                        ),
-                        CheckboxListTile(
-                          title: Text(isEnglish ? 'Run Logs' : '走行ログ'),
-                          subtitle: Text(
-                              '${_previewData!.runLogs.length} ${isEnglish ? "items available" : "件利用可能"}'),
-                          value: _includeRunLogs,
-                          onChanged: _previewData!.runLogs.isNotEmpty
-                              ? (value) {
-                                  setState(() {
-                                    _includeRunLogs = value ?? false;
-                                  });
-                                }
-                              : null,
-                        ),
-                        CheckboxListTile(
-                          title: const Text('Owned Parts'),
-                          subtitle: Text(
-                              '${_previewData!.ownedParts.length} parts available'),
-                          value: _includeOwnedParts,
-                          onChanged: _previewData!.ownedParts.isNotEmpty
-                              ? (value) {
-                                  setState(() {
-                                    _includeOwnedParts = value ?? false;
-                                  });
-                                }
-                              : null,
-                        ),
-                        CheckboxListTile(
-                          title:
-                              Text(isEnglish ? 'Visibility Settings' : '表示設定'),
-                          subtitle: Text(
-                              '${_previewData!.visibilitySettings.length} ${isEnglish ? "cars available" : "台分利用可能"}'),
-                          value: _includeVisibilitySettings,
-                          onChanged: _previewData!.visibilitySettings.isNotEmpty
-                              ? (value) {
-                                  setState(() {
-                                    _includeVisibilitySettings = value ?? false;
-                                  });
-                                }
-                              : null,
-                        ),
-                        CheckboxListTile(
-                          title: Text(isEnglish ? 'Language Settings' : '言語設定'),
-                          subtitle: Text(
-                            _previewData!.metadata.language != null
-                                ? '${isEnglish ? "Language" : "言語"}: ${_previewData!.metadata.language == "en" ? "English" : "日本語"}'
-                                : (isEnglish ? 'No language data' : '言語データなし'),
-                          ),
-                          value: _includeLanguageSettings,
-                          onChanged: _previewData!.metadata.language != null
-                              ? (value) {
-                                  setState(() {
-                                    _includeLanguageSettings = value ?? false;
-                                  });
-                                }
-                              : null,
+                        const SizedBox(height: 8),
+                        Text(
+                          isEnglish
+                              ? 'Choose an XML file to preview and import.'
+                              : 'プレビューとインポートするXMLファイルを選択してください。',
+                          style: Theme.of(context).textTheme.bodyMedium,
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 24),
-                ElevatedButton.icon(
-                  onPressed: _isLoading ? null : _importSelectedData,
-                  icon: _isLoading
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.upload),
-                  label: Text(
-                      isEnglish ? 'Import Selected Data' : '選択されたデータをインポート'),
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: Colors.green,
+                const SizedBox(height: 16),
+                _isLoading
+                    ? const SizedBox(
+                        height: 100,
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    : Column(
+                        children: _xmlFiles.map((file) {
+                          final fileName = file.path.split('/').last;
+                          final stat = file.statSync();
+
+                          return Card(
+                            child: ListTile(
+                              leading: const Icon(Icons.description,
+                                  color: Colors.blue),
+                              title: Text(fileName),
+                              subtitle: Text(
+                                '${isEnglish ? "Modified" : "更新日"}: ${stat.modified.toString().split('.')[0]}',
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.delete,
+                                        color: Colors.red),
+                                    onPressed: () => _deleteFile(file),
+                                  ),
+                                  const Icon(Icons.arrow_forward_ios),
+                                ],
+                              ),
+                              onTap: () => _selectFile(file),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+              ] else ...[
+                // ファイルが選択されている場合のプレビューとインポート画面
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Icons.preview, color: Colors.green),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _selectedFile!.path.split('/').last,
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () {
+                                setState(() {
+                                  _selectedFile = null;
+                                  _previewData = null;
+                                });
+                              },
+                            ),
+                          ],
+                        ),
+                        if (_previewData != null) ...[
+                          const SizedBox(height: 8),
+                          if (_previewData!.metadata.exportDate != null)
+                            Text(
+                                '${isEnglish ? "Export Date" : "エクスポート日"}: ${_previewData!.metadata.exportDate}'),
+                          if (_previewData!.metadata.version != null)
+                            Text(
+                                '${isEnglish ? "Version" : "バージョン"}: ${_previewData!.metadata.version}'),
+                          const SizedBox(height: 8),
+                          Text(
+                            isEnglish ? 'Available Data:' : '利用可能なデータ:',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                          ),
+                          Text(
+                              '• ${isEnglish ? "Cars" : "車種"}: ${_previewData!.cars.length} ${isEnglish ? "items" : "件"}'),
+                          Text(
+                              '• ${isEnglish ? "Saved Settings" : "保存された設定"}: ${_previewData!.savedSettings.length} ${isEnglish ? "items" : "件"}'),
+                          Text(
+                              '• ${isEnglish ? "Run Logs" : "走行ログ"}: ${_previewData!.runLogs.length} ${isEnglish ? "items" : "件"}'),
+                          Text(
+                              '• ${isEnglish ? "Visibility Settings" : "表示設定"}: ${_previewData!.visibilitySettings.length} ${isEnglish ? "cars" : "台分"}'),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
+                const SizedBox(height: 16),
+                if (_previewData != null) ...[
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isEnglish
+                                ? 'Select Data to Import'
+                                : 'インポートするデータを選択',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 16),
+                          CheckboxListTile(
+                            title: Text(isEnglish ? 'Cars' : '車種'),
+                            subtitle: Text(
+                                '${_previewData!.cars.length} ${isEnglish ? "items available" : "件利用可能"}'),
+                            value: _includeCars,
+                            onChanged: _previewData!.cars.isNotEmpty
+                                ? (value) {
+                                    setState(() {
+                                      _includeCars = value ?? false;
+                                    });
+                                  }
+                                : null,
+                          ),
+                          CheckboxListTile(
+                            title:
+                                Text(isEnglish ? 'Saved Settings' : '保存された設定'),
+                            subtitle: Text(
+                                '${_previewData!.savedSettings.length} ${isEnglish ? "items available" : "件利用可能"}'),
+                            value: _includeSavedSettings,
+                            onChanged: _previewData!.savedSettings.isNotEmpty
+                                ? (value) {
+                                    setState(() {
+                                      _includeSavedSettings = value ?? false;
+                                    });
+                                  }
+                                : null,
+                          ),
+                          CheckboxListTile(
+                            title: Text(isEnglish ? 'Run Logs' : '走行ログ'),
+                            subtitle: Text(
+                                '${_previewData!.runLogs.length} ${isEnglish ? "items available" : "件利用可能"}'),
+                            value: _includeRunLogs,
+                            onChanged: _previewData!.runLogs.isNotEmpty
+                                ? (value) {
+                                    setState(() {
+                                      _includeRunLogs = value ?? false;
+                                    });
+                                  }
+                                : null,
+                          ),
+                          CheckboxListTile(
+                            title: const Text('Owned Parts'),
+                            subtitle: Text(
+                                '${_previewData!.ownedParts.length} parts available'),
+                            value: _includeOwnedParts,
+                            onChanged: _previewData!.ownedParts.isNotEmpty
+                                ? (value) {
+                                    setState(() {
+                                      _includeOwnedParts = value ?? false;
+                                    });
+                                  }
+                                : null,
+                          ),
+                          CheckboxListTile(
+                            title: Text(
+                                isEnglish ? 'Visibility Settings' : '表示設定'),
+                            subtitle: Text(
+                                '${_previewData!.visibilitySettings.length} ${isEnglish ? "cars available" : "台分利用可能"}'),
+                            value: _includeVisibilitySettings,
+                            onChanged:
+                                _previewData!.visibilitySettings.isNotEmpty
+                                    ? (value) {
+                                        setState(() {
+                                          _includeVisibilitySettings =
+                                              value ?? false;
+                                        });
+                                      }
+                                    : null,
+                          ),
+                          CheckboxListTile(
+                            title:
+                                Text(isEnglish ? 'Language Settings' : '言語設定'),
+                            subtitle: Text(
+                              _previewData!.metadata.language != null
+                                  ? '${isEnglish ? "Language" : "言語"}: ${_previewData!.metadata.language == "en" ? "English" : "日本語"}'
+                                  : (isEnglish
+                                      ? 'No language data'
+                                      : '言語データなし'),
+                            ),
+                            value: _includeLanguageSettings,
+                            onChanged: _previewData!.metadata.language != null
+                                ? (value) {
+                                    setState(() {
+                                      _includeLanguageSettings = value ?? false;
+                                    });
+                                  }
+                                : null,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: _isLoading ? null : _importSelectedData,
+                    icon: _isLoading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.upload),
+                    label: Text(
+                        isEnglish ? 'Import Selected Data' : '選択されたデータをインポート'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.green,
+                    ),
+                  ),
+                ],
               ],
             ],
-          ],
+          ),
         ),
       ),
     );

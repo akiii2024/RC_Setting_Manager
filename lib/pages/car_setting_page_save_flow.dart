@@ -5,6 +5,8 @@ mixin _CarSettingSaveFlow on State<CarSettingPage> {
   bool get _isEditing;
   String? get _activeSavedSettingId;
   TextEditingController get _settingNameController;
+  bool get _isSavingSetting;
+  set _isSavingSetting(bool value);
 
   Widget _buildSaveActionBar(bool isEnglish) {
     final primaryLabel = _isEditing
@@ -17,8 +19,8 @@ mixin _CarSettingSaveFlow on State<CarSettingPage> {
         child: SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
-            onPressed: _saveSetting,
-            icon: const Icon(Icons.save),
+            onPressed: _isSavingSetting ? null : _saveSetting,
+            icon: _saveButtonIcon(),
             label: Text(primaryLabel),
           ),
         ),
@@ -31,8 +33,10 @@ mixin _CarSettingSaveFlow on State<CarSettingPage> {
         children: [
           Expanded(
             child: OutlinedButton.icon(
-              onPressed: _saveAsNewSetting,
-              icon: const Icon(Icons.copy_rounded),
+              onPressed: _isSavingSetting ? null : _saveAsNewSetting,
+              icon: _isSavingSetting
+                  ? _saveButtonIcon()
+                  : const Icon(Icons.copy_rounded),
               label: Text(isEnglish ? 'Save as New' : '新規保存'),
             ),
           ),
@@ -40,14 +44,44 @@ mixin _CarSettingSaveFlow on State<CarSettingPage> {
           Expanded(
             flex: 2,
             child: FilledButton.icon(
-              onPressed: _updateSetting,
-              icon: const Icon(Icons.save),
+              onPressed: _isSavingSetting ? null : _updateSetting,
+              icon: _saveButtonIcon(),
               label: Text(primaryLabel),
             ),
           ),
         ],
       ),
     );
+  }
+
+  Widget _saveButtonIcon() {
+    if (!_isSavingSetting) {
+      return const Icon(Icons.save);
+    }
+    return const SizedBox.square(
+      dimension: 18,
+      child: CircularProgressIndicator(strokeWidth: 2),
+    );
+  }
+
+  bool _beginSettingSave() {
+    if (_isSavingSetting) {
+      return false;
+    }
+    setState(() => _isSavingSetting = true);
+    return true;
+  }
+
+  void _endSettingSave() {
+    if (mounted) {
+      setState(() => _isSavingSetting = false);
+    }
+  }
+
+  void _finishSettingSaveAndPop() {
+    if (!mounted) return;
+    setState(() => _isSavingSetting = false);
+    Navigator.pop(context);
   }
 
   Future<_GaragePromptAction?> _showGaragePromptIfNeeded(
@@ -70,8 +104,8 @@ mixin _CarSettingSaveFlow on State<CarSettingPage> {
           ),
           content: Text(
             isEnglish
-                ? 'You saved a setting for ${currentCar.name}. Add this model to My Garage for quicker access next time?'
-                : '${currentCar.name} の設定を保存しました。次回から見つけやすいように、マイガレージへ追加しますか？',
+                ? 'Add ${currentCar.name} to My Garage when this setting is saved?'
+                : '設定の保存と同時に ${currentCar.name} をマイガレージへ追加しますか？',
           ),
           actions: [
             TextButton(
@@ -101,13 +135,7 @@ mixin _CarSettingSaveFlow on State<CarSettingPage> {
       },
     );
 
-    if (action == _GaragePromptAction.add) {
-      await settingsProvider.setGarageMembership(currentCar.id, true);
-    } else if (action == _GaragePromptAction.suppress) {
-      await settingsProvider.setGaragePromptSuppressed(currentCar.id, true);
-    }
-
-    return action;
+    return mounted ? action : null;
   }
 
   String _savedSnackBarMessage(
@@ -129,169 +157,171 @@ mixin _CarSettingSaveFlow on State<CarSettingPage> {
     }
   }
 
-  void _saveSetting() async {
-    final settingsProvider =
-        Provider.of<SettingsProvider>(context, listen: false);
-    final isEnglish = settingsProvider.isEnglish;
+  Future<void> _saveSetting() async {
+    if (!_beginSettingSave()) return;
+    try {
+      final settingsProvider =
+          Provider.of<SettingsProvider>(context, listen: false);
+      final isEnglish = settingsProvider.isEnglish;
+      if (!_validateSettingName(isEnglish)) return;
 
-    if (_settingNameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              isEnglish ? 'Please enter a setting name' : 'セッティング名を入力してください'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-      return;
+      if (_isEditing && _activeSavedSettingId != null) {
+        await _performSettingUpdate(settingsProvider, isEnglish);
+      } else {
+        await _performNewSettingSave(settingsProvider, isEnglish);
+      }
+    } finally {
+      _endSettingSave();
     }
+  }
 
-    if (_isEditing && _activeSavedSettingId != null) {
-      // Update existing setting
-      SavedSetting? existingSetting;
-      for (final setting in settingsProvider.savedSettings) {
-        if (setting.id == _activeSavedSettingId) {
-          existingSetting = setting;
-          break;
-        }
-      }
-      final updatedSetting = SavedSetting(
-        id: _activeSavedSettingId!,
-        name: _settingNameController.text,
-        createdAt: DateTime.now(),
-        car: widget.originalCar,
-        settings: settings,
-        kind: existingSetting?.kind ?? SavedSettingKind.manual,
-        sourceRunLogId: existingSetting?.sourceRunLogId,
-        parentSettingId: existingSetting?.parentSettingId,
-      );
+  Future<void> _saveAsNewSetting() async {
+    if (!_beginSettingSave()) return;
+    try {
+      final settingsProvider =
+          Provider.of<SettingsProvider>(context, listen: false);
+      final isEnglish = settingsProvider.isEnglish;
+      if (!_validateSettingName(isEnglish)) return;
+      await _performNewSettingSave(settingsProvider, isEnglish);
+    } finally {
+      _endSettingSave();
+    }
+  }
 
-      await settingsProvider.updateSetting(updatedSetting);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(isEnglish ? 'Setting updated' : '設定を更新しました')),
-        );
-        Navigator.pop(context);
-      }
-    } else {
-      // Add new setting
-      await settingsProvider.addSetting(
-        _settingNameController.text,
-        widget.originalCar,
-        settings,
-      );
-      final promptAction = await _showGaragePromptIfNeeded(settingsProvider);
-      if (mounted) {
+  Future<void> _updateSetting() async {
+    if (!_beginSettingSave()) return;
+    try {
+      final settingsProvider =
+          Provider.of<SettingsProvider>(context, listen: false);
+      final isEnglish = settingsProvider.isEnglish;
+      if (!_validateSettingName(isEnglish)) return;
+
+      if (_isEditing && _activeSavedSettingId != null) {
+        await _performSettingUpdate(settingsProvider, isEnglish);
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              _savedSnackBarMessage(isEnglish, promptAction),
-            ),
+            content: Text(isEnglish ? 'No setting to update' : '更新する設定がありません'),
+            backgroundColor: Theme.of(context).colorScheme.error,
           ),
         );
-        Navigator.pop(context);
-        return;
       }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(isEnglish ? 'Setting saved' : '設定を保存しました')),
-        );
-        Navigator.pop(context);
-      }
+    } finally {
+      _endSettingSave();
     }
   }
 
-  void _saveAsNewSetting() async {
-    final settingsProvider =
-        Provider.of<SettingsProvider>(context, listen: false);
-    final isEnglish = settingsProvider.isEnglish;
-
-    if (_settingNameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-              isEnglish ? 'Please enter a setting name' : 'セッティング名を入力してください'),
-          backgroundColor: Theme.of(context).colorScheme.error,
-        ),
-      );
-      return;
+  bool _validateSettingName(bool isEnglish) {
+    if (_settingNameController.text.trim().isNotEmpty) {
+      return true;
     }
-
-    // Add new setting
-    await settingsProvider.addSetting(
-      _settingNameController.text,
-      widget.originalCar,
-      settings,
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          isEnglish ? 'Please enter a setting name' : 'セッティング名を入力してください',
+        ),
+        backgroundColor: Theme.of(context).colorScheme.error,
+      ),
     );
-    final promptAction = await _showGaragePromptIfNeeded(settingsProvider);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _savedSnackBarMessage(isEnglish, promptAction),
-          ),
-        ),
-      );
-      Navigator.pop(context);
-      return;
-    }
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(isEnglish ? 'Setting saved' : '設定を保存しました')),
-      );
-      Navigator.pop(context);
-    }
+    return false;
   }
 
-  void _updateSetting() async {
-    final settingsProvider =
-        Provider.of<SettingsProvider>(context, listen: false);
-    final isEnglish = settingsProvider.isEnglish;
+  Future<void> _performNewSettingSave(
+    SettingsProvider settingsProvider,
+    bool isEnglish,
+  ) async {
+    final garageAction = await _showGaragePromptIfNeeded(settingsProvider);
+    if (!mounted) return;
 
-    if (_settingNameController.text.isEmpty) {
+    final result = await settingsProvider.addSettingWithCarUpdate(
+      _settingNameController.text.trim(),
+      widget.originalCar,
+      Map<String, dynamic>.from(settings),
+      isInGarage: garageAction == _GaragePromptAction.add ? true : null,
+      suppressGaragePrompt:
+          garageAction == _GaragePromptAction.suppress ? true : null,
+    );
+    if (!mounted ||
+        !handleSettingsOperationResult(
+          context,
+          result,
+          isEnglish: isEnglish,
+        )) {
+      return;
+    }
+    final savedSetting = switch (result) {
+      SettingsOperationSuccess<SavedSetting>(:final value) => value,
+      SettingsOperationFailure<SavedSetting>() => null,
+    };
+    if (savedSetting == null) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(_savedSnackBarMessage(isEnglish, garageAction))),
+    );
+    _finishSettingSaveAndPop();
+  }
+
+  Future<void> _performSettingUpdate(
+    SettingsProvider settingsProvider,
+    bool isEnglish,
+  ) async {
+    SavedSetting? existingSetting;
+    for (final setting in settingsProvider.savedSettings) {
+      if (setting.id == _activeSavedSettingId) {
+        existingSetting = setting;
+        break;
+      }
+    }
+    if (existingSetting == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-              isEnglish ? 'Please enter a setting name' : 'セッティング名を入力してください'),
+          content: Text(isEnglish
+              ? 'The setting no longer exists.'
+              : '対象のセッティングが見つかりません。'),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
       return;
     }
 
-    if (_isEditing && _activeSavedSettingId != null) {
-      // Update existing setting
-      SavedSetting? existingSetting;
-      for (final setting in settingsProvider.savedSettings) {
-        if (setting.id == _activeSavedSettingId) {
-          existingSetting = setting;
-          break;
-        }
-      }
-      final updatedSetting = SavedSetting(
-        id: _activeSavedSettingId!,
-        name: _settingNameController.text,
-        createdAt: DateTime.now(),
-        car: widget.originalCar,
-        settings: settings,
-        kind: existingSetting?.kind ?? SavedSettingKind.manual,
-        sourceRunLogId: existingSetting?.sourceRunLogId,
-        parentSettingId: existingSetting?.parentSettingId,
-      );
-
-      await settingsProvider.updateSetting(updatedSetting);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(isEnglish ? 'Setting updated' : '設定を更新しました')),
-        );
-        Navigator.pop(context);
-      }
-    } else {
+    final updatedSetting = SavedSetting(
+      id: existingSetting.id,
+      name: _settingNameController.text.trim(),
+      createdAt: DateTime.now(),
+      car: widget.originalCar,
+      settings: Map<String, dynamic>.from(settings),
+      kind: existingSetting.kind,
+      sourceRunLogId: existingSetting.sourceRunLogId,
+      parentSettingId: existingSetting.parentSettingId,
+    );
+    final result = await settingsProvider.updateSetting(updatedSetting);
+    if (!mounted ||
+        !handleSettingsOperationResult(
+          context,
+          result,
+          isEnglish: isEnglish,
+        )) {
+      return;
+    }
+    final savedSetting = switch (result) {
+      SettingsOperationSuccess<SavedSetting?>(:final value) => value,
+      SettingsOperationFailure<SavedSetting?>() => null,
+    };
+    if (savedSetting == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(isEnglish ? 'No setting to update' : '更新する設定がありません'),
+          content: Text(isEnglish
+              ? 'The setting was not updated.'
+              : 'セッティングは更新されませんでした。'),
           backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
+      return;
     }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(isEnglish ? 'Setting updated' : '設定を更新しました')),
+    );
+    _finishSettingSaveAndPop();
   }
 }
