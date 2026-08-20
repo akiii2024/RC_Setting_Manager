@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 abstract final class AppTheme {
+  static const _japaneseFontFamily = 'NotoSansJP';
+  static const _japaneseFontFallback = <String>[_japaneseFontFamily];
+
   static ThemeData light() {
     const primaryColor = Color(0xFF005BCF);
     final colorScheme = ColorScheme.fromSeed(
@@ -243,7 +246,7 @@ abstract final class AppTheme {
         fontWeight: fontWeight,
         letterSpacing: letterSpacing,
         fontSize: fontSize,
-      );
+      ).copyWith(fontFamilyFallback: _japaneseFontFallback);
     }
 
     TextStyle headlineStyle(
@@ -258,7 +261,7 @@ abstract final class AppTheme {
         fontWeight: fontWeight,
         letterSpacing: letterSpacing,
         fontSize: fontSize,
-      );
+      ).copyWith(fontFamilyFallback: _japaneseFontFallback);
     }
 
     return bodyTheme.copyWith(
@@ -287,6 +290,7 @@ abstract final class AppTheme {
         fontWeight: FontWeight.w700,
         letterSpacing: -0.6,
       ),
+      headlineSmall: bodyStyle(bodyTheme.headlineSmall),
       titleLarge: headlineStyle(
         bodyTheme.titleLarge,
         fontWeight: FontWeight.w700,

@@ -45,4 +45,11 @@ flutter:
 
   assets:
     - assets/launcher_icon/ios_icon.png
+    - assets/fonts/OFL.txt
+    - assets/google_fonts/
     - lib/data/track_locations.json
+
+  fonts:
+    - family: NotoSansJP
+      fonts:
+        - asset: assets/fonts/NotoSansJP-VariableFont_wght.ttf

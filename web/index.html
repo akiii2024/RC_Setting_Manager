@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 
 <head>
   <!--
@@ -39,6 +39,17 @@
   <title>RC Car Setting Manager</title>
 
   <style>
+    @font-face {
+      font-family: "NotoSansJP";
+      src: url("assets/assets/fonts/NotoSansJP-VariableFont_wght.ttf") format("truetype");
+      font-style: normal;
+      font-weight: 100 900;
+      font-display: swap;
+      unicode-range: U+2E80-2EFF, U+2F00-2FDF, U+3000-303F, U+3040-309F,
+        U+30A0-30FF, U+31F0-31FF, U+3400-4DBF, U+4E00-9FFF,
+        U+F900-FAFF, U+FE30-FE4F, U+FF00-FFEF, U+20000-2FA1F;
+    }
+
     body {
       margin: 0;
       padding: 0;
@@ -49,7 +60,7 @@
       flex-direction: column;
       background-color: #4CAF50;
       color: white;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      font-family: "NotoSansJP", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     }
 
     .loading {
