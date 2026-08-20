@@ -32,6 +32,17 @@ void main() {
             reason:
                 '${style.debugLabel} must render Japanese with Noto Sans JP',
           );
+
+          final expectedWeight =
+              ((style.fontWeight ?? FontWeight.w400).index + 1) * 100.0;
+          final weightVariation = style.fontVariations?.singleWhere(
+            (variation) => variation.axis == 'wght',
+          );
+          expect(
+            weightVariation?.value,
+            expectedWeight,
+            reason: '${style.debugLabel} must apply its weight to Noto Sans JP',
+          );
         }
 
         expect(textTheme.bodyMedium?.fontFamily, startsWith('Inter_'));

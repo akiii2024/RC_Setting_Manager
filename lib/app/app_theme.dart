@@ -5,6 +5,19 @@ abstract final class AppTheme {
   static const _japaneseFontFamily = 'NotoSansJP';
   static const _japaneseFontFallback = <String>[_japaneseFontFamily];
 
+  static TextStyle _withJapaneseFallback(TextStyle style) {
+    final fontWeight = style.fontWeight ?? FontWeight.w400;
+
+    return style.copyWith(
+      fontFamilyFallback: _japaneseFontFallback,
+      // Flutter 3.35 does not map FontWeight to a variable font's wght axis.
+      // Noto Sans JP defaults to 100, so set the effective weight explicitly.
+      fontVariations: <FontVariation>[
+        FontVariation('wght', (fontWeight.index + 1) * 100.0),
+      ],
+    );
+  }
+
   static ThemeData light() {
     const primaryColor = Color(0xFF005BCF);
     final colorScheme = ColorScheme.fromSeed(
@@ -240,13 +253,15 @@ abstract final class AppTheme {
       double? letterSpacing,
       double? fontSize,
     }) {
-      return GoogleFonts.inter(
-        textStyle: style,
-        color: textColor,
-        fontWeight: fontWeight,
-        letterSpacing: letterSpacing,
-        fontSize: fontSize,
-      ).copyWith(fontFamilyFallback: _japaneseFontFallback);
+      return _withJapaneseFallback(
+        GoogleFonts.inter(
+          textStyle: style,
+          color: textColor,
+          fontWeight: fontWeight,
+          letterSpacing: letterSpacing,
+          fontSize: fontSize,
+        ),
+      );
     }
 
     TextStyle headlineStyle(
@@ -255,13 +270,15 @@ abstract final class AppTheme {
       double? letterSpacing,
       double? fontSize,
     }) {
-      return GoogleFonts.spaceGrotesk(
-        textStyle: style,
-        color: textColor,
-        fontWeight: fontWeight,
-        letterSpacing: letterSpacing,
-        fontSize: fontSize,
-      ).copyWith(fontFamilyFallback: _japaneseFontFallback);
+      return _withJapaneseFallback(
+        GoogleFonts.spaceGrotesk(
+          textStyle: style,
+          color: textColor,
+          fontWeight: fontWeight,
+          letterSpacing: letterSpacing,
+          fontSize: fontSize,
+        ),
+      );
     }
 
     return bodyTheme.copyWith(
