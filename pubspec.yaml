@@ -30,7 +30,7 @@ dependencies:
   permission_handler: ^12.0.1
   image_picker: ^1.1.2
   image: ^4.5.3
-  cloud_functions: ^6.3.5
+  cloud_functions: ^6.4.0
   firebase_app_check: ^0.4.5+2
 
 dev_dependencies:
