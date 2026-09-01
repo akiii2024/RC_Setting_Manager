@@ -5,12 +5,29 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # These releases require a newer Dart/Flutter toolchain than Flutter 3.35.3.
+      - dependency-name: image_picker
+        versions: [">=1.2.3 <2.0.0"]
+      - dependency-name: path_provider
+        versions: [">=2.1.6 <3.0.0"]
+      - dependency-name: google_fonts
+        versions: [">=8.0.0 <9.0.0"]
+      - dependency-name: xml
+        versions: [">=7.0.0 <8.0.0"]
+      # permission_handler 13 requires Android compileSdk 37; Flutter 3.35.3 uses 36.
+      - dependency-name: permission_handler
+        versions: [">=13.0.0 <14.0.0"]
 
   - package-ecosystem: npm
     directory: "/functions"
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # firebase-admin 14 requires Node.js 22+, while Functions runs on Node.js 20.
+      - dependency-name: firebase-admin
+        versions: [">=14.0.0 <15.0.0"]
 
   - package-ecosystem: github-actions
     directory: "/"
