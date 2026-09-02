@@ -92,9 +92,11 @@ class ToolsPage extends StatelessWidget {
   bool _useSimpleToolsLayout() => true;
 
   Widget _buildSimpleToolsLayout(BuildContext context, bool isEnglish) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       body: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.fromLTRB(20, 8, 20, 112),
         child: ListView(
           children: [
             _SectionHeader(title: isEnglish ? 'Data Management' : 'データ管理'),
@@ -104,7 +106,7 @@ class ToolsPage extends StatelessWidget {
                   ? 'Export all data to an XML file'
                   : 'すべてのデータをXMLファイルに保存します',
               icon: Icons.backup_rounded,
-              color: Colors.blue,
+              color: colorScheme.primary,
               onTap: () => _exportSettings(context),
             ),
             _ToolCard(
@@ -113,7 +115,7 @@ class ToolsPage extends StatelessWidget {
                   ? 'Restore from an app XML backup'
                   : 'アプリ内のXMLバックアップから復元します',
               icon: Icons.restore_rounded,
-              color: Colors.indigo,
+              color: colorScheme.secondary,
               onTap: () => _openRestore(context),
             ),
             const SizedBox(height: 24),
@@ -124,7 +126,7 @@ class ToolsPage extends StatelessWidget {
                   ? 'Calculate gear ratio from spur and pinion gears'
                   : 'スパーギヤとピニオンギヤからギヤ比を計算します',
               icon: Icons.calculate_rounded,
-              color: Colors.orange,
+              color: colorScheme.tertiary,
               onTap: () => _showGearRatioCalculator(context),
             ),
             const SizedBox(height: 24),
@@ -135,7 +137,7 @@ class ToolsPage extends StatelessWidget {
                   ? 'Share one saved setting as text'
                   : '保存済み設定をテキストで共有します',
               icon: Icons.share_rounded,
-              color: Colors.teal,
+              color: colorScheme.secondary,
               onTap: () => _shareSettings(context),
             ),
             _ToolCard(
@@ -143,7 +145,7 @@ class ToolsPage extends StatelessWidget {
               description:
                   isEnglish ? 'View your setting trends' : 'セッティングの傾向を確認します',
               icon: Icons.bar_chart_rounded,
-              color: Colors.purple,
+              color: colorScheme.primary,
               onTap: () => _openStatistics(context),
             ),
           ],
@@ -502,15 +504,28 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 12, top: 16),
-      child: Text(
-        title,
-        style: TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: Theme.of(context).colorScheme.primary,
-        ),
+      padding: const EdgeInsets.only(left: 4, bottom: 14, top: 20),
+      child: Row(
+        children: [
+          Container(
+            width: 6,
+            height: 22,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.tertiary,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Text(
+            title,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -533,22 +548,25 @@ class _ToolCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(18),
           child: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                width: 56,
+                height: 56,
+                alignment: Alignment.center,
                 decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: color.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(18),
                 ),
                 child: Icon(
                   icon,
@@ -563,26 +581,32 @@ class _ToolCard extends StatelessWidget {
                   children: [
                     Text(
                       title,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       description,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
                       ),
                     ),
                   ],
                 ),
               ),
-              Icon(
-                Icons.arrow_forward_ios_rounded,
-                size: 16,
-                color: color,
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerHighest,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.chevron_right_rounded,
+                  size: 22,
+                  color: colorScheme.onSurfaceVariant,
+                ),
               ),
             ],
           ),

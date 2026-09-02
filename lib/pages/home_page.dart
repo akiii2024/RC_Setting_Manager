@@ -16,14 +16,17 @@ import 'tools_page.dart';
 part 'home_page_dashboard.dart';
 part 'home_page_shared_widgets.dart';
 
-const _blueShiftGradient = LinearGradient(
-  begin: Alignment.topLeft,
-  end: Alignment.bottomRight,
-  colors: [
-    Color(0xFF005BCF),
-    Color(0xFF1A73E8),
-  ],
-);
+LinearGradient _expressiveGradient(BuildContext context) {
+  final colorScheme = Theme.of(context).colorScheme;
+  return LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [
+      colorScheme.primary,
+      colorScheme.secondary,
+    ],
+  );
+}
 
 String _t(bool isEnglish, String en, String ja) => isEnglish ? en : ja;
 
@@ -182,30 +185,46 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: theme.colorScheme.surface,
       extendBody: true,
       appBar: AppBar(
-        toolbarHeight: 68,
-        titleSpacing: 16,
+        toolbarHeight: 76,
+        titleSpacing: 20,
         title: Text(
           _pageTitle(isEnglish),
-          style: _selectedIndex == 0
-              ? theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: -0.2,
-                )
-              : theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.4,
+          ),
         ),
         actions: [
-          IconButton(
+          IconButton.filledTonal(
             icon: const Icon(Icons.tune_rounded),
             onPressed: () {
               Navigator.pushNamed(context, '/settings');
             },
             tooltip: _t(isEnglish, 'Settings', '設定'),
           ),
+          const SizedBox(width: 12),
         ],
       ),
-      body: _buildCurrentPage(),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 320),
+        reverseDuration: const Duration(milliseconds: 220),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        transitionBuilder: (child, animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: ScaleTransition(
+              scale: Tween<double>(begin: 0.985, end: 1).animate(animation),
+              alignment: Alignment.topCenter,
+              child: child,
+            ),
+          );
+        },
+        child: KeyedSubtree(
+          key: ValueKey(_selectedIndex),
+          child: _buildCurrentPage(),
+        ),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) {

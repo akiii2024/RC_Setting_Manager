@@ -20,7 +20,7 @@ class SettingCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(24),
         onTap: () {
           Navigator.push(
             context,
@@ -36,17 +36,11 @@ class SettingCard extends StatelessWidget {
         },
         child: Ink(
           decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.onSurface.withValues(
-                  alpha: theme.brightness == Brightness.light ? 0.04 : 0.14,
-                ),
-                blurRadius: 28,
-                offset: const Offset(0, 12),
-              ),
-            ],
+            color: colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: colorScheme.outlineVariant.withValues(alpha: 0.38),
+            ),
           ),
           child: Stack(
             children: [
@@ -57,13 +51,14 @@ class SettingCard extends StatelessWidget {
                 child: Container(
                   width: 4,
                   decoration: BoxDecoration(
-                    gradient: isHighlighted ? _blueShiftGradient : null,
+                    gradient:
+                        isHighlighted ? _expressiveGradient(context) : null,
                     color: isHighlighted
                         ? null
                         : colorScheme.outlineVariant.withValues(alpha: 0.5),
                     borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                      bottomLeft: Radius.circular(12),
+                      topLeft: Radius.circular(24),
+                      bottomLeft: Radius.circular(24),
                     ),
                   ),
                 ),
@@ -478,47 +473,10 @@ class _TechnicalActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final borderRadius = BorderRadius.circular(10);
-    final shadowColor = Theme.of(context).colorScheme.onSurface.withValues(
-          alpha: Theme.of(context).brightness == Brightness.light ? 0.08 : 0.18,
-        );
-
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        gradient: _blueShiftGradient,
-        borderRadius: borderRadius,
-        boxShadow: [
-          BoxShadow(
-            color: shadowColor,
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: borderRadius,
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, size: 18, color: Colors.white),
-                const SizedBox(width: 10),
-                Text(
-                  label,
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
+    return FilledButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon, size: 20),
+      label: Text(label),
     );
   }
 }
@@ -534,41 +492,10 @@ class _GradientFab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final shadowColor = Theme.of(context).colorScheme.onSurface.withValues(
-          alpha: Theme.of(context).brightness == Brightness.light ? 0.12 : 0.22,
-        );
-
-    return Tooltip(
-      message: tooltip,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: _blueShiftGradient,
-          boxShadow: [
-            BoxShadow(
-              color: shadowColor,
-              blurRadius: 32,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: onTap,
-            child: const SizedBox(
-              width: 58,
-              height: 58,
-              child: Icon(
-                Icons.add_rounded,
-                color: Colors.white,
-                size: 28,
-              ),
-            ),
-          ),
-        ),
-      ),
+    return FloatingActionButton(
+      tooltip: tooltip,
+      onPressed: onTap,
+      child: const Icon(Icons.add_rounded, size: 28),
     );
   }
 }

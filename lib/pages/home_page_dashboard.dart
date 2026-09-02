@@ -227,19 +227,19 @@ class _RecentMachineCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(isPrimary ? 28 : 24),
         onTap: onTap,
         child: Ink(
           padding: EdgeInsets.all(isPrimary ? 20 : 16),
           decoration: BoxDecoration(
             color: isPrimary
-                ? colorScheme.surfaceContainerLow
-                : colorScheme.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(20),
+                ? colorScheme.primaryContainer
+                : colorScheme.surfaceContainerLow,
+            borderRadius: BorderRadius.circular(isPrimary ? 28 : 24),
             border: Border.all(
-              color: colorScheme.outlineVariant.withValues(
-                alpha: isPrimary ? 0.45 : 0.3,
-              ),
+              color: isPrimary
+                  ? colorScheme.primary.withValues(alpha: 0.18)
+                  : colorScheme.outlineVariant.withValues(alpha: 0.38),
             ),
           ),
           child: Row(
@@ -319,19 +319,21 @@ class _HomeMachineLeading extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: emphasize
-            ? colorScheme.primary.withValues(alpha: 0.12)
+            ? colorScheme.secondaryContainer
             : colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(emphasize ? 20 : 16),
       ),
       child: label == null
           ? Icon(
               Icons.directions_car_filled_rounded,
-              color: colorScheme.primary,
+              color: emphasize
+                  ? colorScheme.onSecondaryContainer
+                  : colorScheme.primary,
             )
           : Text(
               label!,
               style: theme.textTheme.labelLarge?.copyWith(
-                color: colorScheme.primary,
+                color: colorScheme.onSecondaryContainer,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -364,7 +366,7 @@ class _SimpleHomeEmptyState extends StatelessWidget {
       padding: EdgeInsets.all(compact ? 18 : 24),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(28),
         border: Border.all(
           color: colorScheme.outlineVariant.withValues(alpha: 0.3),
         ),
@@ -1034,7 +1036,8 @@ class _HomeSettingCard extends StatelessWidget {
                 child: Container(
                   width: 4,
                   decoration: BoxDecoration(
-                    gradient: isHighlighted ? _blueShiftGradient : null,
+                    gradient:
+                        isHighlighted ? _expressiveGradient(context) : null,
                     color: isHighlighted
                         ? null
                         : colorScheme.outlineVariant.withValues(alpha: 0.5),

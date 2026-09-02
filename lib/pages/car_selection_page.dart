@@ -34,7 +34,7 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
       appBar: AppBar(
         title: Text(isEnglish ? 'Manufacturer Selection' : 'メーカー選択'),
         actions: [
-          IconButton(
+          IconButton.filledTonal(
             onPressed: () async {
               Navigator.push(
                 context,
@@ -45,10 +45,11 @@ class _CarSelectionPageState extends State<CarSelectionPage> {
             },
             icon: const Icon(Icons.settings),
           ),
+          const SizedBox(width: 12),
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.only(top: 8, bottom: 96),
+        padding: const EdgeInsets.only(top: 8, bottom: 112),
         children: [
           _GarageShortcutCard(
             garageCount: settingsProvider.garageCars.length,
@@ -363,19 +364,19 @@ class _GarageShortcutCard extends StatelessWidget {
     final colorScheme = theme.colorScheme;
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: const BoxDecoration(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color(0xFF005BCF),
-                Color(0xFF1A73E8),
+                colorScheme.primary,
+                colorScheme.secondary,
               ],
             ),
           ),
@@ -386,7 +387,7 @@ class _GarageShortcutCard extends StatelessWidget {
                 height: 60,
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.14),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: const Icon(
                   Icons.garage_rounded,
@@ -464,32 +465,32 @@ class _ManufacturerListItemState extends State<ManufacturerListItem> {
     final colorScheme = theme.colorScheme;
 
     return AnimatedScale(
-      scale: _isPressed ? 0.98 : 1.0,
-      duration: const Duration(milliseconds: 120),
-      curve: Curves.easeOut,
+      scale: _isPressed ? 0.985 : 1.0,
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
       child: Card(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(24),
           onTap: widget.onTap,
           onTapDown: (_) => setState(() => _isPressed = true),
           onTapCancel: () => setState(() => _isPressed = false),
           onTapUp: (_) => setState(() => _isPressed = false),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(18),
             child: Row(
               children: [
                 Container(
-                  width: 60,
-                  height: 60,
+                  width: 64,
+                  height: 64,
                   decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
+                    color: colorScheme.primaryContainer,
+                    borderRadius: BorderRadius.circular(20),
                   ),
                   child: Icon(
                     Icons.business,
                     size: 36,
-                    color: colorScheme.onSurfaceVariant,
+                    color: colorScheme.onPrimaryContainer,
                   ),
                 ),
                 const SizedBox(width: 16),
@@ -523,10 +524,17 @@ class _ManufacturerListItemState extends State<ManufacturerListItem> {
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: colorScheme.primary,
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerHighest,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),

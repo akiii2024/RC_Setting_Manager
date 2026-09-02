@@ -95,15 +95,31 @@ class _SettingsPageState extends State<SettingsPage> {
     final authService = Provider.of<AuthService?>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
     final messenger = ScaffoldMessenger.of(context);
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(isEnglish ? 'Settings' : '設定'),
       ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
-        children: [
+      body: Theme(
+        data: theme.copyWith(
+          listTileTheme: theme.listTileTheme.copyWith(
+            tileColor: colorScheme.surfaceContainerHigh,
+            selectedTileColor: colorScheme.secondaryContainer,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(24),
+              side: BorderSide(
+                color: colorScheme.outlineVariant.withValues(alpha: 0.58),
+              ),
+            ),
+          ),
+        ),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
+          children: [
           SwitchListTile(
+            secondary: const Icon(Icons.dark_mode_outlined),
             title: Text(isEnglish ? 'Dark Mode' : 'ダークモード'),
             subtitle:
                 Text(isEnglish ? 'Switch to dark appearance' : 'アプリの外観を暗くします'),
@@ -133,6 +149,7 @@ class _SettingsPageState extends State<SettingsPage> {
           const Divider(),
           const SizedBox(height: 8.0),
           ListTile(
+            leading: const Icon(Icons.visibility_outlined),
             title: Text(isEnglish ? 'Display Settings' : '表示設定'),
             subtitle: Text(isEnglish
                 ? 'Set display items for each machine'
@@ -146,6 +163,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 16.0),
           ListTile(
+            leading: const Icon(Icons.dashboard_customize_outlined),
             title: Text(isEnglish ? 'Editor Layout' : '編集レイアウト'),
             subtitle: Text(settingsProvider.usePaperStyleEditor
                 ? (isEnglish ? 'Paper UI' : '紙UI')
@@ -157,6 +175,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 16.0),
           ListTile(
+            leading: const Icon(Icons.save_outlined),
             title: Text(isEnglish ? 'Auto Save' : '自動保存'),
             subtitle: Text(isEnglish
                 ? 'Automatically save setting changes (Coming Soon)'
@@ -167,6 +186,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 16.0),
           ListTile(
+            leading: const Icon(Icons.language_rounded),
             title: Text(isEnglish ? 'Language' : '言語'),
             subtitle: Text(isEnglish ? 'English' : '日本語'),
             trailing: const Icon(Icons.arrow_forward_ios),
@@ -564,7 +584,8 @@ class _SettingsPageState extends State<SettingsPage> {
             contentPadding:
                 const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           ),
-        ],
+          ],
+        ),
       ),
     );
   }

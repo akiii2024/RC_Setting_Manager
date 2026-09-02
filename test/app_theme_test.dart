@@ -59,6 +59,30 @@ void main() {
       });
     }
   });
+
+  group('AppTheme expressive components', () {
+    for (final entry in <String, ThemeData Function()>{
+      'light': AppTheme.light,
+      'dark': AppTheme.dark,
+    }.entries) {
+      test('${entry.key} theme shares the expressive shape system', () {
+        final theme = entry.value();
+        final cardShape = theme.cardTheme.shape! as RoundedRectangleBorder;
+        final inputBorder =
+            theme.inputDecorationTheme.border! as OutlineInputBorder;
+        final buttonShape =
+            theme.filledButtonTheme.style!.shape!.resolve(<WidgetState>{});
+
+        expect(theme.useMaterial3, isTrue);
+        expect(theme.navigationBarTheme.height, 80);
+        expect(theme.navigationBarTheme.indicatorShape, isA<StadiumBorder>());
+        expect(cardShape.borderRadius, BorderRadius.circular(24));
+        expect(inputBorder.borderRadius, BorderRadius.circular(18));
+        expect(buttonShape, isA<StadiumBorder>());
+        expect(theme.bottomSheetTheme.showDragHandle, isTrue);
+      });
+    }
+  });
 }
 
 List<TextStyle> _allTextStyles(TextTheme textTheme) => [
