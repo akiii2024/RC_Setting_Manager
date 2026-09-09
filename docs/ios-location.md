@@ -38,3 +38,13 @@ HTTPSで開き、サイトの位置情報利用を許可してください。ネ
 | その他 | 表示されたコードと発生時刻を記録し、Functionsログ等で照合します。`internal` だけで通信障害・OpenWeather障害とは断定できません。 |
 
 Firebase ConsoleとGitHubの設定確認はWindowsのブラウザでも行えます。App Checkの保護を無効化して回避する必要はありません。公開済みのPWAが古い場合は、新版への更新後に確認してください。
+
+### `weather/unexpected-error` とFirebase SDKの読み込み
+
+`firebase_core_web` 3.9.1は、FirebaseのJavaScript SDKを動的importするため、インラインのローダースクリプトを挿入します。従来の `web/index.html` のCSPはこのスクリプトを許可しておらず、ローダー関数が定義されないまま呼び出されます。通常のFirebaseExceptionではない例外になるため、`weather/unexpected-error` の原因になります。iOS固有の問題とは限りません。
+
+修正では、現在の依存SDKが挿入する本文のSHA-256ハッシュのみを `script-src` に追加しています。Trusted Typesを使う分岐と、Safari等で使う分岐の両方が対象です。任意のインラインJavaScriptは許可しません。[CSPのハッシュによる許可について](https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Content-Security-Policy/script-src)
+
+依存パッケージ更新後は、`flutter pub get` に続けて `node tool/firebase_csp.mjs` を実行し、差分を確認してください。CIは `node tool/firebase_csp.mjs --check` でSDKとCSPの不一致を検出します。
+
+ブラウザ回帰テストは `node tool/firebase_csp_test.mjs` です。PlaywrightとChromiumが必要です。既存のPlaywrightは `PLAYWRIGHT_MODULE_PATH`、Edgeは `PLAYWRIGHT_CHANNEL=msedge` で指定できます。外部SDKの応答はテスト用に模擬し、修正前の拒否・修正後のローダー実行と動的import成功・未許可スクリプトの拒否を検証します。実際の認証・天気APIの成功を検証するテストではありません。

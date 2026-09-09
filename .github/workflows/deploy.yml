@@ -54,6 +54,9 @@ jobs:
     - name: Run tests
       run: flutter test
 
+    - name: Check Firebase SDK CSP hashes
+      run: node tool/firebase_csp.mjs --check
+
     - name: Validate deployment configuration
       if: github.event_name == 'push'
       env:
