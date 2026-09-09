@@ -11,8 +11,7 @@ const geminiApiKey = defineSecret("GEMINI_API_KEY");
 const openWeatherApiKey = defineSecret("OPENWEATHER_API_KEY");
 
 const region = "asia-northeast1";
-const geminiModel = "gemini-2.5-flash";
-const settingAdvisorModel = "gemini-3.8-flash";
+const geminiModel = "gemini-3.8-flash";
 const geminiBaseUrl = "https://generativelanguage.googleapis.com/v1beta";
 const weatherBaseUrl = "https://api.openweathermap.org/data/2.5/weather";
 
@@ -861,7 +860,7 @@ function normalizeAdvisorFinalResponse(parsed, context) {
 async function callSettingAdvisor(request) {
   const schema = request.phase === "chat" ?
     advisorChatSchema : advisorFinalSchema;
-  const result = await callGeminiRequest(settingAdvisorModel, {
+  const result = await callGeminiRequest(geminiModel, {
     systemInstruction: {
       parts: [{text: advisorSystemInstruction(request.locale)}],
     },
