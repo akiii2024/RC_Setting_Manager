@@ -2,6 +2,7 @@ import 'package:rc_setting_manager/utils/app_logger.dart';
 import 'dart:convert';
 import 'dart:math' as math;
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'firebase_functions_service.dart';
@@ -117,10 +118,7 @@ class WeatherService {
         },
       );
     } catch (e) {
-      throw WeatherException(
-        '天気サービスとの通信に失敗しました: $e',
-        WeatherStatus.serviceError,
-      );
+      throw WeatherException.fromServiceError(e);
     }
 
     debugLog(
@@ -305,8 +303,58 @@ enum WeatherStatus {
 class WeatherException implements Exception {
   final String message;
   final WeatherStatus status;
+  final String? diagnosticCode;
 
-  WeatherException(this.message, this.status);
+  WeatherException(this.message, this.status, {this.diagnosticCode});
+
+  factory WeatherException.fromServiceError(Object error) {
+    // SDKのメッセージやdetailsにはURL等が含まれ得るため、画面には
+    // プラグイン名とコードのみを渡す。座標・トークンは表示しない。
+    final code = error is FirebaseException
+        ? '${error.plugin}/${error.code}'
+        : 'weather/unexpected-error';
+    return WeatherException(
+      '天気サービスの呼び出しに失敗しました',
+      WeatherStatus.serviceError,
+      diagnosticCode: code,
+    );
+  }
+
+  String? serviceFailureMessage(bool isEnglish) {
+    final diagnostic = diagnosticCode;
+    if (diagnostic == null) return null;
+
+    final String description;
+    if (diagnostic == 'firebase_app_check/missing-site-key') {
+      description = isEnglish
+          ? 'The web app is missing its verification configuration. Please contact the administrator.'
+          : 'Web版のアクセス検証設定が不足しています。管理者にお知らせください。';
+    } else if (diagnostic.startsWith('firebase_auth/')) {
+      description = isEnglish
+          ? 'Authentication for the weather service failed. Please retry or report the code below.'
+          : '天気サービスの認証に失敗しました。再取得しても続く場合は下のコードをお知らせください。';
+    } else if (diagnostic.startsWith('firebase_app_check/') ||
+        diagnostic.endsWith('/unauthenticated') ||
+        diagnostic.endsWith('/permission-denied')) {
+      description = isEnglish
+          ? 'The weather service could not verify access. Please retry or report the code below.'
+          : '天気サービスのアクセス検証に失敗しました。再取得しても続く場合は下のコードをお知らせください。';
+    } else if (diagnostic.endsWith('/failed-precondition') ||
+        diagnostic.endsWith('/not-found')) {
+      description = isEnglish
+          ? 'The weather service configuration needs checking. Please contact the administrator.'
+          : '天気サービスの設定確認が必要です。管理者にお知らせください。';
+    } else if (diagnostic.endsWith('/resource-exhausted')) {
+      description = isEnglish
+          ? 'The weather service usage limit was reached. Please retry later.'
+          : '天気サービスの利用上限に達しました。時間をおいて再取得してください。';
+    } else {
+      description = isEnglish
+          ? 'The weather service request failed. Please retry or report the code below.'
+          : '天気サービスの処理に失敗しました。再取得しても続く場合は下のコードをお知らせください。';
+    }
+    return '$description\n${isEnglish ? 'Error code' : 'エラーコード'}: $diagnostic';
+  }
 
   @override
   String toString() => 'WeatherException: $message';

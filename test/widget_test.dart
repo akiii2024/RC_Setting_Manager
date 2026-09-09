@@ -327,6 +327,40 @@ void main() {
     );
   });
 
+  testWidgets('quick run log shows diagnostic code on a phone-sized screen',
+      (WidgetTester tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    SharedPreferences.setMockInitialValues({
+      'language_settings': true,
+      'cars_settings': jsonEncode([_testCar().toJson()]),
+    });
+    final provider = _createSettingsProvider();
+    await tester.pumpWidget(
+      ChangeNotifierProvider.value(
+        value: provider,
+        child: MaterialApp(
+          home: QuickRunLogPage(
+            weatherFetcher: ({bool forceRefresh = false}) async {
+              throw WeatherException(
+                'failed',
+                WeatherStatus.serviceError,
+                diagnosticCode: 'cloud_functions/unauthenticated',
+              );
+            },
+          ),
+        ),
+      ),
+    );
+    await _pumpUntilInitialized(tester, provider);
+    await tester.pump();
+    await tester.pump();
+    expect(find.textContaining('cloud_functions/unauthenticated'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('quick run log saves selected course name from database',
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({

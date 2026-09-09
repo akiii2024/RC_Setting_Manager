@@ -40,8 +40,11 @@ class FirebaseSecurityService {
 
     if (kIsWeb) {
       if (_webSiteKey.isEmpty) {
-        throw StateError(
-          'FIREBASE_APP_CHECK_WEB_KEY is required for protected API calls.',
+        throw FirebaseException(
+          plugin: 'firebase_app_check',
+          code: 'missing-site-key',
+          message:
+              'FIREBASE_APP_CHECK_WEB_KEY is required for protected API calls.',
         );
       }
 

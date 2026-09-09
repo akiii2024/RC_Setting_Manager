@@ -105,6 +105,8 @@ class _CarSettingPageState extends State<CarSettingPage>
   @override
   Position? _currentPosition;
   @override
+  WeatherException? _weatherFailure;
+  @override
   LocationStatus? _locationFailureStatus;
   @override
   bool _isLocationLoading = false;

@@ -21,6 +21,8 @@ mixin _CarSettingEnvironment on State<CarSettingPage> {
   set _currentWeather(WeatherData? value);
   WeatherStatus? get _weatherErrorStatus;
   set _weatherErrorStatus(WeatherStatus? value);
+  WeatherException? get _weatherFailure;
+  set _weatherFailure(WeatherException? value);
   bool get _isWeatherLoading;
   set _isWeatherLoading(bool value);
 
@@ -151,6 +153,7 @@ mixin _CarSettingEnvironment on State<CarSettingPage> {
     setState(() {
       _isWeatherLoading = true;
       _weatherErrorStatus = null;
+      _weatherFailure = null;
     });
 
     try {
@@ -205,6 +208,7 @@ mixin _CarSettingEnvironment on State<CarSettingPage> {
         setState(() {
           _currentWeather = null;
           _weatherErrorStatus = e.status;
+          _weatherFailure = e;
         });
       }
     } catch (e, stackTrace) {
@@ -251,6 +255,8 @@ mixin _CarSettingEnvironment on State<CarSettingPage> {
   }
 
   String _weatherFailureMessage(bool isEnglish) {
+    final serviceMessage = _weatherFailure?.serviceFailureMessage(isEnglish);
+    if (serviceMessage != null) return serviceMessage;
     return switch (_weatherErrorStatus) {
       WeatherStatus.locationPermissionDenied => isEnglish
           ? 'Allow location access in the browser or device settings, then retry.'

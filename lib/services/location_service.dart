@@ -12,8 +12,18 @@ class LocationService {
   static LocationService get instance => _instance ??= LocationService._();
   LocationService._();
 
+  Future<Position>? _pendingPosition;
+  Future<bool>? _pendingPermission;
+
   // 位置情報の権限を確認・要求
-  Future<bool> requestLocationPermission() async {
+  Future<bool> requestLocationPermission() {
+    // iOSでは許可ダイアログの表示中に別の権限要求を開始できない。
+    return _pendingPermission ??= _requestLocationPermission().whenComplete(() {
+      _pendingPermission = null;
+    });
+  }
+
+  Future<bool> _requestLocationPermission() async {
     if (kIsWeb) {
       // Web環境では位置情報APIが異なる処理を行う
       return await _requestWebLocationPermission();
@@ -74,22 +84,30 @@ class LocationService {
   }
 
   // 現在位置を取得
-  Future<Position> determineCurrentPosition() async {
+  Future<Position> determineCurrentPosition() {
+    // 天気取得とコース検索が重なっても、実行中の取得結果を共有する。
+    // 完了後は破棄し、再取得時には新しい現在位置を要求する。
+    return _pendingPosition ??= _determineCurrentPosition().whenComplete(() {
+      _pendingPosition = null;
+    });
+  }
+
+  Future<Position> _determineCurrentPosition() async {
     try {
       if (!kIsWeb) {
         // WebではPermissions APIの実装がブラウザごとに異なるため、
         // navigator.geolocation相当の実取得に権限要求を任せる。
-        if (!await requestLocationPermission()) {
-          throw LocationException(
-            '位置情報の権限が許可されていません',
-            LocationStatus.permissionDenied,
-          );
-        }
-
         if (!await isLocationServiceEnabled()) {
           throw LocationException(
             '位置情報サービスが無効です',
             LocationStatus.serviceDisabled,
+          );
+        }
+
+        if (!await requestLocationPermission()) {
+          throw LocationException(
+            '位置情報の権限が許可されていません',
+            LocationStatus.permissionDenied,
           );
         }
       }
@@ -155,11 +173,10 @@ class LocationService {
   // 位置情報の設定状況を取得
   Future<LocationStatus> getLocationStatus() async {
     bool serviceEnabled = await isLocationServiceEnabled();
-    bool permissionGranted = await requestLocationPermission();
 
     if (!serviceEnabled) {
       return LocationStatus.serviceDisabled;
-    } else if (!permissionGranted) {
+    } else if (!await requestLocationPermission()) {
       return LocationStatus.permissionDenied;
     } else {
       return LocationStatus.available;

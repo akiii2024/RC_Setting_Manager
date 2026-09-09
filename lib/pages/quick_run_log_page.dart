@@ -84,6 +84,7 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
   bool _hasRequestedInitialWeather = false;
   WeatherData? _currentWeather;
   WeatherStatus? _weatherErrorStatus;
+  WeatherException? _weatherFailure;
 
   @override
   void dispose() {
@@ -146,6 +147,7 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
       _hasWeatherAttempted = true;
       _hasWeatherError = false;
       _weatherErrorStatus = null;
+      _weatherFailure = null;
     });
 
     WeatherData? weather;
@@ -154,6 +156,7 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
       weather = await _fetchWeather(forceRefresh: forceRefresh);
     } on WeatherException catch (error) {
       failureStatus = error.status;
+      _weatherFailure = error;
       debugLog(
         'Run log weather fetch failed [${error.status.name}]: '
         '${error.message}',
@@ -710,6 +713,8 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
   }
 
   String _weatherFailureMessage(bool isEnglish) {
+    final serviceMessage = _weatherFailure?.serviceFailureMessage(isEnglish);
+    if (serviceMessage != null) return serviceMessage;
     return switch (_weatherErrorStatus) {
       WeatherStatus.locationPermissionDenied => _t(
           isEnglish,
