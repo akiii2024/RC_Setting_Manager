@@ -13,7 +13,7 @@ void main() {
     expect(AiProvider.openAI.displayName, 'OpenAI');
     expect(AiProvider.openAI.defaultModel, 'gpt-5.6-sol');
     expect(AiProvider.anthropic.defaultModel, 'claude-sonnet-5');
-    expect(AiProvider.gemini.defaultModel, 'gemini-3.5-flash');
+    expect(AiProvider.gemini.defaultModel, 'gemini-3.8-flash');
     expect(AiProvider.tryParse(' OpenAI '), AiProvider.openAI);
     expect(AiProvider.tryParse('unknown'), isNull);
   });
@@ -24,6 +24,7 @@ void main() {
     );
 
     expect(await service.selectedProvider, AiProvider.gemini);
+    expect(await service.isReady, isTrue);
     expect(
       await service.getModel(AiProvider.gemini),
       AiProvider.gemini.defaultModel,

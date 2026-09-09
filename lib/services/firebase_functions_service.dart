@@ -2,6 +2,11 @@ import 'package:cloud_functions/cloud_functions.dart';
 
 import 'firebase_security_service.dart';
 
+typedef FirebaseFunctionCaller = Future<Map<String, dynamic>> Function(
+  String functionName,
+  Map<String, dynamic> data,
+);
+
 class FirebaseFunctionsService {
   FirebaseFunctionsService._();
 

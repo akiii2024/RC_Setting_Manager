@@ -177,6 +177,12 @@ class AiConfigurationService {
     );
   }
 
+  /// Geminiはサーバー側のAPIキーを使うため、端末での設定は不要。
+  Future<bool> get isReady async {
+    return await selectedProvider == AiProvider.gemini ||
+        await activeConfiguration != null;
+  }
+
   /// 選択中プロバイダにAPIキーがなければ `null` を返す。
   Future<AiConfiguration?> get activeConfiguration async {
     final settings = await activeSettings;

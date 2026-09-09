@@ -254,7 +254,7 @@ void main() {
     expect(
       capturedRequest.url.toString(),
       'https://generativelanguage.googleapis.com/v1beta/'
-      'models/gemini-3.5-flash:generateContent',
+      'models/gemini-3.8-flash:generateContent',
     );
     expect(_header(capturedRequest, 'x-goog-api-key'), 'provider-secret-key');
     expect(capturedRequest.url.query, isEmpty);
@@ -285,7 +285,7 @@ void main() {
     expect(
       capturedRequest.url.toString(),
       'https://generativelanguage.googleapis.com/v1beta/'
-      'models/gemini-3.5-flash',
+      'models/gemini-3.8-flash',
     );
     expect(_header(capturedRequest, 'x-goog-api-key'), 'provider-secret-key');
   });
@@ -294,12 +294,12 @@ void main() {
     late http.Request capturedRequest;
     final client = MockClient((request) async {
       capturedRequest = request;
-      return http.Response('{"name":"models/gemini-3.5-flash"}', 200);
+      return http.Response('{"name":"models/gemini-3.8-flash"}', 200);
     });
     final providerClient = AiProviderClient(
       configuration: _configuration(
         AiProvider.gemini,
-        model: 'models/gemini-3.5-flash',
+        model: 'models/gemini-3.8-flash',
       ),
       client: client,
     );
@@ -308,7 +308,7 @@ void main() {
 
     expect(
       capturedRequest.url.path,
-      '/v1beta/models/gemini-3.5-flash',
+      '/v1beta/models/gemini-3.8-flash',
     );
     providerClient.close();
   });

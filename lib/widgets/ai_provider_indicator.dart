@@ -44,7 +44,9 @@ class AiProviderIndicator extends StatelessWidget {
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 260),
                 child: Text(
-                  '${settings.provider.displayName} / ${settings.model}',
+                  settings.provider == AiProvider.gemini
+                      ? 'Gemini'
+                      : '${settings.provider.displayName} / ${settings.model}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(

@@ -10,6 +10,8 @@ import '../services/ai_configuration_service.dart';
 import '../services/ai_advisor_response_normalizer.dart';
 import '../services/ai_provider_client.dart';
 import '../services/weather_service.dart';
+import 'firebase_functions_service.dart';
+import 'gemini_usage_service.dart';
 
 typedef AiProviderClientFactory = AiProviderClient Function(
   AiConfiguration configuration,
@@ -20,6 +22,11 @@ class AIAdvisorService {
   final AiConfigurationService _configurationService;
   final AiProviderClient? _providerClient;
   final AiProviderClientFactory _clientFactory;
+  final FirebaseFunctionCaller _callFunction;
+
+  Future<bool> get _usesFirebase async =>
+      _providerClient == null &&
+      await _configurationService.selectedProvider == AiProvider.gemini;
 
   // 会話のコンテキスト情報
   Car? _contextCar;
@@ -32,9 +39,11 @@ class AIAdvisorService {
     AiConfigurationService? configurationService,
     AiProviderClient? providerClient,
     AiProviderClientFactory? clientFactory,
+    FirebaseFunctionCaller? functionCaller,
   })  : _configurationService =
             configurationService ?? AiConfigurationService(),
         _providerClient = providerClient,
+        _callFunction = functionCaller ?? FirebaseFunctionsService.call,
         _clientFactory = clientFactory ??
             ((configuration) => AiProviderClient(configuration: configuration));
 
@@ -188,6 +197,17 @@ For final advice, return no more than three changes. A structured change may use
     required bool includeHistory,
   }) async {
     final schema = phase == 'chat' ? _advisorChatSchema : _advisorFinalSchema;
+    if (await _usesFirebase) {
+      final response = await _callFunction('generateSettingAdvice', {
+        'phase': phase,
+        'locale': isEnglish ? 'en' : 'ja',
+        'context': context.toJson(includeHistory: includeHistory),
+        'intake': intake.toJson(),
+        'messages': messages.map((message) => message.toJson()).toList(),
+      });
+      GeminiUsageService.updateFromResponse(response);
+      return response;
+    }
     final response = await _withProviderClient(
       (client) => client.generateStructured(
         system: _advisorSystemInstruction(isEnglish),
@@ -288,6 +308,17 @@ For final advice, return no more than three changes. A structured change may use
   Future<String> _generateTextWithAI(
     List<Map<String, dynamic>> contents,
   ) async {
+    if (await _usesFirebase) {
+      final response = await _callFunction('generateGeminiContent', {
+        'contents': contents,
+      });
+      GeminiUsageService.updateFromResponse(response);
+      final text = response['text'] as String?;
+      if (text == null || text.trim().isEmpty) {
+        throw Exception('AIからの応答が空です');
+      }
+      return text;
+    }
     final response = await _withProviderClient(
       (client) => client.generateText(
         [

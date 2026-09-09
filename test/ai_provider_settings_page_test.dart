@@ -61,14 +61,35 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.enterText(find.byType(TextField).at(1), 'gemini-test-key');
+    expect(find.byType(TextField), findsNothing);
+    await tester.tap(find.text('Anthropic'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField).at(1), 'anthropic-test-key');
     await tester.tap(find.text('接続テスト'));
     await tester.pumpAndSettle();
 
-    expect(testedConfiguration?.provider, AiProvider.gemini);
-    expect(testedConfiguration?.model, 'gemini-3.5-flash');
-    expect(testedConfiguration?.apiKey, 'gemini-test-key');
+    expect(testedConfiguration?.provider, AiProvider.anthropic);
+    expect(testedConfiguration?.model, 'claude-sonnet-5');
+    expect(testedConfiguration?.apiKey, 'anthropic-test-key');
     expect(await service.activeConfiguration, isNull);
-    expect(find.text('Geminiへの接続を確認しました。'), findsOneWidget);
+    expect(find.text('Anthropicへの接続を確認しました。'), findsOneWidget);
+  });
+
+  testWidgets('can switch back to standard Gemini without an API key',
+      (tester) async {
+    SharedPreferences.setMockInitialValues({});
+    final service = AiConfigurationService(secretStore: MemorySecretStore());
+    await service.setSelectedProvider(AiProvider.openAI);
+    await tester.pumpWidget(MaterialApp(
+      home: AiProviderSettingsPage(configurationService: service),
+    ));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Gemini'));
+    await tester.pumpAndSettle();
+    expect(find.byType(TextField), findsNothing);
+    await tester.tap(find.text('保存して使用'));
+    await tester.pumpAndSettle();
+    expect(await service.selectedProvider, AiProvider.gemini);
+    expect(await service.isReady, isTrue);
   });
 }

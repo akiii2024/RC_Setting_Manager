@@ -12,7 +12,7 @@ enum AiProvider {
   gemini(
     value: 'gemini',
     displayName: 'Gemini',
-    defaultModel: 'gemini-3.5-flash',
+    defaultModel: 'gemini-3.8-flash',
   );
 
   const AiProvider({

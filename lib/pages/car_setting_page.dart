@@ -282,7 +282,7 @@ class _CarSettingPageState extends State<CarSettingPage>
 
   Future<bool> _ensureAiConfigured(bool isEnglish) async {
     try {
-      if (await AiConfigurationService().activeConfiguration != null) {
+      if (await AiConfigurationService().isReady) {
         return true;
       }
     } catch (_) {
@@ -295,9 +295,9 @@ class _CarSettingPageState extends State<CarSettingPage>
             title: Text(isEnglish ? 'AI setup required' : 'AI設定が必要です'),
             content: Text(
               isEnglish
-                  ? 'Set an OpenAI, Anthropic, or Gemini API key before '
+                  ? 'Select standard Gemini or set an OpenAI or Anthropic API key before '
                       'starting AI setup advice.'
-                  : 'AIセッティング相談を始める前に、OpenAI・Anthropic・Geminiの'
+                  : 'AIセッティング相談を始める前に、標準のGeminiを選択するか、OpenAI・Anthropicの'
                       'いずれかのAPIキーを設定してください。',
             ),
             actions: [
@@ -324,7 +324,7 @@ class _CarSettingPageState extends State<CarSettingPage>
       if (!mounted) return false;
       setState(() {});
       try {
-        return await AiConfigurationService().activeConfiguration != null;
+        return await AiConfigurationService().isReady;
       } catch (_) {
         return false;
       }

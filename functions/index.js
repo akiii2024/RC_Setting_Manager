@@ -12,7 +12,7 @@ const openWeatherApiKey = defineSecret("OPENWEATHER_API_KEY");
 
 const region = "asia-northeast1";
 const geminiModel = "gemini-2.5-flash";
-const settingAdvisorModel = "gemini-3.5-flash";
+const settingAdvisorModel = "gemini-3.8-flash";
 const geminiBaseUrl = "https://generativelanguage.googleapis.com/v1beta";
 const weatherBaseUrl = "https://api.openweathermap.org/data/2.5/weather";
 

@@ -8,6 +8,8 @@ import '../models/car_setting_definition.dart';
 import 'ai_configuration_service.dart';
 import 'ai_provider_client.dart';
 import 'ocr_mapping_helper.dart';
+import 'firebase_functions_service.dart';
+import 'gemini_usage_service.dart';
 
 typedef OcrAiProviderClientFactory = AiProviderClient Function(
   AiConfiguration configuration,
@@ -18,14 +20,17 @@ class OCRService {
   final AiConfigurationService _configurationService;
   final AiProviderClient? _providerClient;
   final OcrAiProviderClientFactory _clientFactory;
+  final FirebaseFunctionCaller _callFunction;
 
   OCRService({
     AiConfigurationService? configurationService,
     AiProviderClient? providerClient,
     OcrAiProviderClientFactory? clientFactory,
+    FirebaseFunctionCaller? functionCaller,
   })  : _configurationService =
             configurationService ?? AiConfigurationService(),
         _providerClient = providerClient,
+        _callFunction = functionCaller ?? FirebaseFunctionsService.call,
         _clientFactory = clientFactory ??
             ((configuration) => AiProviderClient(configuration: configuration));
 
@@ -95,13 +100,9 @@ class OCRService {
 読み取ったテキストをそのまま出力してください。
 ''';
 
-      final response = await _withProviderClient(
-        (client) => client.generateText(
-          prompt,
-          imageBytes: imageBytes,
-          mimeType: _imageMimeType(imageBytes),
-          maxTokens: 4096,
-        ),
+      final response = await _generateTextWithAI(
+        prompt,
+        imageBytes: imageBytes,
       );
       return response;
     } on UnsupportedError {
@@ -114,10 +115,39 @@ class OCRService {
     }
   }
 
-  Future<String?> _generateTextWithAI(String prompt) async {
+  Future<String?> _generateTextWithAI(String prompt,
+      {Uint8List? imageBytes}) async {
+    if (_providerClient == null &&
+        await _configurationService.selectedProvider == AiProvider.gemini) {
+      final response = await _callFunction('generateGeminiContent', {
+        'contents': [
+          {
+            'role': 'user',
+            'parts': [
+              {'text': prompt},
+              if (imageBytes != null)
+                {
+                  'inlineData': {
+                    'mimeType': _imageMimeType(imageBytes),
+                    'data': base64Encode(imageBytes),
+                  },
+                },
+            ],
+          },
+        ],
+      });
+      GeminiUsageService.updateFromResponse(response);
+      final text = response['text'] as String?;
+      if (text == null || text.trim().isEmpty) {
+        throw Exception('AIからの応答が空です');
+      }
+      return text;
+    }
     return _withProviderClient(
       (client) => client.generateText(
         prompt,
+        imageBytes: imageBytes,
+        mimeType: imageBytes == null ? null : _imageMimeType(imageBytes),
         maxTokens: 4096,
       ),
     );

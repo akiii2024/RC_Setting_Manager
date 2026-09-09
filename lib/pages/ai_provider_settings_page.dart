@@ -38,6 +38,7 @@ class _AiProviderSettingsPageState extends State<AiProviderSettingsPage> {
   int _loadGeneration = 0;
 
   bool get _isEnglish => widget.isEnglish;
+  bool get _usesFirebase => _selectedProvider == AiProvider.gemini;
 
   @override
   void initState() {
@@ -78,7 +79,9 @@ class _AiProviderSettingsPageState extends State<AiProviderSettingsPage> {
     try {
       final results = await Future.wait<Object>([
         _configurationService.getModel(provider),
-        _configurationService.hasApiKey(provider),
+        provider == AiProvider.gemini
+            ? Future.value(false)
+            : _configurationService.hasApiKey(provider),
       ]);
       if (!mounted || generation != _loadGeneration) return;
       setState(() {
@@ -100,14 +103,16 @@ class _AiProviderSettingsPageState extends State<AiProviderSettingsPage> {
       _showMessage(_isEnglish ? 'Enter a model name.' : 'モデル名を入力してください。');
       return false;
     }
-    if (!_hasStoredKey && enteredApiKey.isEmpty) {
+    if (!_usesFirebase && !_hasStoredKey && enteredApiKey.isEmpty) {
       _showMessage(_isEnglish ? 'Enter an API key.' : 'APIキーを入力してください。');
       return false;
     }
 
     setState(() => _isSaving = true);
     try {
-      if (enteredApiKey.isNotEmpty) {
+      if (_usesFirebase) {
+        await _configurationService.setSelectedProvider(_selectedProvider);
+      } else if (enteredApiKey.isNotEmpty) {
         await _configurationService.saveConfiguration(
           provider: _selectedProvider,
           model: model,
@@ -119,7 +124,7 @@ class _AiProviderSettingsPageState extends State<AiProviderSettingsPage> {
       }
       if (!mounted) return false;
       setState(() {
-        _hasStoredKey = true;
+        _hasStoredKey = !_usesFirebase;
         _apiKeyController.clear();
       });
       _showMessage(
@@ -250,12 +255,12 @@ class _AiProviderSettingsPageState extends State<AiProviderSettingsPage> {
         children: [
           Text(
             _isEnglish
-                ? 'Use your own API key for AI setup advice and image OCR.'
-                : 'ご自身のAPIキーで、AIセッティング相談と画像OCRを利用できます。',
+                ? 'Gemini is ready to use by default. You can also use your own OpenAI or Anthropic API key.'
+                : '標準のGeminiはAPIキーの入力なしで利用できます。OpenAI・Anthropicはご自身のAPIキーでも利用できます。',
             style: Theme.of(context).textTheme.bodyLarge,
           ),
           const SizedBox(height: 16),
-          _buildSecurityNotice(context),
+          if (!_usesFirebase) _buildSecurityNotice(context),
           const SizedBox(height: 20),
           SegmentedButton<AiProvider>(
             segments: [
@@ -275,82 +280,88 @@ class _AiProviderSettingsPageState extends State<AiProviderSettingsPage> {
           if (_isLoading)
             const Center(child: CircularProgressIndicator())
           else ...[
-            TextField(
-              controller: _modelController,
-              enabled: !_isSaving,
-              decoration: InputDecoration(
-                labelText: _isEnglish ? 'Model' : 'モデル',
-                helperText: _isEnglish
-                    ? 'Default: ${_selectedProvider.defaultModel}'
-                    : '既定値: ${_selectedProvider.defaultModel}',
-                suffixIcon: IconButton(
-                  tooltip: _isEnglish ? 'Restore default' : '既定値に戻す',
-                  onPressed: _isSaving
-                      ? null
-                      : () => _modelController.text =
-                          _selectedProvider.defaultModel,
-                  icon: const Icon(Icons.restart_alt),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: _apiKeyController,
-              enabled: !_isSaving,
-              obscureText: _obscureApiKey,
-              autocorrect: false,
-              enableSuggestions: false,
-              decoration: InputDecoration(
-                labelText: '${_selectedProvider.displayName} API key',
-                hintText: _hasStoredKey
-                    ? (_isEnglish
-                        ? 'Saved — leave blank to keep it'
-                        : '設定済み（変更しない場合は空欄）')
-                    : (_isEnglish ? 'Enter API key' : 'APIキーを入力'),
-                prefixIcon: Icon(
-                  _hasStoredKey ? Icons.key : Icons.key_outlined,
-                ),
-                suffixIcon: IconButton(
-                  tooltip: _isEnglish ? 'Show or hide' : '表示／非表示',
-                  onPressed: () => setState(
-                    () => _obscureApiKey = !_obscureApiKey,
-                  ),
-                  icon: Icon(
-                    _obscureApiKey ? Icons.visibility : Icons.visibility_off,
+            if (_usesFirebase)
+              Text(_isEnglish
+                  ? 'Use the standard Gemini service. No API key setup is needed.'
+                  : '標準のGeminiを使用します。APIキーの設定は不要です。'),
+            if (!_usesFirebase) ...[
+              TextField(
+                controller: _modelController,
+                enabled: !_isSaving,
+                decoration: InputDecoration(
+                  labelText: _isEnglish ? 'Model' : 'モデル',
+                  helperText: _isEnglish
+                      ? 'Default: ${_selectedProvider.defaultModel}'
+                      : '既定値: ${_selectedProvider.defaultModel}',
+                  suffixIcon: IconButton(
+                    tooltip: _isEnglish ? 'Restore default' : '既定値に戻す',
+                    onPressed: _isSaving
+                        ? null
+                        : () => _modelController.text =
+                            _selectedProvider.defaultModel,
+                    icon: const Icon(Icons.restart_alt),
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(
-                  _hasStoredKey ? Icons.check_circle : Icons.info_outline,
-                  size: 18,
-                  color: _hasStoredKey
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    _hasStoredKey
-                        ? (_isEnglish
-                            ? 'A key is stored on this device.'
-                            : 'この端末にAPIキーが保存されています。')
-                        : (_isEnglish
-                            ? 'No key is stored for this provider.'
-                            : 'このプロバイダーのキーは未設定です。'),
-                    style: Theme.of(context).textTheme.bodySmall,
+              const SizedBox(height: 16),
+              TextField(
+                controller: _apiKeyController,
+                enabled: !_isSaving,
+                obscureText: _obscureApiKey,
+                autocorrect: false,
+                enableSuggestions: false,
+                decoration: InputDecoration(
+                  labelText: '${_selectedProvider.displayName} API key',
+                  hintText: _hasStoredKey
+                      ? (_isEnglish
+                          ? 'Saved — leave blank to keep it'
+                          : '設定済み（変更しない場合は空欄）')
+                      : (_isEnglish ? 'Enter API key' : 'APIキーを入力'),
+                  prefixIcon: Icon(
+                    _hasStoredKey ? Icons.key : Icons.key_outlined,
+                  ),
+                  suffixIcon: IconButton(
+                    tooltip: _isEnglish ? 'Show or hide' : '表示／非表示',
+                    onPressed: () => setState(
+                      () => _obscureApiKey = !_obscureApiKey,
+                    ),
+                    icon: Icon(
+                      _obscureApiKey ? Icons.visibility : Icons.visibility_off,
+                    ),
                   ),
                 ),
-                if (_hasStoredKey)
-                  TextButton(
-                    onPressed: _isSaving ? null : _deleteApiKey,
-                    child: Text(_isEnglish ? 'Delete' : '削除'),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Icon(
+                    _hasStoredKey ? Icons.check_circle : Icons.info_outline,
+                    size: 18,
+                    color: _hasStoredKey
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
-              ],
-            ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _hasStoredKey
+                          ? (_isEnglish
+                              ? 'A key is stored on this device.'
+                              : 'この端末にAPIキーが保存されています。')
+                          : (_isEnglish
+                              ? 'No key is stored for this provider.'
+                              : 'このプロバイダーのキーは未設定です。'),
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                  if (_hasStoredKey)
+                    TextButton(
+                      onPressed: _isSaving ? null : _deleteApiKey,
+                      child: Text(_isEnglish ? 'Delete' : '削除'),
+                    ),
+                ],
+              ),
+            ],
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: _isSaving ? null : () => _save(),
@@ -358,17 +369,18 @@ class _AiProviderSettingsPageState extends State<AiProviderSettingsPage> {
               label: Text(_isEnglish ? 'Save and use' : '保存して使用'),
             ),
             const SizedBox(height: 12),
-            OutlinedButton.icon(
-              onPressed: _isSaving ? null : _testConnection,
-              icon: _isSaving
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.cable_outlined),
-              label: Text(_isEnglish ? 'Test connection' : '接続テスト'),
-            ),
+            if (!_usesFirebase)
+              OutlinedButton.icon(
+                onPressed: _isSaving ? null : _testConnection,
+                icon: _isSaving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.cable_outlined),
+                label: Text(_isEnglish ? 'Test connection' : '接続テスト'),
+              ),
           ],
         ],
       ),
