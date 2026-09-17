@@ -11,6 +11,7 @@ import 'car_setting_page.dart';
 import 'history_page.dart';
 import 'my_garage_page.dart';
 import 'quick_run_log_page.dart';
+import 'quick_run_log_launcher_page.dart';
 import 'tools_page.dart';
 
 part 'home_page_dashboard.dart';
@@ -95,6 +96,15 @@ void _openQuickRunLog(BuildContext context) {
   );
 }
 
+void _openTelemetryRunLog(BuildContext context) {
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (context) => const QuickRunLogLauncherPage(),
+    ),
+  );
+}
+
 void _showCreateActionSheet(BuildContext context, bool isEnglish) {
   showModalBottomSheet<void>(
     context: context,
@@ -130,6 +140,23 @@ void _showCreateActionSheet(BuildContext context, bool isEnglish) {
                 onTap: () {
                   Navigator.pop(context);
                   _openQuickRunLog(context);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.monitor_heart_rounded),
+                title: Text(_t(
+                  isEnglish,
+                  'Run Memo with Telemetry',
+                  'テレメトリー付き走行メモ',
+                )),
+                subtitle: Text(_t(
+                  isEnglish,
+                  'Attach and preview SANWA data before recording the memo.',
+                  'SANWAデータを添付・確認してから走行メモを記録します。',
+                )),
+                onTap: () {
+                  Navigator.pop(context);
+                  _openTelemetryRunLog(context);
                 },
               ),
             ],

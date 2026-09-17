@@ -1,5 +1,6 @@
 import 'car.dart';
 import 'immutable_json.dart';
+import 'telemetry.dart';
 
 class RunSettingChange {
   final String settingKey;
@@ -95,6 +96,7 @@ class RunLog {
   final List<String> feelTagIds;
   final String memo;
   final List<RunSettingChange> changes;
+  final TelemetryAttachment? telemetryAttachment;
 
   RunLog({
     required this.id,
@@ -115,6 +117,7 @@ class RunLog {
     required List<String> feelTagIds,
     required this.memo,
     required List<RunSettingChange> changes,
+    this.telemetryAttachment,
   })  : feelTagIds = List<String>.unmodifiable(feelTagIds),
         changes = List<RunSettingChange>.unmodifiable(
           changes.map(RunSettingChange.immutableCopy),
@@ -139,6 +142,8 @@ class RunLog {
     List<String>? feelTagIds,
     String? memo,
     List<RunSettingChange>? changes,
+    TelemetryAttachment? telemetryAttachment,
+    bool clearTelemetryAttachment = false,
   }) {
     return RunLog(
       id: id ?? this.id,
@@ -159,6 +164,9 @@ class RunLog {
       feelTagIds: feelTagIds ?? this.feelTagIds,
       memo: memo ?? this.memo,
       changes: changes ?? this.changes,
+      telemetryAttachment: clearTelemetryAttachment
+          ? null
+          : telemetryAttachment ?? this.telemetryAttachment,
     );
   }
 
@@ -191,6 +199,11 @@ class RunLog {
               )
               .toList()
           : const [],
+      telemetryAttachment: json['telemetryAttachment'] is Map
+          ? TelemetryAttachment.fromJson(
+              Map<String, dynamic>.from(json['telemetryAttachment'] as Map),
+            )
+          : null,
     );
   }
 
@@ -271,6 +284,11 @@ class RunLog {
       feelTagIds: List<String>.from(feelTagIdsJson),
       memo: json['memo'] as String,
       changes: changes,
+      telemetryAttachment: json['telemetryAttachment'] is Map
+          ? TelemetryAttachment.fromJson(
+              Map<String, dynamic>.from(json['telemetryAttachment'] as Map),
+            )
+          : null,
     );
   }
 
@@ -294,6 +312,7 @@ class RunLog {
       'feelTagIds': feelTagIds,
       'memo': memo,
       'changes': changes.map((change) => change.toJson()).toList(),
+      'telemetryAttachment': telemetryAttachment?.toJson(),
     };
   }
 

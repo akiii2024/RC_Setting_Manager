@@ -4,6 +4,7 @@ import 'package:xml/xml.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../models/run_log.dart';
+import '../models/telemetry.dart';
 import '../models/saved_setting.dart';
 import '../models/car.dart';
 import '../models/manufacturer.dart';
@@ -205,6 +206,24 @@ class XmlService {
                   });
                 }
               });
+
+              final telemetry = runLog.telemetryAttachment;
+              if (telemetry != null) {
+                builder.element('telemetryAttachment', nest: () {
+                  builder.element('sessionId', nest: telemetry.sessionId);
+                  builder.element('csvFileName', nest: telemetry.csvFileName);
+                  builder.element('recordCount',
+                      nest: telemetry.recordCount.toString());
+                  builder.element('durationMillis',
+                      nest: telemetry.durationMillis.toString());
+                  builder.element('bestLapCandidateMillis',
+                      nest: telemetry.bestLapCandidateMillis?.toString() ?? '');
+                  builder.element('videoFileName',
+                      nest: telemetry.videoFileName ?? '');
+                  builder.element('updatedAt',
+                      nest: telemetry.updatedAt.toIso8601String());
+                });
+              }
             });
           }
         });
@@ -616,6 +635,52 @@ class XmlService {
 
             final conditionsElement =
                 runLogElement.findElements('conditions').firstOrNull;
+            final telemetryElement =
+                runLogElement.findElements('telemetryAttachment').firstOrNull;
+            final telemetrySessionId = telemetryElement
+                ?.findElements('sessionId')
+                .firstOrNull
+                ?.innerText
+                .trim();
+            final telemetryAttachment =
+                telemetrySessionId == null || telemetrySessionId.isEmpty
+                    ? null
+                    : TelemetryAttachment(
+                        sessionId: telemetrySessionId,
+                        csvFileName: telemetryElement!
+                                .findElements('csvFileName')
+                                .firstOrNull
+                                ?.innerText ??
+                            'telemetry.csv',
+                        recordCount: int.tryParse(telemetryElement
+                                    .findElements('recordCount')
+                                    .firstOrNull
+                                    ?.innerText ??
+                                '') ??
+                            0,
+                        durationMillis: int.tryParse(telemetryElement
+                                    .findElements('durationMillis')
+                                    .firstOrNull
+                                    ?.innerText ??
+                                '') ??
+                            0,
+                        bestLapCandidateMillis: int.tryParse(telemetryElement
+                                .findElements('bestLapCandidateMillis')
+                                .firstOrNull
+                                ?.innerText ??
+                            ''),
+                        videoFileName: XmlDataCodec.emptyToNull(telemetryElement
+                            .findElements('videoFileName')
+                            .firstOrNull
+                            ?.innerText),
+                        updatedAt: DateTime.tryParse(telemetryElement
+                                    .findElements('updatedAt')
+                                    .firstOrNull
+                                    ?.innerText ??
+                                '') ??
+                            createdAt,
+                        syncState: TelemetrySyncState.unavailable,
+                      );
 
             if (car != null) {
               runLogs.add(
@@ -680,6 +745,7 @@ class XmlService {
                           ?.innerText ??
                       '',
                   changes: changes,
+                  telemetryAttachment: telemetryAttachment,
                 ),
               );
             }

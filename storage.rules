@@ -1,0 +1,19 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /telemetry_sessions/{uid}/{sessionId}/analysis.stg {
+      allow read, delete: if request.auth != null && request.auth.uid == uid;
+      allow create, update: if request.auth != null &&
+        request.auth.uid == uid &&
+        request.resource.size <= 20 * 1024 * 1024 &&
+        request.resource.contentType == 'application/zip' &&
+        request.resource.metadata.format == 'sanwa-telemetry-graph' &&
+        request.resource.metadata.sessionId == sessionId;
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

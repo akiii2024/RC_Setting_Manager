@@ -5,6 +5,7 @@ import 'package:rc_setting_manager/models/manufacturer.dart';
 import 'package:rc_setting_manager/models/owned_part.dart';
 import 'package:rc_setting_manager/models/run_log.dart';
 import 'package:rc_setting_manager/models/saved_setting.dart';
+import 'package:rc_setting_manager/models/telemetry.dart';
 import 'package:rc_setting_manager/services/xml_service.dart';
 
 void main() {
@@ -79,6 +80,15 @@ void main() {
                 afterValue: 1.5,
               ),
             ],
+            telemetryAttachment: TelemetryAttachment(
+              sessionId: 'telemetry-1',
+              csvFileName: 'run.csv',
+              recordCount: 120,
+              durationMillis: 60000,
+              bestLapCandidateMillis: 13200,
+              videoFileName: 'run.mp4',
+              updatedAt: DateTime(2026, 6, 19, 12, 1),
+            ),
           ),
         ],
         cars: [car],
@@ -97,6 +107,12 @@ void main() {
     expect(result.runLogs.first.trackCondition, 'Dusty');
     expect(result.runLogs.first.feelTagIds, ['stable']);
     expect(result.runLogs.first.changes.single.afterValue, 1.5);
+    expect(result.runLogs.first.telemetryAttachment?.sessionId, 'telemetry-1');
+    expect(
+      result.runLogs.first.telemetryAttachment?.syncState,
+      TelemetrySyncState.unavailable,
+    );
+    expect(result.runLogs.first.telemetryAttachment?.recordCount, 120);
   });
 
   test('exports and imports owned parts', () async {

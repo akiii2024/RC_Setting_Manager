@@ -6,10 +6,13 @@ import '../models/car.dart';
 import '../models/run_log.dart';
 import '../models/saved_setting.dart';
 import '../models/settings_operation_result.dart';
+import '../models/telemetry.dart';
 import '../providers/settings_provider.dart';
+import '../services/telemetry_repository.dart';
 import '../utils/run_log_formatters.dart';
 import '../utils/settings_operation_feedback.dart';
 import 'car_setting_page.dart';
+import 'telemetry_analysis_page.dart';
 
 class HistoryPage extends StatefulWidget {
   final Car? filterCar;
@@ -618,7 +621,9 @@ class _HistoryPageState extends State<HistoryPage> {
                 style: theme.textTheme.bodyMedium,
               ),
             ],
-            if (linkedSettingName != null || runLog.changes.isNotEmpty) ...[
+            if (linkedSettingName != null ||
+                runLog.changes.isNotEmpty ||
+                runLog.telemetryAttachment != null) ...[
               const SizedBox(height: 12),
               Wrap(
                 spacing: 8,
@@ -645,6 +650,17 @@ class _HistoryPageState extends State<HistoryPage> {
                             ? '${runLog.changes.length} changes'
                             : '${runLog.changes.length}件の変更',
                       ),
+                    ),
+                  if (runLog.telemetryAttachment case final attachment?)
+                    ActionChip(
+                      avatar: Icon(
+                        _telemetryIcon(attachment.syncState),
+                        size: 18,
+                      ),
+                      label: Text(
+                        _telemetryLabel(attachment.syncState, isEnglish),
+                      ),
+                      onPressed: () => _openTelemetry(context, runLog),
                     ),
                 ],
               ),
@@ -687,6 +703,37 @@ class _HistoryPageState extends State<HistoryPage> {
       ),
     );
   }
+
+  void _openTelemetry(BuildContext context, RunLog runLog) {
+    Navigator.push(
+      context,
+      MaterialPageRoute<void>(
+        builder: (_) => TelemetryAnalysisPage(runLog: runLog),
+      ),
+    );
+  }
+
+  IconData _telemetryIcon(TelemetrySyncState state) => switch (state) {
+        TelemetrySyncState.local => Icons.smartphone_rounded,
+        TelemetrySyncState.pendingUpload => Icons.cloud_upload_outlined,
+        TelemetrySyncState.synced => Icons.cloud_done_outlined,
+        TelemetrySyncState.failed => Icons.sync_problem_outlined,
+        TelemetrySyncState.unavailable => Icons.cloud_off_outlined,
+      };
+
+  String _telemetryLabel(TelemetrySyncState state, bool isEnglish) =>
+      switch (state) {
+        TelemetrySyncState.local =>
+          isEnglish ? 'Telemetry: local' : 'テレメトリー: ローカル',
+        TelemetrySyncState.pendingUpload =>
+          isEnglish ? 'Telemetry: pending' : 'テレメトリー: 同期保留',
+        TelemetrySyncState.synced =>
+          isEnglish ? 'Telemetry: synced' : 'テレメトリー: 同期済み',
+        TelemetrySyncState.failed =>
+          isEnglish ? 'Telemetry: retry' : 'テレメトリー: 再試行',
+        TelemetrySyncState.unavailable =>
+          isEnglish ? 'Telemetry: reattach' : 'テレメトリー: 再添付必要',
+      };
 
   Future<void> _confirmDeleteRunLog(
     BuildContext context,
@@ -738,6 +785,34 @@ class _HistoryPageState extends State<HistoryPage> {
         SettingsOperationFailure<bool>() => false,
       };
       if (!deleted) return;
+
+      final attachment = runLog.telemetryAttachment;
+      if (attachment != null) {
+        final repository = HiveTelemetryRepository.instance;
+        try {
+          await repository.deleteSession(attachment.sessionId);
+          await repository.saveJob(
+            TelemetrySyncJob(
+              sessionId: attachment.sessionId,
+              runLogId: runLog.id,
+              operation: 'delete',
+              ownerUid: attachment.ownerUid,
+              createdAt: DateTime.now(),
+            ),
+          );
+        } catch (_) {
+          await repository.saveJob(
+            TelemetrySyncJob(
+              sessionId: attachment.sessionId,
+              runLogId: runLog.id,
+              operation: 'delete',
+              ownerUid: attachment.ownerUid,
+              createdAt: DateTime.now(),
+              lastError: 'Local cleanup failed',
+            ),
+          );
+        }
+      }
 
       messenger.showSnackBar(
         SnackBar(

@@ -7,6 +7,7 @@ import '../services/file_service.dart';
 import '../services/xml_service.dart';
 import 'simple_import_page.dart';
 import 'statistics_page.dart';
+import 'telemetry_analysis_page.dart';
 import '../utils/app_logger.dart';
 
 class ToolsPage extends StatelessWidget {
@@ -55,6 +56,15 @@ class ToolsPage extends StatelessWidget {
               icon: Icons.calculate_rounded,
               color: Colors.orange,
               onTap: () => _showGearRatioCalculator(context),
+            ),
+            _ToolCard(
+              title: isEnglish ? 'Telemetry Analysis' : 'テレメトリー分析',
+              description: isEnglish
+                  ? 'Analyze SANWA CSV data, laps, replay, video, and course'
+                  : 'SANWA CSVのグラフ・ラップ・リプレイ・動画・コースを分析',
+              icon: Icons.monitor_heart_rounded,
+              color: Colors.cyan,
+              onTap: () => _openTelemetryAnalysis(context),
             ),
             _ToolCard(
               title: isEnglish ? 'Roll Angle Calculator' : 'ロール角度計算',
@@ -129,6 +139,15 @@ class ToolsPage extends StatelessWidget {
               color: colorScheme.tertiary,
               onTap: () => _showGearRatioCalculator(context),
             ),
+            _ToolCard(
+              title: isEnglish ? 'Telemetry Analysis' : 'テレメトリー分析',
+              description: isEnglish
+                  ? 'Analyze SANWA CSV data, laps, replay, video, and course'
+                  : 'SANWA CSVのグラフ・ラップ・リプレイ・動画・コースを分析',
+              icon: Icons.monitor_heart_rounded,
+              color: colorScheme.primary,
+              onTap: () => _openTelemetryAnalysis(context),
+            ),
             const SizedBox(height: 24),
             _SectionHeader(title: isEnglish ? 'Other' : 'その他'),
             _ToolCard(
@@ -150,6 +169,14 @@ class ToolsPage extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _openTelemetryAnalysis(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => const TelemetryAnalysisPage(),
       ),
     );
   }

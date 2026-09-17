@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:rc_setting_manager/models/car.dart';
 import 'package:rc_setting_manager/models/manufacturer.dart';
 import 'package:rc_setting_manager/models/run_log.dart';
+import 'package:rc_setting_manager/models/telemetry.dart';
 import 'package:rc_setting_manager/utils/run_log_formatters.dart';
 
 void main() {
@@ -72,5 +73,38 @@ void main() {
     expect(parseBestLapMillis('bad'), isNull);
     expect(parseBestLapMillis('0:61.00'), isNull);
     expect(formatBestLapMillis(13520), '13.52');
+  });
+
+  test('旧JSONは未添付として読み、新JSONはテレメトリー概要を往復する', () {
+    final original = RunLog(
+      id: 'run-telemetry',
+      createdAt: DateTime(2026, 9, 17),
+      runAt: DateTime(2026, 9, 17),
+      car: car,
+      bestLapMillis: 12000,
+      feelTagIds: const [],
+      memo: '',
+      changes: const [],
+    );
+    final oldJson = original.toJson()..remove('telemetryAttachment');
+    expect(RunLog.fromJson(oldJson).telemetryAttachment, isNull);
+
+    final attachment = TelemetryAttachment(
+      sessionId: 'session-1',
+      csvFileName: 'sample.csv',
+      recordCount: 42,
+      durationMillis: 12000,
+      bestLapCandidateMillis: 11800,
+      updatedAt: DateTime(2026, 9, 17),
+      syncState: TelemetrySyncState.pendingUpload,
+    );
+    final decoded = RunLog.fromJson(
+      original.copyWith(telemetryAttachment: attachment).toJson(),
+    );
+    expect(decoded.telemetryAttachment?.sessionId, 'session-1');
+    expect(
+      decoded.telemetryAttachment?.syncState,
+      TelemetrySyncState.pendingUpload,
+    );
   });
 }
