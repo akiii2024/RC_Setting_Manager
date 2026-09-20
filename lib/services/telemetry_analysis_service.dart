@@ -11,6 +11,13 @@ class TelemetryFormatException implements Exception {
   String toString() => message;
 }
 
+class _BoundaryResult {
+  const _BoundaryResult(this.boundaries, {this.lowConfidence = false});
+
+  final List<int> boundaries;
+  final bool lowConfidence;
+}
+
 abstract final class TelemetryAnalysisService {
   static const _summaryKeys = ['TOTAL LAP', 'BEST LAP', 'AVERAGE LAP'];
   static const _requiredColumns = ['LAP', 'LAP TIME', 'REC TIME'];
@@ -186,7 +193,8 @@ abstract final class TelemetryAnalysisService {
     final periodMillis = (bestLag * interval).round();
     if (periodMillis < 5000) return const LapPrediction();
     final confidence = bestCorrelation / variance;
-    final boundaries = _findBoundaries(normalized, bestLag, interval);
+    final boundaryResult = _findBoundaries(samples, bestLag);
+    final boundaries = boundaryResult.boundaries;
     final laps = <TelemetryLap>[];
     for (var index = 0; index < boundaries.length - 1; index++) {
       final start = boundaries[index];
@@ -197,9 +205,10 @@ abstract final class TelemetryAnalysisService {
       }
     }
     if (laps.isEmpty) {
-      final total = samples.last.recordMillis - samples.first.recordMillis;
-      for (var start = 0, number = 1;
-          start + periodMillis <= total;
+      final firstTime = samples.first.recordMillis;
+      final lastTime = samples.last.recordMillis;
+      for (var start = firstTime, number = 1;
+          start + periodMillis <= lastTime;
           start += periodMillis, number++) {
         laps.add(
           TelemetryLap(
@@ -218,7 +227,7 @@ abstract final class TelemetryAnalysisService {
       averageLapMillis:
           (durations.reduce((a, b) => a + b) / durations.length).round(),
       laps: List.unmodifiable(laps),
-      lowConfidence: confidence < 0.15,
+      lowConfidence: confidence < 0.15 || boundaryResult.lowConfidence,
       method: boundaries.length >= 2 ? 'template' : 'periodicity',
     );
   }
@@ -368,33 +377,67 @@ abstract final class TelemetryAnalysisService {
     return count == 0 ? 0 : total / count;
   }
 
-  static List<int> _findBoundaries(
-    List<double> values,
+  static _BoundaryResult _findBoundaries(
+    List<TelemetrySample> samples,
     int periodSamples,
-    double interval,
   ) {
-    if (values.length < periodSamples * 2) return const [];
+    if (samples.length < periodSamples * 2) {
+      return const _BoundaryResult([]);
+    }
+    final steering = _normalizeSignal(
+      samples.map((sample) => sample.numeric('ST(%)')).toList(),
+    );
+    final throttle = _normalizeSignal(
+      samples.map((sample) => sample.numeric('TH(%)')).toList(),
+    );
+    final hasThrottle = samples.any(
+          (sample) => sample.values.containsKey('TH(%)'),
+        ) &&
+        _signalVariance(throttle) > .001;
     final step = math.max(1, periodSamples ~/ 100);
     var bestPhase = 0;
     var bestScore = double.negativeInfinity;
     for (var phase = 0; phase < periodSamples; phase += step) {
-      final count = (values.length - phase) ~/ periodSamples;
+      final count = (samples.length - 1 - phase) ~/ periodSamples;
       if (count < 2) continue;
       var score = 0.0;
       for (var segment = 0; segment < count - 1; segment++) {
-        var dot = 0.0;
-        var firstNorm = 0.0;
-        var secondNorm = 0.0;
         final first = phase + segment * periodSamples;
         final second = first + periodSamples;
-        for (var offset = 0; offset < periodSamples; offset++) {
-          final a = values[first + offset];
-          final b = values[second + offset];
-          dot += a * b;
-          firstNorm += a * a;
-          secondNorm += b * b;
+        final firstSteering = _resampleSegment(
+          steering,
+          first,
+          second,
+          128,
+        );
+        final secondSteering = _resampleSegment(
+          steering,
+          second,
+          second + periodSamples,
+          128,
+        );
+        final steeringScore = _signalCorrelation(
+          firstSteering,
+          secondSteering,
+        );
+        if (hasThrottle) {
+          final firstThrottle = _resampleSegment(
+            throttle,
+            first,
+            second,
+            128,
+          );
+          final secondThrottle = _resampleSegment(
+            throttle,
+            second,
+            second + periodSamples,
+            128,
+          );
+          score += steeringScore * .75 +
+              _signalCorrelation(firstThrottle, secondThrottle) * .25;
+        } else {
+          score += steeringScore;
         }
-        score += dot / math.max(1e-9, math.sqrt(firstNorm * secondNorm));
       }
       score /= count - 1;
       if (score > bestScore) {
@@ -402,13 +445,130 @@ abstract final class TelemetryAnalysisService {
         bestPhase = phase;
       }
     }
-    final result = <int>[];
-    for (var sample = bestPhase;
-        sample <= values.length;
-        sample += periodSamples) {
-      result.add((sample * interval).round());
+    final coarseSteering = <List<double>>[];
+    final coarseThrottle = <List<double>>[];
+    for (var start = bestPhase;
+        start + periodSamples < samples.length;
+        start += periodSamples) {
+      coarseSteering.add(
+        _resampleSegment(steering, start, start + periodSamples, 128),
+      );
+      if (hasThrottle) {
+        coarseThrottle.add(
+          _resampleSegment(throttle, start, start + periodSamples, 128),
+        );
+      }
     }
-    return result;
+    if (coarseSteering.length < 2) return const _BoundaryResult([]);
+    final steeringTemplate = _medianTemplate(coarseSteering);
+    final throttleTemplate =
+        hasThrottle ? _medianTemplate(coarseThrottle) : const <double>[];
+
+    final indexes = <int>[bestPhase];
+    var lowConfidence = false;
+    while (samples.length - 1 - indexes.last >= periodSamples * .75) {
+      final previous = indexes.last;
+      final minimum = previous + (periodSamples * .75).round();
+      final maximum = math.min(
+        samples.length - 1,
+        previous + (periodSamples * 1.25).round(),
+      );
+      if (minimum > maximum) break;
+      var chosen = minimum;
+      var chosenCorrelation = double.negativeInfinity;
+      var bestAdjusted = double.negativeInfinity;
+      for (var candidate = minimum; candidate <= maximum; candidate++) {
+        final candidateSteering = _resampleSegment(
+          steering,
+          previous,
+          candidate,
+          128,
+        );
+        var correlation = _signalCorrelation(
+          candidateSteering,
+          steeringTemplate,
+        );
+        if (hasThrottle) {
+          final candidateThrottle = _resampleSegment(
+            throttle,
+            previous,
+            candidate,
+            128,
+          );
+          correlation = correlation * .75 +
+              _signalCorrelation(candidateThrottle, throttleTemplate) * .25;
+        }
+        final periodDifference =
+            (candidate - previous - periodSamples).abs() / periodSamples;
+        final adjusted = correlation - periodDifference * .05;
+        if (adjusted > bestAdjusted) {
+          bestAdjusted = adjusted;
+          chosenCorrelation = correlation;
+          chosen = candidate;
+        }
+      }
+      if (chosen <= previous) break;
+      if (chosen == minimum || chosen == maximum || chosenCorrelation < .25) {
+        lowConfidence = true;
+      }
+      indexes.add(chosen);
+    }
+    if (indexes.length < 2) return const _BoundaryResult([]);
+    return _BoundaryResult(
+      indexes.map((index) => samples[index].recordMillis).toList(),
+      lowConfidence: lowConfidence,
+    );
+  }
+
+  static List<double> _normalizeSignal(List<double> values) {
+    if (values.isEmpty) return const [];
+    final mean = values.reduce((a, b) => a + b) / values.length;
+    return values.map((value) => value - mean).toList(growable: false);
+  }
+
+  static double _signalVariance(List<double> values) {
+    if (values.isEmpty) return 0;
+    return values.fold<double>(0, (sum, value) => sum + value * value) /
+        values.length;
+  }
+
+  static List<double> _resampleSegment(
+    List<double> values,
+    int start,
+    int end,
+    int count,
+  ) {
+    return List.generate(count, (index) {
+      final position = start + (end - start) * index / (count - 1);
+      final before = position.floor().clamp(0, values.length - 1);
+      final after = math.min(values.length - 1, before + 1);
+      final fraction = position - before;
+      return values[before] + (values[after] - values[before]) * fraction;
+    });
+  }
+
+  static List<double> _medianTemplate(List<List<double>> segments) {
+    return List.generate(segments.first.length, (index) {
+      final values = segments.map((segment) => segment[index]).toList()..sort();
+      final middle = values.length ~/ 2;
+      return values.length.isOdd
+          ? values[middle]
+          : (values[middle - 1] + values[middle]) / 2;
+    });
+  }
+
+  static double _signalCorrelation(List<double> first, List<double> second) {
+    var dot = 0.0;
+    var aa = 0.0;
+    var bb = 0.0;
+    for (var i = 0; i < math.min(first.length, second.length); i++) {
+      final a = first[i];
+      final b = second[i];
+      dot += a * b;
+      aa += a * a;
+      bb += b * b;
+    }
+    return dot / math.max(1e-9, math.sqrt(aa * bb));
   }
 
   static List<double> _smooth(List<double> values, int window) {

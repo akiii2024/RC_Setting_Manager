@@ -33,6 +33,17 @@ void main() {
     );
   });
 
+  test('AI consent from the previous version is not reused', () async {
+    SharedPreferences.setMockInitialValues({
+      'ai_provider_api_consent_v3': true,
+    });
+
+    expect(
+      await ApiConsentService.hasConsent(ApiConsentType.aiAndOcr),
+      isFalse,
+    );
+  });
+
   testWidgets('weather consent dialog stores agreement',
       (WidgetTester tester) async {
     late BuildContext pageContext;
@@ -181,5 +192,35 @@ void main() {
       await ApiConsentService.hasConsent(ApiConsentType.aiAndOcr),
       isFalse,
     );
+  });
+
+  testWidgets('AI consent dialog describes telemetry data in English',
+      (WidgetTester tester) async {
+    late BuildContext pageContext;
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) {
+            pageContext = context;
+            return const Scaffold();
+          },
+        ),
+      ),
+    );
+
+    final request = ApiConsentService.requestConsent(
+      pageContext,
+      type: ApiConsentType.aiAndOcr,
+      isEnglish: true,
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Telemetry driving analysis'), findsOneWidget);
+    expect(find.textContaining('Raw CSV files'), findsOneWidget);
+    expect(find.textContaining('Firebase Functions'), findsOneWidget);
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(await request, isFalse);
   });
 }

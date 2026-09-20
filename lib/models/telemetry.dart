@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'telemetry_ai.dart';
+
 enum TelemetrySyncState {
   local,
   pendingUpload,
@@ -262,6 +264,7 @@ class TelemetrySession {
     this.videoBytes,
     this.videoSyncMode = 'start',
     this.videoOffsetMillis = 0,
+    this.aiAnalysis,
   });
 
   final String id;
@@ -279,6 +282,7 @@ class TelemetrySession {
   Uint8List? videoBytes;
   String videoSyncMode;
   int videoOffsetMillis;
+  TelemetryAiResult? aiAnalysis;
 
   int get durationMillis => samples.isEmpty ? 0 : samples.last.recordMillis;
 

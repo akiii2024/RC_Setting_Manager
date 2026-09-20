@@ -4,13 +4,15 @@ import 'dart:typed_data';
 import 'package:archive/archive.dart';
 
 import '../models/telemetry.dart';
+import '../models/telemetry_ai.dart';
 import 'telemetry_analysis_service.dart';
+import 'telemetry_feature_service.dart';
 
 class TelemetrySessionCodec {
   const TelemetrySessionCodec();
 
   static const format = 'sanwa-telemetry-graph';
-  static const version = 1;
+  static const version = 2;
   static const maxAnalysisBytes = 20 * 1024 * 1024;
 
   Uint8List encode(
@@ -40,6 +42,7 @@ class TelemetrySessionCodec {
             ?.map((point) => point.toJson())
             .toList(growable: false),
       },
+      'aiCoach': session.aiAnalysis?.toJson(),
     };
     final archive = Archive()
       ..addFile(
@@ -82,6 +85,10 @@ class TelemetrySessionCodec {
     final manifest = _decodeJson(_text(manifestFile), 'manifest.json');
     if (manifest['format'] != null && manifest['format'] != format) {
       throw const TelemetryFormatException('対応していない.stg形式です。');
+    }
+    final manifestVersion = (manifest['version'] as num?)?.toInt() ?? 1;
+    if (manifestVersion < 1 || manifestVersion > version) {
+      throw const TelemetryFormatException('対応していない.stgバージョンです。');
     }
     final csvJson = manifest['csv'];
     final csvFileName = csvJson is Map<String, dynamic>
@@ -132,6 +139,22 @@ class TelemetrySessionCodec {
       }
       session.videoSyncMode = video['syncMode'] as String? ?? 'start';
       session.videoOffsetMillis = (video['offsetMs'] as num?)?.round() ?? 0;
+    }
+    final aiCoach = manifest['aiCoach'];
+    if (aiCoach is Map) {
+      try {
+        final result = TelemetryAiResult.fromJson(
+          Map<String, dynamic>.from(aiCoach),
+        );
+        final currentFingerprint =
+            TelemetryFeatureService.build(session).inputFingerprint;
+        if (result.schemaVersion == 1 &&
+            result.inputFingerprint == currentFingerprint) {
+          session.aiAnalysis = result;
+        }
+      } catch (_) {
+        // AI結果は再生成可能な付加情報。CSV本体の読込は継続する。
+      }
     }
     return session;
   }

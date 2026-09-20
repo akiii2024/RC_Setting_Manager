@@ -98,4 +98,43 @@ void main() {
     );
     expect(TelemetryAnalysisService.predictLaps(samples).lapCount, 0);
   });
+
+  test('可変速度の合成周回を固定間隔ではなく周回ごとに補正する', () {
+    const lapDurations = [9000, 10200, 11000, 9500, 10600, 9800];
+    final samples = <TelemetrySample>[];
+    var lapStart = 0;
+    for (var lap = 0; lap < lapDurations.length; lap++) {
+      final duration = lapDurations[lap];
+      for (var offset = 0; offset < duration; offset += 50) {
+        final phase = offset / duration;
+        final steering = math.sin(phase * math.pi * 2) * 65 +
+            math.sin(phase * math.pi * 6) * 25;
+        final throttle = math.cos(phase * math.pi * 4) * 70;
+        final time = lapStart + offset;
+        samples.add(
+          TelemetrySample(
+            values: {
+              'ST(%)': steering.toStringAsFixed(3),
+              'TH(%)': throttle.toStringAsFixed(3),
+            },
+            recordMillis: time,
+            lapMillis: offset,
+          ),
+        );
+      }
+      lapStart += duration;
+    }
+
+    final prediction = TelemetryAnalysisService.predictLaps(samples);
+    final predicted = prediction.laps.map((lap) => lap.durationMillis).toList();
+
+    expect(predicted.length, greaterThanOrEqualTo(4));
+    expect(predicted.toSet().length, greaterThan(1));
+    for (final duration in predicted.take(lapDurations.length - 1)) {
+      expect(
+        lapDurations.any((expected) => (expected - duration).abs() <= 800),
+        isTrue,
+      );
+    }
+  });
 }

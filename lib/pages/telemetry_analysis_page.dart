@@ -9,12 +9,18 @@ import 'package:video_player/video_player.dart';
 import '../models/run_log.dart';
 import '../models/settings_operation_result.dart';
 import '../models/telemetry.dart';
+import '../models/telemetry_ai.dart';
 import '../providers/settings_provider.dart';
+import '../services/ai_provider_client.dart';
+import '../services/api_consent_service.dart';
 import '../services/telemetry_analysis_service.dart';
+import '../services/telemetry_ai_analysis_service.dart';
+import '../services/telemetry_feature_service.dart';
 import '../services/telemetry_file_service.dart';
 import '../services/telemetry_palette.dart';
 import '../services/telemetry_repository.dart';
 import '../services/telemetry_video_controller.dart';
+import '../widgets/ai_provider_indicator.dart';
 
 class TelemetryAnalysisPage extends StatefulWidget {
   const TelemetryAnalysisPage({
@@ -22,11 +28,13 @@ class TelemetryAnalysisPage extends StatefulWidget {
     this.initialSession,
     this.runLog,
     this.selectionMode = false,
+    this.aiAnalysisService,
   });
 
   final TelemetrySession? initialSession;
   final RunLog? runLog;
   final bool selectionMode;
+  final TelemetryAiAnalysisService? aiAnalysisService;
 
   @override
   State<TelemetryAnalysisPage> createState() => _TelemetryAnalysisPageState();
@@ -34,7 +42,9 @@ class TelemetryAnalysisPage extends StatefulWidget {
 
 class _TelemetryAnalysisPageState extends State<TelemetryAnalysisPage> {
   final _repository = HiveTelemetryRepository.instance;
+  late final TelemetryAiAnalysisService _aiAnalysisService;
   TelemetrySession? _session;
+  TelemetryFeatureReport? _featureReport;
   VideoPlayerController? _videoController;
   Timer? _playTimer;
   DateTime? _lastTick;
@@ -42,9 +52,11 @@ class _TelemetryAnalysisPageState extends State<TelemetryAnalysisPage> {
   double _speed = 1;
   bool _playing = false;
   bool _loading = false;
+  bool _aiLoading = false;
   bool _courseEditing = false;
   int _selectedLap = 0;
   String? _error;
+  String? _aiError;
 
   bool get _isEnglish =>
       Provider.of<SettingsProvider>(context, listen: false).isEnglish;
@@ -54,7 +66,10 @@ class _TelemetryAnalysisPageState extends State<TelemetryAnalysisPage> {
   @override
   void initState() {
     super.initState();
+    _aiAnalysisService =
+        widget.aiAnalysisService ?? TelemetryAiAnalysisService();
     _session = widget.initialSession;
+    _featureReport = _buildFeatureReport(_session);
     if (_session != null) {
       unawaited(_prepareVideo());
     } else if (widget.runLog?.telemetryAttachment != null) {
@@ -78,6 +93,7 @@ class _TelemetryAnalysisPageState extends State<TelemetryAnalysisPage> {
       if (!mounted) return;
       setState(() {
         _session = loaded;
+        _featureReport = _buildFeatureReport(loaded);
         _error = loaded == null
             ? _t(
                 'The telemetry file is not available on this device. Reattach a CSV or .stg file.',
@@ -110,9 +126,11 @@ class _TelemetryAnalysisPageState extends State<TelemetryAnalysisPage> {
     if (!mounted) return;
     setState(() {
       _session = session;
+      _featureReport = _buildFeatureReport(session);
       _playMillis = 0;
       _selectedLap = 0;
       _error = null;
+      _aiError = null;
     });
     await _prepareVideo();
   }
@@ -173,6 +191,102 @@ class _TelemetryAnalysisPageState extends State<TelemetryAnalysisPage> {
   void _showError(Object error) {
     if (!mounted) return;
     setState(() => _error = error.toString().replaceFirst('Exception: ', ''));
+  }
+
+  TelemetryFeatureReport? _buildFeatureReport(TelemetrySession? session) {
+    if (session == null) return null;
+    try {
+      return TelemetryFeatureService.build(session);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  String _aiErrorMessage(Object error) {
+    if (error is AiProviderException) return error.message;
+    if (error is StateError) {
+      return error.message.toString();
+    }
+    return _t(
+      'The AI driving review could not be generated. Check your connection and AI provider settings, then try again.',
+      'AI走行レビューを生成できませんでした。通信とAIプロバイダー設定を確認して、再試行してください。',
+    );
+  }
+
+  Future<void> _analyzeWithAi() async {
+    final session = _session;
+    if (session == null || _aiLoading) return;
+    final report = _buildFeatureReport(session);
+    final steeringQuality = report?.sensorStatus['ST(%)']?.quality;
+    if (report == null ||
+        report.laps.isEmpty ||
+        steeringQuality != TelemetrySensorQuality.dynamic) {
+      setState(() {
+        _aiError = _t(
+          'A changing ST(%) signal is required for AI driving analysis.',
+          'AI走行分析には、変化のあるST(%)データが必要です。',
+        );
+      });
+      return;
+    }
+    final consented = await ApiConsentService.requestConsent(
+      context,
+      type: ApiConsentType.aiAndOcr,
+      isEnglish: _isEnglish,
+    );
+    if (!consented || !mounted) return;
+
+    setState(() {
+      _aiLoading = true;
+      _aiError = null;
+      _featureReport = report;
+    });
+    try {
+      final result = await _aiAnalysisService.analyze(
+        report,
+        isEnglish: _isEnglish,
+      );
+      if (!mounted || !identical(_session, session)) return;
+      session.aiAnalysis = result;
+      setState(() {});
+      await _persistAiAnalysis(session);
+    } catch (error) {
+      if (mounted) setState(() => _aiError = _aiErrorMessage(error));
+    } finally {
+      if (mounted) setState(() => _aiLoading = false);
+    }
+  }
+
+  Future<void> _persistAiAnalysis(TelemetrySession session) async {
+    final runLog = widget.runLog;
+    final attachment = runLog?.telemetryAttachment;
+    if (runLog == null ||
+        attachment == null ||
+        attachment.sessionId != session.id) {
+      return;
+    }
+    await _repository.saveSession(session);
+    await _repository.saveJob(
+      TelemetrySyncJob(
+        sessionId: session.id,
+        runLogId: runLog.id,
+        operation: 'upload',
+        ownerUid: attachment.ownerUid,
+        createdAt: DateTime.now(),
+      ),
+    );
+    if (!mounted) return;
+    final provider = Provider.of<SettingsProvider>(context, listen: false);
+    final updateResult = await provider.updateRunLog(
+      runLog.copyWith(
+        telemetryAttachment: attachment.copyWith(
+          syncState: TelemetrySyncState.pendingUpload,
+        ),
+      ),
+    );
+    if (updateResult is SettingsOperationFailure<bool>) {
+      throw updateResult.failure.cause;
+    }
   }
 
   void _togglePlay() {
@@ -552,6 +666,8 @@ class _TelemetryAnalysisPageState extends State<TelemetryAnalysisPage> {
                             const SizedBox(height: 16),
                             _buildSummary(session),
                             const SizedBox(height: 16),
+                            _buildAiCoach(session),
+                            const SizedBox(height: 16),
                             _buildGraph(session),
                             const SizedBox(height: 16),
                             _buildReplay(session),
@@ -659,6 +775,281 @@ class _TelemetryAnalysisPageState extends State<TelemetryAnalysisPage> {
         ],
       ),
     );
+  }
+
+  Widget _buildAiCoach(TelemetrySession session) {
+    final report = _featureReport ??= _buildFeatureReport(session);
+    final steeringQuality = report?.sensorStatus['ST(%)']?.quality;
+    final throttleQuality = report?.sensorStatus['TH(%)']?.quality;
+    final available = steeringQuality == TelemetrySensorQuality.dynamic &&
+        report != null &&
+        report.laps.isNotEmpty;
+    final storedResult = session.aiAnalysis;
+    final result = storedResult != null &&
+            report != null &&
+            storedResult.schemaVersion == 1 &&
+            storedResult.inputFingerprint == report.inputFingerprint
+        ? storedResult
+        : null;
+
+    return _section(
+      _t('AI Driving Coach', 'AI走行コーチ'),
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const AiProviderIndicator(),
+          const SizedBox(height: 12),
+          Text(
+            _t(
+              'Only locally calculated lap summaries, corner features, compressed control traces, and evidence IDs are sent. The raw CSV, filename, and video are not sent.',
+              '端末内で算出したラップ要約、コーナー特徴量、圧縮した操作波形、Evidence IDだけを送信します。生CSV、ファイル名、動画は送信しません。',
+            ),
+            style: Theme.of(context).textTheme.bodyMedium,
+          ),
+          if (throttleQuality != TelemetrySensorQuality.dynamic) ...[
+            const SizedBox(height: 8),
+            Text(
+              _t(
+                'TH(%) is unavailable or static, so the review will use steering data only.',
+                'TH(%)が利用できないか一定値のため、ステアリングデータだけで分析します。',
+              ),
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          ],
+          if (_aiLoading) ...[
+            const SizedBox(height: 16),
+            const LinearProgressIndicator(),
+            const SizedBox(height: 8),
+            Text(_t('Generating driving review…', '走行レビューを生成しています…')),
+          ],
+          if (_aiError != null) ...[
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                _aiError!,
+                style: TextStyle(
+                  color: Theme.of(context).colorScheme.onErrorContainer,
+                ),
+              ),
+            ),
+          ],
+          if (result == null && !_aiLoading) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: available ? _analyzeWithAi : null,
+                icon: const Icon(Icons.auto_awesome_rounded),
+                label: Text(_t('Analyze driving with AI', 'AIで走行を分析')),
+              ),
+            ),
+            if (!available) ...[
+              const SizedBox(height: 8),
+              Text(
+                _t(
+                  'A changing ST(%) signal is required.',
+                  '変化のあるST(%)データが必要です。',
+                ),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+              ),
+            ],
+          ],
+          if (result != null) ...[
+            const SizedBox(height: 16),
+            _buildAiResult(result, report!),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: _aiLoading ? null : _analyzeWithAi,
+                icon: const Icon(Icons.refresh_rounded),
+                label: Text(_t('Analyze again', '再分析する')),
+              ),
+            ),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            _t(
+              'AI output is an estimate based on control inputs and does not prove vehicle behavior. Verify suggestions with repeatable runs.',
+              'AIの回答は操作入力に基づく推定で、車体挙動を断定するものではありません。同じ条件で再走行して確認してください。',
+            ),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAiResult(
+    TelemetryAiResult result,
+    TelemetryFeatureReport report,
+  ) {
+    final confidence = switch (result.confidence) {
+      'high' => _t('High confidence', '確信度: 高'),
+      'medium' => _t('Medium confidence', '確信度: 中'),
+      _ => _t('Low confidence', '確信度: 低'),
+    };
+    final generated = result.generatedAt.toLocal().toString().split('.').first;
+    final provider = switch (result.provider) {
+      'openai' => 'OpenAI',
+      'anthropic' => 'Anthropic',
+      'gemini' => 'Gemini',
+      _ => result.provider,
+    };
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Chip(label: Text(confidence)),
+            Text(
+              '$provider / ${result.model} · $generated',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(result.summary, style: Theme.of(context).textTheme.bodyLarge),
+        if (result.strengthEvidenceIds.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _aiTextList(
+            _t('Measured strengths', '数値で確認できた強み'),
+            _evidenceLabels(report, result.strengthEvidenceIds),
+          ),
+        ],
+        for (final area in result.focusAreas) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: Theme.of(context).colorScheme.outlineVariant,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(area.title,
+                    style: Theme.of(context).textTheme.titleMedium),
+                if (area.evidenceIds.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  for (final label in _evidenceLabels(report, area.evidenceIds))
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 4),
+                      child: Text('• $label'),
+                    ),
+                ],
+                if (area.inference.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text('${_t('Interpretation', '推定')}: ${area.inference}'),
+                ],
+                if (area.coachingTip.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text('${_t('Try', '試すこと')}: ${area.coachingTip}'),
+                ],
+                if (area.verification.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text('${_t('Verify', '確認方法')}: ${area.verification}'),
+                ],
+              ],
+            ),
+          ),
+        ],
+        if (result.limitations.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          _aiTextList(_t('Limitations', '分析上の制約'), result.limitations),
+        ],
+      ],
+    );
+  }
+
+  Widget _aiTextList(String title, List<String> items) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: Theme.of(context).textTheme.titleMedium),
+          const SizedBox(height: 4),
+          for (final item in items)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text('• $item'),
+            ),
+        ],
+      );
+
+  List<String> _evidenceLabels(
+    TelemetryFeatureReport report,
+    List<String> ids,
+  ) {
+    final byId = {
+      for (final evidence in report.evidence) evidence.id: evidence
+    };
+    return ids
+        .map((id) => byId[id])
+        .whereType<TelemetryEvidence>()
+        .map(_evidenceLabel)
+        .toList(growable: false);
+  }
+
+  String _evidenceLabel(TelemetryEvidence evidence) {
+    final metric = switch (evidence.metric) {
+      'fullThrottleRatio' => _t('Full throttle', '全開率'),
+      'steeringCorrections' => _t('Steering corrections', '修正舵'),
+      'peakSteering' => _t('Peak steering', '最大舵角'),
+      'brakeStart' => _t('Brake start from turn-in', 'ターンイン基準のブレーキ開始'),
+      'throttleReapply' =>
+        _t('Throttle reapply from turn-in', 'ターンイン基準のスロットル再開'),
+      'fullThrottle' => _t('Full throttle from turn-in', 'ターンイン基準の全開到達'),
+      _ => evidence.metric,
+    };
+    final target = [
+      if (evidence.lap != null) 'Lap ${evidence.lap}',
+      if (evidence.corner != null) 'Corner ${evidence.corner}',
+    ].join(' / ');
+    final value = _formatEvidenceValue(evidence.value, evidence.unit);
+    final reference = evidence.referenceValue;
+    final referenceText = reference == null
+        ? ''
+        : ' (${_t('reference', '基準')}: ${_formatEvidenceValue(reference, evidence.unit)})';
+    final difference = evidence.difference;
+    final differenceText = difference == null
+        ? ''
+        : ' [${_t('difference', '差')}: ${_formatEvidenceDifference(difference, evidence.unit)}]';
+    return '${target.isEmpty ? '' : '$target · '}$metric: $value$referenceText$differenceText';
+  }
+
+  String _formatEvidenceValue(double value, String unit) {
+    if (unit == 'ratio') return '${(value * 100).toStringAsFixed(1)}%';
+    if (unit == 'count') return value.round().toString();
+    return '${value.toStringAsFixed(1)}$unit';
+  }
+
+  String _formatEvidenceDifference(double value, String unit) {
+    final sign = value > 0 ? '+' : '';
+    if (unit == 'ratio') {
+      return '$sign${(value * 100).toStringAsFixed(1)}pt';
+    }
+    if (unit == 'count') return '$sign${value.round()}';
+    return '$sign${value.toStringAsFixed(1)}$unit';
   }
 
   Widget _buildGraph(TelemetrySession session) {

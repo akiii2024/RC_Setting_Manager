@@ -23,9 +23,9 @@ class ApiConsentService {
       'weather_location_api_consent_v1';
   static const String _weatherAndLocationPromptSuppressedKey =
       'weather_location_api_prompt_suppressed_v1';
-  // The destination changed from the managed Gemini function to a
-  // user-selected provider, so the previous consent must not be reused.
-  static const String _aiAndOcrConsentKey = 'ai_provider_api_consent_v3';
+  // v4 adds telemetry feature disclosure and clarifies managed Gemini routing,
+  // so consent from earlier wording must not be reused.
+  static const String _aiAndOcrConsentKey = 'ai_provider_api_consent_v4';
 
   static final Map<ApiConsentType, Future<bool>> _pendingRequests = {};
 
@@ -246,10 +246,13 @@ class ApiConsentService {
               'uses your device location.'
           : '近くのコース検索と現在の天気取得のため、端末の位置情報を利用します。',
       ApiConsentType.aiAndOcr => isEnglish
-          ? 'To provide AI advice and OCR, the app sends the following data '
-              'directly to the AI provider selected in Settings.'
-          : 'AIアドバイスとOCRを提供するため、以下のデータを設定画面で選択した'
-              'AIプロバイダーへ直接送信します。',
+          ? 'To provide AI advice, OCR, and telemetry driving analysis, the '
+              'app sends the following data to the AI provider selected in '
+              'Settings. Standard Gemini requests are sent through Firebase '
+              'Functions; other providers are contacted directly.'
+          : 'AIアドバイス、OCR、テレメトリー走行分析を提供するため、以下のデータを'
+              '設定画面で選択したAIプロバイダーへ送信します。標準GeminiはFirebase '
+              'Functionsを経由し、それ以外のプロバイダーは直接通信します。',
     };
   }
 
@@ -280,22 +283,33 @@ class ApiConsentService {
                   'for AI advice.',
               'Up to five related run logs may be included after they are '
                   'shown in the consultation screen.',
+              'Telemetry driving analysis includes locally calculated lap '
+                  'summaries, corner features, compressed steering/throttle '
+                  'waveforms, and evidence IDs.',
               'Your API key is used only to authenticate the direct request. '
                   'It is not included in prompts, app backups, or cloud sync.',
+              'Raw CSV files, file names, videos, and API keys are not sent '
+                  'as telemetry analysis data.',
               'Do not select images containing personal or confidential '
                   'information.',
               'The selected provider processes data under its own terms and '
-                  'privacy policy.',
+                  'privacy policy. The provider may retain submitted data '
+                  'according to those terms, even when the request asks not '
+                  'to store it.',
             ]
           : const [
               'OCRで選択した画像と、画像内に含まれる文字情報。',
               'RCカーの設定値、コース・天気情報、AIアドバイスに入力したメッセージ。',
               '相談画面で件数を確認した関連走行ログ（最大5件）。',
+              'テレメトリー走行分析では、端末内で算出したラップ要約、コーナー特徴量、'
+                  'ステアリング・スロットルの圧縮波形、根拠IDを送信します。',
               'APIキーは直接通信の認証だけに使用し、プロンプト、アプリのバックアップ、'
                   'クラウド同期には含めません。',
+              'テレメトリー分析データとして、生CSV、ファイル名、動画、APIキーは送信しません。',
               '個人情報や機密情報が写った画像は選択しないでください。',
               '送信データは、選択したプロバイダーの利用規約とプライバシーポリシーに'
-                  '基づいて処理されます。',
+                  '基づいて処理されます。送信しない設定を指定した場合でも、プロバイダーの'
+                  '規約によりデータが保持される可能性があります。',
             ],
     };
   }
