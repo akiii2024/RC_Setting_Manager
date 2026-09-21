@@ -1,5 +1,6 @@
 import 'package:rc_setting_manager/utils/app_logger.dart';
 import '../models/car_setting_definition.dart';
+import 'car_settings/definitions/tamiya/trf420_settings.dart' as trf420;
 import 'car_settings/definitions/tamiya/trf420x_settings.dart' as trf420x;
 import 'car_settings/definitions/tamiya/trf421_settings.dart' as trf421;
 import 'car_settings/definitions/tamiya/trf421x_settings.dart' as trf421x;
@@ -11,6 +12,7 @@ import 'car_settings/definitions/yokomo/ms2_settings.dart' as ms2;
 // 全ての車種の設定定義を管理
 final Map<String, CarSettingDefinition> carSettingsDefinitions = {
   'tamiya/trf421': trf421.trf421Settings,
+  'tamiya/trf420': trf420.trf420Settings,
   'tamiya/trf420x': trf420x.trf420xSettings,
   'tamiya/trf421x': trf421x.trf421xSettings,
   'yokomo/bd11': bd11.bd11Settings,

@@ -1,0 +1,16 @@
+{
+  "detectedModel": "TRF421",
+  "candidates": [
+    {"key":"frontWheelHub","rawValue":"4mmナロー","points":[],"confidence":"high","evidence":"4mm narrowの枠に赤いX"},
+    {"key":"frontDiffPositionHeight","rawValue":"Lo","points":[],"confidence":"medium","evidence":"Loの枠に赤いX"},
+    {"key":"rearDiffPositionHeight","rawValue":"Lo","points":[],"confidence":"medium","evidence":"Loの枠に赤いX"},
+    {"key":"frontDamperPosition","rawValue":"1","points":[],"confidence":"high","evidence":"フロント左位置に赤いX"},
+    {"key":"rearDamperPosition","rawValue":"1","points":[],"confidence":"high","evidence":"リア左位置に赤いX"},
+    {"key":"frontStabilizerNote","rawValue":"Red","points":[],"confidence":"medium","evidence":"フロント欄にRed"},
+    {"key":"rearStabilizerNote","rawValue":"Black","points":[],"confidence":"medium","evidence":"リア欄にBlack"},
+    {"key":"rearDiff","rawValue":"3000","points":[],"confidence":"high","evidence":"#3000"},
+    {"key":"rearDiffWeight","rawValue":"1.3 g","points":[],"confidence":"high","evidence":"1.3g"},
+    {"key":"motorMountScrewPositions","rawValue":"","points":[{"row":1,"col":0},{"row":1,"col":3},{"row":1,"col":4},{"row":1,"col":5}],"confidence":"high","evidence":"下段に4個の赤いX"}
+  ],
+  "warnings": []
+}

@@ -4,29 +4,38 @@ import '../models/car_setting_definition.dart';
 class OcrMappingHelper {
   const OcrMappingHelper._();
 
-  static Map<String, String> validateSettingsForImport(
-    Map<String, String> settings,
+  static Map<String, dynamic> validateSettingsForImport(
+    Map<String, dynamic> settings,
     List<SettingItem> settingDefinitions,
   ) {
     final definitions = {
       for (final item in settingDefinitions) item.key: item,
     };
-    final validated = <String, String>{};
+    final validated = <String, dynamic>{};
 
     for (final entry in settings.entries) {
       final item = definitions[entry.key];
       if (item == null || entry.key.startsWith('_unmatched_')) continue;
-      final value = entry.value.trim();
-      if (value.isEmpty) continue;
+      final value = entry.value;
+
+      if (item.type == 'grid') {
+        final points = _validatedGridPoints(value, item.constraints);
+        if (points != null) validated[entry.key] = points;
+        continue;
+      }
+
+      if (value is! String || value.trim().isEmpty) continue;
+      final textValue = value.trim();
 
       final options = item.options;
-      if (options != null && options.isNotEmpty) {
-        if (options.contains(value)) validated[entry.key] = value;
+      if (item.type == 'select' && options != null && options.isNotEmpty) {
+        final match = findLocalMatch(textValue, options);
+        if (match != null) validated[entry.key] = match;
         continue;
       }
 
       if (item.type == 'number') {
-        var numericText = value.replaceAll(',', '.');
+        var numericText = _normalizeFullWidth(textValue).replaceAll(',', '.');
         final unit = item.unit;
         if (unit != null && unit.isNotEmpty) {
           numericText = numericText.replaceAll(unit, '');
@@ -59,8 +68,12 @@ class OcrMappingHelper {
         continue;
       }
 
-      if (item.type == 'text' && value.length <= 500) {
-        validated[entry.key] = value;
+      final configuredMaxLength = item.constraints['maxLength'];
+      final maxLength = configuredMaxLength is num
+          ? configuredMaxLength.toInt().clamp(1, 2000)
+          : 500;
+      if (item.type == 'text' && textValue.length <= maxLength) {
+        validated[entry.key] = textValue;
       }
     }
 
@@ -71,41 +84,72 @@ class OcrMappingHelper {
     String rawValue,
     List<String> availableOptions,
   ) {
-    final cleanRawValue =
-        rawValue.toLowerCase().replaceAll(RegExp(r'[^\w]'), '');
+    if (availableOptions.isEmpty) return null;
+    final normalizedRaw = _normalizeFullWidth(rawValue).trim().toLowerCase();
+    final cleanRawValue = _normalizedComparable(normalizedRaw);
 
     for (final option in availableOptions) {
-      if (option.toLowerCase() == rawValue.toLowerCase()) {
+      if (_normalizeFullWidth(option).trim().toLowerCase() == normalizedRaw ||
+          _normalizedComparable(option) == cleanRawValue) {
         return option;
       }
     }
 
-    final rawNumbers = RegExp(r'[0-9]+\.?[0-9]*').allMatches(rawValue);
-    if (rawNumbers.isNotEmpty) {
+    final semanticAlias = switch (cleanRawValue) {
+      'asphalt' => 'アスファルト',
+      'carpet' => 'カーペット',
+      'carbon' => 'カーボン',
+      'aluminum' || 'aluminium' || 'alu' => 'アルミ',
+      'plastic' => 'プラスチック',
+      _ => null,
+    };
+    if (semanticAlias != null) {
       for (final option in availableOptions) {
-        final optionNumbers = RegExp(r'[0-9]+\.?[0-9]*').allMatches(option);
-        if (optionNumbers.isNotEmpty) {
-          final rawNum = rawNumbers.first.group(0);
-          final optionNum = optionNumbers.first.group(0);
-          if (rawNum == optionNum) {
-            return option;
-          }
+        if (_normalizedComparable(option) ==
+            _normalizedComparable(semanticAlias)) {
+          return option;
         }
       }
     }
 
+    final rawNumbers =
+        RegExp(r'[0-9]+\.?[0-9]*').allMatches(normalizedRaw).toList();
+    if (rawNumbers.isNotEmpty) {
+      final numericMatches = <String>[];
+      final rawNumber = double.tryParse(rawNumbers.first.group(0)!);
+      for (final option in availableOptions) {
+        final optionNumbers =
+            RegExp(r'[0-9]+\.?[0-9]*').allMatches(_normalizeFullWidth(option));
+        if (optionNumbers.isNotEmpty) {
+          final optionNumber = double.tryParse(optionNumbers.first.group(0)!);
+          if (rawNumber != null && optionNumber == rawNumber) {
+            numericMatches.add(option);
+          }
+        }
+      }
+      if (numericMatches.length == 1) return numericMatches.single;
+      // 数値を含む選択肢は、同値候補が複数または0件なら類似度で推測しない。
+      return null;
+    }
+
+    String? bestOption;
+    var bestScore = 0.0;
     for (final option in availableOptions) {
-      final cleanOption = option.toLowerCase().replaceAll(RegExp(r'[^\w]'), '');
-      if (calculateStringSimilarity(cleanRawValue, cleanOption) > 0.5) {
-        return option;
+      final cleanOption = _normalizedComparable(option);
+      final score = calculateStringSimilarity(cleanRawValue, cleanOption);
+      if (score > bestScore) {
+        bestScore = score;
+        bestOption = option;
       }
       if (cleanRawValue.contains(cleanOption) ||
           cleanOption.contains(cleanRawValue)) {
-        return option;
+        if (cleanRawValue.length >= 3 && cleanOption.length >= 3) {
+          return option;
+        }
       }
     }
 
-    return null;
+    return bestScore > 0.5 ? bestOption : null;
   }
 
   static double calculateStringSimilarity(String str1, String str2) {
@@ -147,9 +191,16 @@ class OcrMappingHelper {
   }
 
   static String cleanValue(String value) {
-    var cleanedValue = value.replaceAll(RegExp(r'[()（）\[\]]'), '').trim();
+    final normalized = _normalizeFullWidth(value);
+    var cleanedValue = normalized.replaceAll(RegExp(r'[()（）\[\]]'), '').trim();
     cleanedValue = cleanedValue
-        .replaceAll(RegExp(r'(mm|°|度|φ|T|g|#|点|ポイント)\s*$'), '')
+        .replaceAll(
+          RegExp(
+            r'(cst|mm|°|度|φ|T|g|#|点|ポイント)\s*$',
+            caseSensitive: false,
+          ),
+          '',
+        )
         .trim();
 
     if (RegExp(r'^-?[0-9]+\.?[0-9]*$').hasMatch(cleanedValue)) {
@@ -158,6 +209,48 @@ class OcrMappingHelper {
     if (RegExp(r'^[0-9]+-[0-9]+$').hasMatch(cleanedValue)) {
       return cleanedValue;
     }
-    return value.trim();
+    return normalized.trim();
+  }
+
+  static List<Map<String, int>>? _validatedGridPoints(
+    Object? value,
+    Map<String, dynamic> constraints,
+  ) {
+    if (value is! List) return null;
+    final rows = constraints['rows'];
+    final cols = constraints['cols'];
+    if (rows is! int || cols is! int || rows <= 0 || cols <= 0) return null;
+    final points = <Map<String, int>>[];
+    final seen = <String>{};
+    for (final rawPoint in value) {
+      if (rawPoint is! Map) return null;
+      final row = rawPoint['row'];
+      final col = rawPoint['col'];
+      if (row is! int || col is! int) return null;
+      if (row < 0 || row >= rows || col < 0 || col >= cols) return null;
+      if (seen.add('$row:$col')) points.add({'row': row, 'col': col});
+    }
+    if (points.isEmpty) return null;
+    if (constraints['multiple'] != true && points.length != 1) return null;
+    points.sort((a, b) {
+      final rowOrder = a['row']!.compareTo(b['row']!);
+      return rowOrder != 0 ? rowOrder : a['col']!.compareTo(b['col']!);
+    });
+    return points;
+  }
+
+  static String _normalizedComparable(String value) {
+    return _normalizeFullWidth(value)
+        .toLowerCase()
+        .replaceAll(RegExp(r'[\s\-_.()（）\[\]/#°φΦ]'), '');
+  }
+
+  static String _normalizeFullWidth(String value) {
+    const full = '０１２３４５６７８９．，－＋';
+    const half = '0123456789.,-+';
+    return value.split('').map((character) {
+      final index = full.indexOf(character);
+      return index < 0 ? character : half[index];
+    }).join();
   }
 }

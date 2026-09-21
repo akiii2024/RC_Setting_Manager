@@ -63,6 +63,7 @@ void main() {
   test('全車種の登録IDと順序を維持する', () {
     expect(carSettingsDefinitions.keys.toList(), [
       'tamiya/trf421',
+      'tamiya/trf420',
       'tamiya/trf420x',
       'tamiya/trf421x',
       'yokomo/bd11',
@@ -90,6 +91,14 @@ void main() {
         'options': '3c11f54c',
         'composites': '769dd45f',
         'fullShape': '5e64db6d',
+      },
+      'tamiya/trf420': {
+        'count': 99,
+        'keys': '16569aad',
+        'categories': 'e8eb5d01',
+        'options': '9ca9378b',
+        'composites': '2a570281',
+        'fullShape': 'd467bb34',
       },
       'tamiya/trf420x': {
         'count': 94,

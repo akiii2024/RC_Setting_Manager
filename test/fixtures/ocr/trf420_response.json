@@ -1,0 +1,27 @@
+{
+  "detectedModel": "TRF420",
+  "candidates": [
+    {"key":"frontWheelHub","rawValue":"5mm","points":[],"confidence":"high","evidence":"5mmの黒丸"},
+    {"key":"frontFSusMountSpacer","rawValue":"0 mm","points":[],"confidence":"high","evidence":"F欄は0"},
+    {"key":"frontRSusMountSpacer","rawValue":"0 mm","points":[],"confidence":"high","evidence":"R欄は0"},
+    {"key":"rearFSusMountSpacer","rawValue":"0 mm","points":[],"confidence":"high","evidence":"F欄は0"},
+    {"key":"rearRSusMountSpacer","rawValue":"0 mm","points":[],"confidence":"high","evidence":"R欄は0"},
+    {"key":"frontDamperPositionStay","rawValue":"2","points":[],"confidence":"medium","evidence":"ステー中央の黒丸"},
+    {"key":"frontDamperPositionArm","rawValue":"3","points":[],"confidence":"high","evidence":"アーム3の黒丸"},
+    {"key":"rearDamperPositionStay","rawValue":"2","points":[],"confidence":"medium","evidence":"ステー中央の黒丸"},
+    {"key":"rearDamperPositionArm","rawValue":"3","points":[],"confidence":"high","evidence":"アーム3の黒丸"},
+    {"key":"frontDamperPiston","rawValue":"1.1 φ","points":[],"confidence":"high","evidence":"ピストン径1.1"},
+    {"key":"frontDamperPistonHole","rawValue":"4 holes","points":[],"confidence":"high","evidence":"4穴"},
+    {"key":"frontStabilizer","rawValue":"1.3 φ","points":[],"confidence":"high","evidence":"スタビ径1.3"},
+    {"key":"frontSusMountFrontShaftPosition","rawValue":"","points":[{"row":3,"col":2}],"confidence":"high","evidence":"5x5グリッド下から2段目中央"},
+    {"key":"rearSusMountRearShaftPosition","rawValue":"","points":[{"row":3,"col":2}],"confidence":"high","evidence":"5x5グリッド下から2段目中央"},
+    {"key":"topScrewPositions","rawValue":"","points":[{"row":0,"col":3},{"row":0,"col":4}],"confidence":"high","evidence":"1x7列の2点"},
+    {"key":"batteryPosition","rawValue":"0mm","points":[],"confidence":"high","evidence":"バッテリー位置0"},
+    {"key":"ballastWeightA","rawValue":"10g","points":[],"confidence":"high","evidence":"A 10g"},
+    {"key":"ballastWeightB","rawValue":"10g","points":[],"confidence":"high","evidence":"B 10g"},
+    {"key":"ballastWeightC","rawValue":"5g","points":[],"confidence":"high","evidence":"C 5g"},
+    {"key":"ballastWeightD","rawValue":"0g","points":[],"confidence":"low","evidence":"Dは薄い0"},
+    {"key":"ballastWeightE","rawValue":"52g","points":[],"confidence":"high","evidence":"E 52g"}
+  ],
+  "warnings": []
+}

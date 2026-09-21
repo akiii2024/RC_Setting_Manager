@@ -1,0 +1,14 @@
+{
+  "detectedModel": "TRF420X",
+  "candidates": [
+    {"key":"frontK1Position","rawValue":"低い","points":[],"confidence":"high","evidence":"Lowに赤いX"},
+    {"key":"frontFSusMount","rawValue":"XB","points":[],"confidence":"high","evidence":"XBに赤いX"},
+    {"key":"rearRSusMount","rawValue":"B","points":[],"confidence":"medium","evidence":"Bに赤いX"},
+    {"key":"frontSusMountFrontShaftPosition","rawValue":"","points":[{"row":2,"col":2}],"confidence":"high","evidence":"5x5中央"},
+    {"key":"rearSusMountRearShaftPosition","rawValue":"","points":[{"row":1,"col":3}],"confidence":"high","evidence":"5x5の選択点"},
+    {"key":"rearSusType","rawValue":"OP","points":[],"confidence":"high","evidence":"OPに赤いX"},
+    {"key":"rearSusHardness","rawValue":"Soft","points":[],"confidence":"low","evidence":"Softの印が薄い"},
+    {"key":"topScrewPositions","rawValue":"","points":[{"row":0,"col":1},{"row":0,"col":5}],"confidence":"high","evidence":"1x7列の2点"}
+  ],
+  "warnings": []
+}

@@ -466,7 +466,7 @@ void main() {
 
       final loaded = await repository.loadLegacySnapshot();
 
-      expect(loaded.cars, hasLength(7));
+      expect(loaded.cars, hasLength(8));
       expect(loaded.savedSettings, isEmpty);
       expect(loaded.runLogs, isEmpty);
       expect(loaded.ownedParts, isEmpty);

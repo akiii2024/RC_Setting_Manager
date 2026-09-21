@@ -51,7 +51,8 @@ void main() {
   });
 
   group('car setting definitions', () {
-    test('equipment fields expose suggested options while remaining text fields',
+    test(
+        'equipment fields expose suggested options while remaining text fields',
         () {
       final trf420x = getCarSettingDefinition('tamiya/trf420x')!;
       final bd12 = getCarSettingDefinition('yokomo/bd12')!;
@@ -223,6 +224,7 @@ void main() {
 
     test('new built-in car definitions are registered', () {
       const expectedCarIds = {
+        'tamiya/trf420',
         'tamiya/trf421x',
         'yokomo/bd11',
         'yokomo/ms1_0',
@@ -236,6 +238,54 @@ void main() {
         expect(definition!.availableSettings, isNotEmpty);
         expect(definition.availableSettings.map((setting) => setting.key),
             containsAll(['date', 'motor']));
+      }
+    });
+
+    test('trf420 keeps the legacy sheet layout separate from trf420x', () {
+      final definition = getCarSettingDefinition('tamiya/trf420')!;
+      final settings = {
+        for (final setting in definition.availableSettings)
+          setting.key: setting,
+      };
+
+      expect(
+        settings.keys,
+        containsAll([
+          'frontFSusMountSpacer',
+          'frontRSusMountSpacer',
+          'rearFSusMountSpacer',
+          'rearRSusMountSpacer',
+          'frontDamperPositionStay',
+          'frontDamperPositionArm',
+          'rearDamperPositionStay',
+          'rearDamperPositionArm',
+          'frontSusMountFrontShaftPosition',
+          'rearSusMountRearShaftPosition',
+          'topScrewPositions',
+          'batteryPosition',
+          'ballastWeightA',
+          'ballastWeightB',
+          'ballastWeightC',
+          'ballastWeightD',
+          'ballastWeightE',
+        ]),
+      );
+      expect(settings['frontDamperPositionStay']!.options, hasLength(3));
+      expect(settings['frontDamperPositionArm']!.options, hasLength(4));
+      expect(settings['rearDamperPositionStay']!.options, hasLength(3));
+      expect(settings['rearDamperPositionArm']!.options, hasLength(4));
+      expect(settings['frontSusMountFrontShaftPosition']!.constraints,
+          containsPair('rows', 5));
+      expect(
+          settings['topScrewPositions']!.constraints, containsPair('cols', 7));
+      for (final trf420xOnlyKey in const [
+        'frontK1Position',
+        'rearK1Position',
+        'frontFSusMount',
+        'rearRSusMount',
+        'rearSusHardness',
+      ]) {
+        expect(settings, isNot(contains(trf420xOnlyKey)));
       }
     });
 

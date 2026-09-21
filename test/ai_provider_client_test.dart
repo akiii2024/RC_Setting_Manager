@@ -130,6 +130,49 @@ void main() {
     expect(body['store'], isFalse);
   });
 
+  test('OpenAI structured generation sends image content with json schema',
+      () async {
+    late http.Request capturedRequest;
+    final transport = MockClient((request) async {
+      capturedRequest = request;
+      return http.Response(
+        jsonEncode({
+          'output_text': jsonEncode({'answer': 'openai-vision'})
+        }),
+        200,
+      );
+    });
+    final client = AiProviderClient(
+      configuration: _configuration(AiProvider.openAI),
+      client: transport,
+    );
+
+    expect(
+      await client.generateStructured(
+        system: 'System instruction',
+        prompt: 'Read the sheet',
+        schema: _schema,
+        schemaName: 'settings',
+        imageBytes: Uint8List.fromList([1, 2, 3]),
+        mimeType: 'image/png',
+      ),
+      {'answer': 'openai-vision'},
+    );
+
+    final body = jsonDecode(capturedRequest.body) as Map<String, dynamic>;
+    final input = body['input'] as List;
+    final content = (input.single as Map)['content'] as List;
+    expect((content[0] as Map), {
+      'type': 'input_text',
+      'text': 'Read the sheet',
+    });
+    expect((content[1] as Map), {
+      'type': 'input_image',
+      'image_url': 'data:image/png;base64,AQID',
+    });
+    expect(((body['text'] as Map)['format'] as Map)['schema'], _schema);
+  });
+
   test('Anthropic Messages sends output_config json_schema and parses content',
       () async {
     late http.Request capturedRequest;
@@ -217,6 +260,56 @@ void main() {
     expect(source['data'], 'AQID');
   });
 
+  test('Anthropic structured generation sends text and image content',
+      () async {
+    late http.Request capturedRequest;
+    final transport = MockClient((request) async {
+      capturedRequest = request;
+      return http.Response(
+        jsonEncode({
+          'content': [
+            {
+              'type': 'text',
+              'text': jsonEncode({'answer': 'anthropic-vision'})
+            },
+          ],
+        }),
+        200,
+      );
+    });
+    final client = AiProviderClient(
+      configuration: _configuration(AiProvider.anthropic),
+      client: transport,
+    );
+
+    expect(
+      await client.generateStructured(
+        system: 'System instruction',
+        prompt: 'Read the sheet',
+        schema: _schema,
+        schemaName: 'settings',
+        imageBytes: Uint8List.fromList([1, 2, 3]),
+        mimeType: 'image/jpeg',
+      ),
+      {'answer': 'anthropic-vision'},
+    );
+
+    final body = jsonDecode(capturedRequest.body) as Map<String, dynamic>;
+    final content =
+        ((body['messages'] as List).single as Map)['content'] as List;
+    expect(content[0], {'type': 'text', 'text': 'Read the sheet'});
+    expect(content[1], {
+      'type': 'image',
+      'source': {
+        'type': 'base64',
+        'media_type': 'image/jpeg',
+        'data': 'AQID',
+      },
+    });
+    expect(
+        ((body['output_config'] as Map)['format'] as Map)['schema'], _schema);
+  });
+
   test('Gemini uses header authentication and responseFormat schema', () async {
     late http.Request capturedRequest;
     final transport = MockClient((request) async {
@@ -266,6 +359,62 @@ void main() {
     expect(textFormat['mimeType'], 'application/json');
     expect(textFormat['schema'], _schema);
     expect(capturedRequest.body, isNot(contains('provider-secret-key')));
+  });
+
+  test('Gemini structured generation sends inline image and response schema',
+      () async {
+    late http.Request capturedRequest;
+    final transport = MockClient((request) async {
+      capturedRequest = request;
+      return http.Response(
+        jsonEncode({
+          'candidates': [
+            {
+              'content': {
+                'parts': [
+                  {
+                    'text': jsonEncode({'answer': 'gemini-vision'})
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+        200,
+      );
+    });
+    final client = AiProviderClient(
+      configuration: _configuration(AiProvider.gemini),
+      client: transport,
+    );
+
+    expect(
+      await client.generateStructured(
+        system: 'System instruction',
+        prompt: 'Read the sheet',
+        schema: _schema,
+        schemaName: 'settings',
+        imageBytes: Uint8List.fromList([1, 2, 3]),
+        mimeType: 'image/webp',
+      ),
+      {'answer': 'gemini-vision'},
+    );
+
+    final body = jsonDecode(capturedRequest.body) as Map<String, dynamic>;
+    final parts =
+        ((((body['contents'] as List).single as Map)['parts']) as List);
+    expect(parts[0], {'text': 'Read the sheet'});
+    expect(parts[1], {
+      'inlineData': {
+        'mimeType': 'image/webp',
+        'data': 'AQID',
+      },
+    });
+    final generationConfig = body['generationConfig'] as Map;
+    expect(
+      ((generationConfig['responseFormat'] as Map)['text'] as Map)['schema'],
+      _schema,
+    );
   });
 
   test('testConnection uses model endpoint without a generation request',
@@ -442,6 +591,49 @@ void main() {
     expect(
       client.generateText(
         'prompt',
+        imageBytes: Uint8List(AiProviderClient.maxImageBytes + 1),
+        mimeType: 'image/png',
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      client.generateStructured(
+        system: 'system',
+        prompt: 'prompt',
+        schema: _schema,
+        schemaName: 'settings',
+        imageBytes: Uint8List.fromList([1]),
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      client.generateStructured(
+        system: 'system',
+        prompt: 'prompt',
+        schema: _schema,
+        schemaName: 'settings',
+        imageBytes: Uint8List.fromList([1]),
+        mimeType: 'image/gif',
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      client.generateStructured(
+        system: 'system',
+        prompt: 'prompt',
+        schema: _schema,
+        schemaName: 'settings',
+        imageBytes: Uint8List.fromList([1]),
+        mimeType: 'image/svg+xml',
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      client.generateStructured(
+        system: 'system',
+        prompt: 'prompt',
+        schema: _schema,
+        schemaName: 'settings',
         imageBytes: Uint8List(AiProviderClient.maxImageBytes + 1),
         mimeType: 'image/png',
       ),

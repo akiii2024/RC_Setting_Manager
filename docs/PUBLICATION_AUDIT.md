@@ -15,7 +15,7 @@
 - `.env`、モバイル Firebase 設定ファイル、署名鍵、`key.properties` が Git 管理外であることを確認
 - Firebase クライアント API キーとサーバー秘密情報の違いをドキュメントで明確化
 - Gemini Functions の API キーを URL query ではなく `x-goog-api-key` ヘッダーで送信
-- AIプロバイダーの入力を、プロンプト50,000文字、system 20,000文字、schema 100,000文字、出力8,192 token、画像10 MiBに制限
+- AIプロバイダーの入力を、プロンプト50,000文字、system 20,000文字、schema 100,000文字、出力8,192 token、画像8 MiBに制限
 - XMLインポートを5 MiBに制限し、巨大入力をパース前に拒否
 - release UI で内部例外内容を表示しないよう変更
 

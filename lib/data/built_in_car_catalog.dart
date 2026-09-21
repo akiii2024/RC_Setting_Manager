@@ -27,6 +27,13 @@ abstract final class BuiltInCarCatalog {
         category: 'ツーリングカー',
       ),
       Car(
+        id: 'tamiya/trf420',
+        name: 'TRF420',
+        imageUrl: 'assets/images/trf420.jpg',
+        manufacturer: tamiya,
+        category: 'ツーリングカー',
+      ),
+      Car(
         id: 'tamiya/trf420x',
         name: 'TRF420X',
         imageUrl: 'assets/images/trf420x.jpg',

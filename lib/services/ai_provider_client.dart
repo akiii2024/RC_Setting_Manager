@@ -42,7 +42,7 @@ class AiProviderException implements Exception {
 ///
 /// APIキーはすべてHTTPヘッダーへ設定し、URL・本文・例外には含めない。
 class AiProviderClient {
-  static const int maxImageBytes = 10 * 1024 * 1024;
+  static const int maxImageBytes = 8 * 1024 * 1024;
   static const int maxPromptCharacters = 50000;
   static const int maxSystemCharacters = 20000;
   static const int maxSchemaCharacters = 100000;
@@ -120,6 +120,8 @@ class AiProviderClient {
     required String prompt,
     required Map<String, dynamic> schema,
     required String schemaName,
+    Uint8List? imageBytes,
+    String? mimeType,
     int maxTokens = 4096,
   }) async {
     final normalizedSystem = _requiredValue(
@@ -137,6 +139,7 @@ class AiProviderClient {
       throw ArgumentError('レスポンススキーマが大きすぎます。');
     }
     _validateMaxTokens(maxTokens);
+    final normalizedMimeType = _validateImage(imageBytes, mimeType);
 
     final response = switch (provider) {
       AiProvider.openAI => await _postJson(
@@ -145,7 +148,26 @@ class AiProviderClient {
           {
             'model': model,
             'instructions': normalizedSystem,
-            'input': normalizedPrompt,
+            'input': imageBytes == null
+                ? normalizedPrompt
+                : [
+                    {
+                      'role': 'user',
+                      'content': [
+                        {
+                          'type': 'input_text',
+                          'text': normalizedPrompt,
+                        },
+                        {
+                          'type': 'input_image',
+                          'image_url': _dataUrl(
+                            imageBytes,
+                            normalizedMimeType!,
+                          ),
+                        },
+                      ],
+                    },
+                  ],
             'max_output_tokens': maxTokens,
             'store': false,
             'text': {
@@ -168,7 +190,22 @@ class AiProviderClient {
             'messages': [
               {
                 'role': 'user',
-                'content': normalizedPrompt,
+                'content': imageBytes == null
+                    ? normalizedPrompt
+                    : [
+                        {
+                          'type': 'text',
+                          'text': normalizedPrompt,
+                        },
+                        {
+                          'type': 'image',
+                          'source': {
+                            'type': 'base64',
+                            'media_type': normalizedMimeType,
+                            'data': base64Encode(imageBytes),
+                          },
+                        },
+                      ],
               },
             ],
             'output_config': {
@@ -193,6 +230,13 @@ class AiProviderClient {
                 'role': 'user',
                 'parts': [
                   {'text': normalizedPrompt},
+                  if (imageBytes != null)
+                    {
+                      'inlineData': {
+                        'mimeType': normalizedMimeType,
+                        'data': base64Encode(imageBytes),
+                      },
+                    },
                 ],
               },
             ],
@@ -395,7 +439,7 @@ class AiProviderClient {
       throw ArgumentError('画像データが空です。');
     }
     if (imageBytes.lengthInBytes > maxImageBytes) {
-      throw ArgumentError('画像は10 MiB以下にしてください。');
+      throw ArgumentError('画像は8 MiB以下にしてください。');
     }
 
     final normalized = mimeType?.trim().toLowerCase() ?? '';
@@ -403,10 +447,9 @@ class AiProviderClient {
       'image/jpeg',
       'image/png',
       'image/webp',
-      'image/gif',
     };
     if (!supportedImageTypes.contains(normalized)) {
-      throw ArgumentError('JPEG、PNG、WebP、GIFの画像を指定してください。');
+      throw ArgumentError('JPEG、PNG、WebPの画像を指定してください。');
     }
     return normalized;
   }

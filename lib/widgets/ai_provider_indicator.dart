@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/ai_provider.dart';
 import '../services/ai_configuration_service.dart';
 
-class AiProviderIndicator extends StatelessWidget {
+class AiProviderIndicator extends StatefulWidget {
   const AiProviderIndicator({
     super.key,
     this.configurationService,
@@ -14,9 +14,35 @@ class AiProviderIndicator extends StatelessWidget {
   final bool compact;
 
   @override
+  State<AiProviderIndicator> createState() => _AiProviderIndicatorState();
+}
+
+class _AiProviderIndicatorState extends State<AiProviderIndicator> {
+  late AiConfigurationService _configurationService;
+  late Future<AiProviderSettings> _settings;
+
+  @override
+  void initState() {
+    super.initState();
+    _configurationService =
+        widget.configurationService ?? AiConfigurationService();
+    _settings = _configurationService.activeSettings;
+  }
+
+  @override
+  void didUpdateWidget(covariant AiProviderIndicator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.configurationService != widget.configurationService) {
+      _configurationService =
+          widget.configurationService ?? AiConfigurationService();
+      _settings = _configurationService.activeSettings;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return FutureBuilder<AiProviderSettings>(
-      future: (configurationService ?? AiConfigurationService()).activeSettings,
+      future: _settings,
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const SizedBox.shrink();
@@ -25,8 +51,8 @@ class AiProviderIndicator extends StatelessWidget {
         final colorScheme = Theme.of(context).colorScheme;
         return Container(
           padding: EdgeInsets.symmetric(
-            horizontal: compact ? 8 : 10,
-            vertical: compact ? 4 : 6,
+            horizontal: widget.compact ? 8 : 10,
+            vertical: widget.compact ? 4 : 6,
           ),
           decoration: BoxDecoration(
             color: colorScheme.secondaryContainer,
@@ -37,7 +63,7 @@ class AiProviderIndicator extends StatelessWidget {
             children: [
               Icon(
                 Icons.auto_awesome_outlined,
-                size: compact ? 14 : 16,
+                size: widget.compact ? 14 : 16,
                 color: colorScheme.onSecondaryContainer,
               ),
               const SizedBox(width: 6),

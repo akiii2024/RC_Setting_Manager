@@ -9,6 +9,7 @@ void main() {
     final catalog = BuiltInCarCatalog.create();
     expect(catalog.map((car) => car.id), [
       'tamiya/trf421',
+      'tamiya/trf420',
       'tamiya/trf420x',
       'tamiya/trf421x',
       'yokomo/bd11',
