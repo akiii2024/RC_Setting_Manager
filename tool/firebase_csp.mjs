@@ -2,7 +2,7 @@
 // Permit only the exact FlutterFire SDK loader bodies, including both the
 // Trusted Types and Safari branches. Never enable unsafe-inline for scripts.
 import {createHash} from 'node:crypto';
-import {readFileSync, writeFileSync} from 'node:fs';
+import {readdirSync, readFileSync, writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 
 const root = new URL('../', import.meta.url);
@@ -26,14 +26,25 @@ if (templates.length !== 2 || templates.some((s) =>
   throw new Error('FlutterFire loader changed; review CSP generation.');
 }
 
+const readDartSources = (directory) => readdirSync(directory, {
+  withFileTypes: true,
+}).flatMap((entry) => {
+  const path = new URL(entry.name + (entry.isDirectory() ? '/' : ''), directory);
+  if (entry.isDirectory()) return readDartSources(path);
+  return entry.isFile() && entry.name.endsWith('.dart')
+    ? [readFileSync(path, 'utf8')]
+    : [];
+});
+
 const services = [{name: 'app', variable: 'core'}];
 for (const pkg of packages.filter((p) => p.name.endsWith('_web') &&
     /^(firebase_|cloud_)/.test(p.name) && p.name !== 'firebase_core_web')) {
   const pkgRoot = new URL(pkg.rootUri.replace(/\/?$/, '/'), configUrl);
-  const entry = readFileSync(new URL(`lib/${pkg.name}.dart`, pkgRoot), 'utf8');
-  for (const match of entry.matchAll(
-      /FirebaseCoreWeb\.registerService\(\s*'([^']+)'(?:,\s*productNameOverride:\s*'([^']+)')?/g)) {
-    services.push({name: match[1], variable: match[2] ?? match[1]});
+  for (const source of readDartSources(new URL('lib/', pkgRoot))) {
+    for (const match of source.matchAll(
+        /FirebaseCoreWeb\.registerService\(\s*'([^']+)'(?:,\s*productNameOverride:\s*'([^']+)')?/g)) {
+      services.push({name: match[1], variable: match[2] ?? match[1]});
+    }
   }
 }
 export const loaders = services.flatMap(({name, variable}) => {
