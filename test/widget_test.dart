@@ -84,6 +84,7 @@ void main() {
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'language_settings': true,
+      'tutorial_completed_v1': true,
       'cars_settings': jsonEncode([_testCar().toJson()]),
     });
 
@@ -118,6 +119,7 @@ void main() {
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'language_settings': true,
+      'tutorial_completed_v1': true,
       'cars_settings': jsonEncode([_testCar().toJson()]),
     });
     final provider = _createSettingsProvider();
@@ -199,6 +201,7 @@ void main() {
       (WidgetTester tester) async {
     SharedPreferences.setMockInitialValues({
       'language_settings': true,
+      'tutorial_completed_v1': true,
       'cars_settings': jsonEncode([_testCar().toJson()]),
     });
     await ApiConsentService.grantConsent(
@@ -357,7 +360,8 @@ void main() {
     await _pumpUntilInitialized(tester, provider);
     await tester.pump();
     await tester.pump();
-    expect(find.textContaining('cloud_functions/unauthenticated'), findsOneWidget);
+    expect(
+        find.textContaining('cloud_functions/unauthenticated'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

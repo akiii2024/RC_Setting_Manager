@@ -578,6 +578,23 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 16.0),
           ListTile(
+            key: const Key('tutorial-replay-tile'),
+            title: Text(
+              isEnglish ? 'View Tutorial' : 'チュートリアルを見る',
+            ),
+            subtitle: Text(
+              isEnglish
+                  ? 'Review the basic workflow and main controls'
+                  : '基本の使い方と主な操作をもう一度確認します',
+            ),
+            leading: const Icon(Icons.help_outline_rounded),
+            trailing: const Icon(Icons.arrow_forward_ios),
+            onTap: () => Navigator.of(context).pushNamed('/tutorial'),
+            contentPadding:
+                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+          ),
+          const SizedBox(height: 16.0),
+          ListTile(
             title: Text(isEnglish ? 'About This App' : 'アプリについて'),
             trailing: const Icon(Icons.arrow_forward_ios),
             onTap: () => _showAboutDialog(context),

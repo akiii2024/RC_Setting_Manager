@@ -486,6 +486,7 @@ class _GradientFab extends StatelessWidget {
   final VoidCallback onTap;
 
   const _GradientFab({
+    super.key,
     required this.tooltip,
     required this.onTap,
   });

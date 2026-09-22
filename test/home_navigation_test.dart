@@ -34,7 +34,10 @@ Finder _appBarText(String text) => find.descendant(
 
 void main() {
   setUp(() {
-    SharedPreferences.setMockInitialValues({'language_settings': true});
+    SharedPreferences.setMockInitialValues({
+      'language_settings': true,
+      'tutorial_completed_v1': true,
+    });
   });
 
   testWidgets('bottom navigation keeps destination titles aligned',

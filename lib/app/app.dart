@@ -213,6 +213,9 @@ class MyApp extends StatelessWidget {
                 '/': (context) => const AuthWrapper(),
                 '/car-selection': (context) => const CarSelectionPage(),
                 '/settings': (context) => const SettingsPage(),
+                '/tutorial': (context) => const HomePage(
+                      tutorialLaunchMode: TutorialLaunchMode.manualReplay,
+                    ),
               },
               onGenerateRoute: (settings) {
                 if (settings.name?.startsWith('/') ?? false) {

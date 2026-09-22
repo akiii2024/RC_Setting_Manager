@@ -44,6 +44,7 @@ void main() {
     SharedPreferences.setMockInitialValues({
       'language_settings': true,
       'online_mode': false,
+      'tutorial_completed_v1': true,
     });
   });
 
@@ -67,6 +68,7 @@ void main() {
     expect(materialApp.locale, const Locale('en', 'US'));
     expect(materialApp.routes, contains('/car-selection'));
     expect(materialApp.routes, contains('/settings'));
+    expect(materialApp.routes, contains('/tutorial'));
     expect(find.byType(HomePage), findsOneWidget);
   });
 
