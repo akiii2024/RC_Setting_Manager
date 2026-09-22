@@ -64,6 +64,10 @@ if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
   if (!directive || directive.includes("'unsafe-inline'")) {
     throw new Error('Missing or unsafe script-src directive.');
   }
+  const connectDirective = html.match(/connect-src [^;]+;/)?.[0];
+  if (!connectDirective?.split(/\s+/).includes('blob:')) {
+    throw new Error('connect-src must allow blob: for web image bytes.');
+  }
   // All script-src SHA-256 hashes in this app are managed by this generator.
   const base = directive.replace(/ 'sha256-[^']+'/g, '').slice(0, -1);
   const updated = html.replace(directive, `${base} ${hashes.join(' ')};`);
