@@ -310,7 +310,7 @@ void main() {
         ((body['output_config'] as Map)['format'] as Map)['schema'], _schema);
   });
 
-  test('Gemini uses header authentication and responseFormat schema', () async {
+  test('Gemini uses header authentication and response JSON schema', () async {
     late http.Request capturedRequest;
     final transport = MockClient((request) async {
       capturedRequest = request;
@@ -354,10 +354,8 @@ void main() {
     final body = jsonDecode(capturedRequest.body) as Map<String, dynamic>;
     expect(((body['systemInstruction'] as Map)['parts'] as List), isNotEmpty);
     final generationConfig = body['generationConfig'] as Map;
-    final textFormat =
-        ((generationConfig['responseFormat'] as Map)['text'] as Map);
-    expect(textFormat['mimeType'], 'application/json');
-    expect(textFormat['schema'], _schema);
+    expect(generationConfig['responseMimeType'], 'application/json');
+    expect(generationConfig['responseJsonSchema'], _schema);
     expect(capturedRequest.body, isNot(contains('provider-secret-key')));
   });
 
@@ -411,10 +409,7 @@ void main() {
       },
     });
     final generationConfig = body['generationConfig'] as Map;
-    expect(
-      ((generationConfig['responseFormat'] as Map)['text'] as Map)['schema'],
-      _schema,
-    );
+    expect(generationConfig['responseJsonSchema'], _schema);
   });
 
   test('testConnection uses model endpoint without a generation request',

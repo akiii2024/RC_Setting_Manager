@@ -81,7 +81,7 @@ class OCRService {
     }
 
     final profileId = _profileId(carId);
-    final schema = _responseSchema(catalog);
+    final schema = _responseSchema();
     final prompt = _buildPrompt(
       carId: carId,
       carName: carName,
@@ -280,7 +280,10 @@ class OCRService {
       parsed.add(_validateCandidate(candidate, catalogByKey));
     }
 
-    final merged = _mergeCandidates(parsed);
+    final merged = _guardCompositeCandidates(
+      _mergeCandidates(parsed),
+      catalogByKey,
+    );
     final detectedModel = json['detectedModel']?.toString().trim() ?? '';
     final warnings = <String>[
       if (json['warnings'] is List)
@@ -323,6 +326,7 @@ class OCRService {
 
     dynamic normalized;
     String? rejection;
+    var normalizedPoints = const <OcrGridPoint>[];
     switch (entry.type) {
       case 'grid':
         final rows = _constraintInt(entry.constraints['rows']);
@@ -332,7 +336,12 @@ class OCRService {
           rejection = 'グリッド定義が不正です';
           break;
         }
-        final points = candidate.points.toSet().toList()
+        final rawValuePoints = _parseGridPoints(candidate.rawValue);
+        final points = (rawValuePoints.isNotEmpty
+                ? rawValuePoints
+                : candidate.points)
+            .toSet()
+            .toList()
           ..sort((a, b) {
             final rowOrder = a.row.compareTo(b.row);
             return rowOrder != 0 ? rowOrder : a.col.compareTo(b.col);
@@ -348,6 +357,7 @@ class OCRService {
         } else if (!multiple && points.length != 1) {
           rejection = '単一選択の項目で複数位置が検出されました';
         } else {
+          normalizedPoints = points;
           normalized = points.map((point) => point.toJson()).toList();
         }
       case 'number':
@@ -405,7 +415,7 @@ class OCRService {
       key: candidate.key,
       label: entry.label,
       rawValue: candidate.rawValue,
-      points: candidate.points,
+      points: entry.type == 'grid' ? normalizedPoints : const [],
       confidence: candidate.confidence,
       evidence: candidate.evidence,
       value: normalized,
@@ -456,6 +466,41 @@ class OCRService {
     return merged;
   }
 
+  List<OcrCandidate> _guardCompositeCandidates(
+    List<OcrCandidate> candidates,
+    Map<String, _OcrCatalogEntry> catalog,
+  ) {
+    final unsafeKeys = <String>{};
+    for (final entry in catalog.values) {
+      if (entry.constraints['composite'] != 'damperPiston') continue;
+      final holeKey = entry.constraints['holeKey']?.toString();
+      if (holeKey == null || holeKey.isEmpty) continue;
+      final group = candidates.where(
+        (candidate) => candidate.key == entry.key || candidate.key == holeKey,
+      );
+      if (group.any((candidate) => !candidate.isValid)) {
+        unsafeKeys.add(entry.key);
+        unsafeKeys.add(holeKey);
+      }
+    }
+    if (unsafeKeys.isEmpty) return candidates;
+    return [
+      for (final candidate in candidates)
+        if (!unsafeKeys.contains(candidate.key) || !candidate.isValid)
+          candidate
+        else
+          OcrCandidate(
+            key: candidate.key,
+            label: candidate.label,
+            rawValue: candidate.rawValue,
+            points: candidate.points,
+            confidence: candidate.confidence,
+            evidence: candidate.evidence,
+            rejectionReason: 'ピストン径と穴数の分割結果に不整合があります',
+          ),
+    ];
+  }
+
   double? _parseNumber(String rawValue, String? unit) {
     var normalized = _normalizeFullWidth(rawValue)
         .replaceAll(',', '.')
@@ -470,6 +515,34 @@ class OCRService {
         .replaceAll(RegExp(r'[#°度φΦＴTｇg％%]'), ' ');
     final match = RegExp(r'-?\d+(?:\.\d+)?').firstMatch(normalized);
     return match == null ? null : double.tryParse(match.group(0)!);
+  }
+
+  List<OcrGridPoint> _parseGridPoints(String rawValue) {
+    final points = <OcrGridPoint>[];
+    final bracketPattern = RegExp(r'\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]');
+    for (final match in bracketPattern.allMatches(rawValue)) {
+      points.add(
+        OcrGridPoint(
+          row: int.parse(match.group(1)!),
+          col: int.parse(match.group(2)!),
+        ),
+      );
+    }
+    if (points.isNotEmpty) return points;
+
+    final rowColPattern = RegExp(
+      r'row\s*:?\s*(-?\d+)\D+col(?:umn)?\s*:?\s*(-?\d+)',
+      caseSensitive: false,
+    );
+    for (final match in rowColPattern.allMatches(rawValue)) {
+      points.add(
+        OcrGridPoint(
+          row: int.parse(match.group(1)!),
+          col: int.parse(match.group(2)!),
+        ),
+      );
+    }
+    return points;
   }
 
   String _normalizeFullWidth(String value) {
@@ -572,9 +645,9 @@ class OCRService {
   }) {
     final layoutHint = switch (profileId) {
       'trf421' =>
-        'TRF421: Front is upper-left, Rear upper-right, Top across the bottom. Red X marks selections. Motor-mount screws use a 2x7 multiple grid.',
+        'TRF421: Front is upper-left, Rear upper-right, Top across the bottom. Red X marks selections. Distinguish the separately marked 4mmナロー, 4mm, and 5mm wheel-hub checkboxes. A value is printed immediately on the LEFT of its checkbox, so an X immediately right of 0.5 means 0.5, not the following value; apply this to 0.5/0.8 and Hi/Lo. The three damper drawings are positions 1, 2, 3 from left to right. Red/Black stabilizer text belongs in the StabilizerNote helper key. On Piston lines, the value before φ is diameter and the value before hole(s) is hole count; omit a blank diameter. Motor-mount screws use the lower diagrams as one 2x7 multiple grid. Count only red X marks inside square boxes; circular printed screw holes are never selections.',
       'trf420' =>
-        'TRF420: this is the older TRF420 sheet, not TRF420X. Filled black circles mark selections. Front/Rear shaft positions are 5x5 grids and top screw positions are a 1x7 multiple grid.',
+        'TRF420: this is the older TRF420 sheet, not TRF420X. Filled black circles mark selections. The upper numbered 1-4 dot row is Damper Arm; the lower three damper drawings are Damper Stay positions 1-3 from left to right. Front/Rear shaft positions are zero-based 5x5 grids and top screw positions are a zero-based 1x7 multiple grid. For all grids, count only solid black filled dots; outlined printed circles and holes are unselected.',
       'trf420x' =>
         'TRF420X: Front is upper-left, Rear upper-right, Top at the bottom. Red X or a clearly filled mark selects options. Shaft positions are 5x5 grids and top screws use a 1x7 multiple grid.',
       _ =>
@@ -597,6 +670,8 @@ Rules:
 3. Never fill blank fields and never copy defaults from the catalog.
 4. Keep Front/Rear, In/Out, F/R mount, Stay/Arm, and similarly named fields separate using page position.
 5. Preserve signs and decimals. Return canonical select option text from the catalog.
+   When options share the same number, use the complete printed label and marked row; never shorten a qualified option such as 4mmナロー to 4mm.
+   Transcribe free text exactly as visible; never expand abbreviations or replace a product name from prior knowledge.
 6. For a grid, set rawValue to an empty string and return zero-based points from top-left. Return every selected point only when multiple=true.
 7. Split piston diameter and hole count, differential oil number and weight, and stabilizer diameter and color/note into their separate catalog keys.
 8. Confidence describes visual readability: high, medium, or low. Do not omit a readable low-confidence candidate, but do not guess.
@@ -604,30 +679,28 @@ Rules:
 ''';
   }
 
-  Map<String, dynamic> _responseSchema(List<_OcrCatalogEntry> catalog) {
+  Map<String, dynamic> _responseSchema() {
     return {
       'type': 'object',
-      'additionalProperties': false,
       'properties': {
         'detectedModel': {'type': 'string'},
         'candidates': {
           'type': 'array',
-          'maxItems': 160,
           'items': {
             'type': 'object',
-            'additionalProperties': false,
             'properties': {
-              'key': {
+              'key': {'type': 'string'},
+              'rawValue': {
                 'type': 'string',
-                'enum': catalog.map((entry) => entry.key).toList(),
+                'description':
+                    'Visible text value. For grid fields, use an empty string.',
               },
-              'rawValue': {'type': 'string'},
               'points': {
                 'type': 'array',
-                'maxItems': 32,
+                'description':
+                    'Selected zero-based grid cells only. Use [] for non-grid fields; never page or bounding-box coordinates.',
                 'items': {
                   'type': 'object',
-                  'additionalProperties': false,
                   'properties': {
                     'row': {'type': 'integer'},
                     'col': {'type': 'integer'},
@@ -652,7 +725,6 @@ Rules:
         },
         'warnings': {
           'type': 'array',
-          'maxItems': 20,
           'items': {'type': 'string'},
         },
       },

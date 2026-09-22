@@ -98,7 +98,7 @@ void main() {
         'categories': 'e8eb5d01',
         'options': '9ca9378b',
         'composites': '2a570281',
-        'fullShape': 'd467bb34',
+        'fullShape': 'd57f5778',
       },
       'tamiya/trf420x': {
         'count': 94,

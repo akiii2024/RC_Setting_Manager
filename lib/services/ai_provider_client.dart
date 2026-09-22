@@ -242,12 +242,8 @@ class AiProviderClient {
             ],
             'generationConfig': {
               'maxOutputTokens': maxTokens,
-              'responseFormat': {
-                'text': {
-                  'mimeType': 'application/json',
-                  'schema': schema,
-                },
-              },
+              'responseMimeType': 'application/json',
+              'responseJsonSchema': schema,
             },
           },
         ),

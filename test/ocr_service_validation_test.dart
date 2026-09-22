@@ -230,6 +230,59 @@ void main() {
     ]);
   });
 
+  test('用紙座標がpointsへ混入した場合はrawValueのグリッド座標を検証して使う', () async {
+    final result = await _extractManaged({
+      'detectedModel': 'TRF420X',
+      'candidates': [
+        _candidate(
+          'frontSusMountFrontShaftPosition',
+          '[3,2]',
+          'high',
+          points: const [
+            {'row': 17, 'col': 3},
+          ],
+        ),
+        _candidate(
+          'topScrewPositions',
+          '[0,4], [0,3], [0,4]',
+          'high',
+          points: const [
+            {'row': 42, 'col': 8},
+          ],
+        ),
+      ],
+      'warnings': <String>[],
+    });
+
+    final byKey = {for (final item in result.candidates) item.key: item};
+    expect(byKey['frontSusMountFrontShaftPosition']!.value, [
+      {'row': 3, 'col': 2},
+    ]);
+    expect(byKey['topScrewPositions']!.value, [
+      {'row': 0, 'col': 3},
+      {'row': 0, 'col': 4},
+    ]);
+  });
+
+  test('ピストン径と穴数の片方が不正なら複合項目を自動選択しない', () async {
+    final result = await _extractManaged({
+      'detectedModel': 'TRF420X',
+      'candidates': [
+        _candidate('frontDamperPiston', '4', 'high'),
+        _candidate('frontDamperPistonHole', '2', 'high'),
+      ],
+      'warnings': <String>[],
+    });
+
+    final byKey = {for (final item in result.candidates) item.key: item};
+    expect(byKey['frontDamperPiston']!.isValid, isFalse);
+    expect(byKey['frontDamperPistonHole']!.isValid, isFalse);
+    expect(
+      byKey['frontDamperPistonHole']!.rejectionReason,
+      contains('分割結果に不整合'),
+    );
+  });
+
   test('明確な車種不一致を停止し、検出不能は警告付きで継続する', () async {
     final mismatch = await _extractManaged({
       'detectedModel': 'TRF421',

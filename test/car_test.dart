@@ -274,6 +274,10 @@ void main() {
       expect(settings['frontDamperPositionArm']!.options, hasLength(4));
       expect(settings['rearDamperPositionStay']!.options, hasLength(3));
       expect(settings['rearDamperPositionArm']!.options, hasLength(4));
+      expect(
+        settings['frontUpperArmSpacerMount']!.constraints,
+        containsPair('step', 0.1),
+      );
       expect(settings['frontSusMountFrontShaftPosition']!.constraints,
           containsPair('rows', 5));
       expect(

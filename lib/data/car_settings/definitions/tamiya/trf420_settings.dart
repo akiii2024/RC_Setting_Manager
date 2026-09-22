@@ -149,7 +149,11 @@ SettingItem _copySetting(SettingItem setting) {
   return SettingItem(
     key: setting.key,
     type: setting.type,
-    constraints: Map<String, dynamic>.from(setting.constraints),
+    constraints: {
+      ...setting.constraints,
+      // The legacy 420 sheet accepts values such as 0.8 mm here.
+      if (setting.key == 'frontUpperArmSpacerMount') 'step': 0.1,
+    },
     unit: setting.unit,
     category: setting.category,
     label: setting.label,

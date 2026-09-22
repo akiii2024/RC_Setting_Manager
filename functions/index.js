@@ -12,6 +12,7 @@ const openWeatherApiKey = defineSecret("OPENWEATHER_API_KEY");
 
 const region = "asia-northeast1";
 const geminiModel = "gemini-3.8-flash";
+const settingSheetGeminiModel = "gemini-2.5-flash";
 const geminiBaseUrl = "https://generativelanguage.googleapis.com/v1beta";
 const weatherBaseUrl = "https://api.openweathermap.org/data/2.5/weather";
 
@@ -170,42 +171,41 @@ const settingSheetConfidence = {
   enum: ["high", "medium", "low"],
 };
 
-function settingSheetSchema(catalog) {
-  const keys = catalog.map((item) => item.key);
+function settingSheetSchema() {
   return {
     type: "object",
-    additionalProperties: false,
     properties: {
-      detectedModel: {type: "string", maxLength: 160},
+      detectedModel: {type: "string"},
       candidates: {
         type: "array",
-        maxItems: Math.min(200, Math.max(1, keys.length * 2)),
         items: {
           type: "object",
-          additionalProperties: false,
           properties: {
-            key: {type: "string", enum: keys},
-            rawValue: {type: "string", maxLength: 500},
+            key: {type: "string"},
+            rawValue: {
+              type: "string",
+              description: "Visible text value. For grid fields, use an empty string.",
+            },
             points: {
               type: "array",
-              maxItems: 100,
+              description: "Selected zero-based grid cells only. Use [] for every " +
+                "non-grid field. Never return page, line, pixel, or bounding-box coordinates.",
               items: {
                 type: "object",
-                additionalProperties: false,
                 properties: {
-                  row: {type: "integer", minimum: 0, maximum: 100},
-                  col: {type: "integer", minimum: 0, maximum: 100},
+                  row: {type: "integer"},
+                  col: {type: "integer"},
                 },
                 required: ["row", "col"],
               },
             },
             confidence: settingSheetConfidence,
-            evidence: {type: "string", maxLength: 500},
+            evidence: {type: "string"},
           },
           required: ["key", "rawValue", "points", "confidence", "evidence"],
         },
       },
-      warnings: {type: "array", items: {type: "string", maxLength: 500}, maxItems: 20},
+      warnings: {type: "array", items: {type: "string"}},
     },
     required: ["detectedModel", "candidates", "warnings"],
   };
@@ -628,6 +628,10 @@ Distinguish Front and Rear, and distinguish Damper Stay from Damper Arm by their
 For grids, use zero-based coordinates with the top-left cell at row 0, col 0.
 Split compound values into the catalog keys where applicable, such as piston diameter versus hole count,
 differential oil number versus weight, and stabilizer diameter versus color/name.
+When select options share the same numeric text, use the complete printed label and marked row;
+never shorten or merge a qualified option such as 4mm narrow into 4mm.
+Transcribe free text exactly as visible; never expand abbreviations or replace a product name
+with a more specific name from prior knowledge.
 Use only keys from the supplied catalog. Give concise evidence describing the visible label or mark.
 If the vehicle model cannot be identified, leave detectedModel empty and add a warning.`;
 }
@@ -635,13 +639,25 @@ If the vehicle model cannot be identified, leave detectedModel empty and add a w
 function settingSheetProfileInstruction(profileId) {
   switch (profileId) {
     case "trf421":
-      return "TRF421 layout: distinguish 4mm narrow from 4mm wheel hubs, Hi/Lo " +
-        "differential positions, front/rear damper positions, stabilizer color notes, " +
-        "and all marked motor-mount screw positions.";
+      return "TRF421 layout: distinguish the separately marked 4mm narrow, 4mm, " +
+        "and 5mm wheel-hub checkboxes. For each differential-position line, bind each " +
+        "mark to the 0.5/0.8 or Hi/Lo value printed immediately on the LEFT of that " +
+        "checkbox; a red X immediately right of 0.5 means 0.5, not the value after it. " +
+        "The three damper drawings are " +
+        "positions 1, 2, 3 from left to right. Put Red/Black stabilizer text in the " +
+        "StabilizerNote helper key, not the numeric stabilizer key. On a Piston line, " +
+        "the value before phi is diameter and the value immediately before hole(s) is " +
+        "hole count; omit a blank diameter. Read every red X in the lower motor-mount " +
+        "screw diagrams as one zero-based 2x7 multiple grid. Count only red X marks " +
+        "inside square boxes; circular printed screw holes are never selections, and " +
+        "the returned point count must equal the visible red-X box count.";
     case "trf420":
       return "TRF420 layout: read filled dots, separate front/rear F and R suspension-" +
-        "mount spacers, use 3-position Stay and 4-position Arm damper rows, and read " +
-        "5x5 shaft grids, the 1x7 screw row, battery position, and ballast A-E.";
+        "mount spacers. The upper numbered 1-4 dot row is Damper Arm; the lower three " +
+        "damper drawings are Damper Stay positions 1-3 from left to right. Read " +
+        "5x5 shaft grids and the 1x7 screw row using only solid black filled dots; " +
+        "outlined printed circles and holes are unselected. Also read battery position " +
+        "and ballast A-E.";
     case "trf420x":
       return "TRF420X layout: read red X marks, K1 and XB/A/B mount choices, 5x5 " +
         "shaft grids, rear suspension type/hardness, and the 1x7 screw-position row.";
@@ -980,6 +996,8 @@ async function callGeminiRequest(model, requestBody) {
       status: response.status,
       model,
       apiStatus: body?.error?.status,
+      apiMessage: typeof body?.error?.message === "string" ?
+        body.error.message.slice(0, 500) : undefined,
     });
     throw new HttpsError("internal", "The AI service request failed.");
   }
@@ -1033,7 +1051,7 @@ async function callGemini(contents) {
 }
 
 async function callSettingSheetExtractionOnce(request) {
-  const result = await callGeminiRequest(geminiModel, {
+  const result = await callGeminiRequest(settingSheetGeminiModel, {
     systemInstruction: {parts: [{text: settingSheetSystemInstruction()}]},
     contents: [{
       role: "user",
@@ -1046,20 +1064,18 @@ async function callSettingSheetExtractionOnce(request) {
           profileId: request.profileId,
           catalog: request.catalog,
         })},
-        {inlineData: request.image},
+        {
+          inlineData: request.image,
+          mediaResolution: {level: "MEDIA_RESOLUTION_HIGH"},
+        },
       ],
     }],
     generationConfig: {
-      thinkingConfig: {thinkingLevel: "LOW"},
+      thinkingConfig: {thinkingBudget: 1024},
       maxOutputTokens: 8192,
-      responseFormat: {
-        text: {
-          mimeType: "application/json",
-          schema: settingSheetSchema(request.catalog),
-        },
-      },
+      responseMimeType: "application/json",
+      responseJsonSchema: settingSheetSchema(request.catalog),
     },
-    store: false,
   });
   let parsed;
   try {
@@ -1274,12 +1290,11 @@ async function callSettingAdvisor(request) {
       maxOutputTokens: request.phase === "chat" ? 1024 : 4096,
       responseFormat: {
         text: {
-          mimeType: "application/json",
+          mimeType: "APPLICATION_JSON",
           schema,
         },
       },
     },
-    store: false,
   });
 
   let parsed;
@@ -1446,9 +1461,8 @@ async function callTelemetryAnalysis(request) {
     generationConfig: {
       thinkingConfig: {thinkingLevel: "LOW"},
       maxOutputTokens: 4096,
-      responseFormat: {text: {mimeType: "application/json", schema: telemetryAnalysisSchema}},
+      responseFormat: {text: {mimeType: "APPLICATION_JSON", schema: telemetryAnalysisSchema}},
     },
-    store: false,
   });
   let parsed;
   try {

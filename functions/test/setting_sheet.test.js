@@ -67,6 +67,12 @@ test("system instruction treats image content as untrusted data", () => {
   assert.match(instruction, /Never infer/);
   assert.match(instruction, /zero-based/);
   assert.match(instruction, /Front and Rear/);
+  assert.match(__test.settingSheetProfileInstruction("trf421"), /4mm narrow/);
+  assert.match(__test.settingSheetProfileInstruction("trf421"), /left to right/);
+  assert.match(__test.settingSheetProfileInstruction("trf421"), /immediately on the LEFT/);
+  assert.match(__test.settingSheetProfileInstruction("trf421"), /circular printed screw holes/);
+  assert.match(__test.settingSheetProfileInstruction("trf420"), /upper numbered 1-4/);
+  assert.match(__test.settingSheetProfileInstruction("trf420"), /solid black filled dots/);
   assert.match(__test.settingSheetProfileInstruction("trf420"), /5x5 shaft grids/);
 });
 
@@ -127,12 +133,16 @@ test("keeps multiple detected points for local single-grid rejection", () => {
   ]);
 });
 
-test("schema restricts candidate keys to catalog keys", () => {
+test("schema stays compact while normalization rejects unknown keys", () => {
   const schema = __test.settingSheetSchema(__test.normalizeSettingSheetRequest(requestData()).catalog);
-  assert.deepEqual(schema.properties.candidates.items.properties.key.enum, [
-    "frontWheelHub", "rearMountGrid", "toeAngle",
-  ]);
+  assert.equal(schema.properties.candidates.items.properties.key.maxLength, undefined);
+  assert.equal(schema.properties.candidates.items.properties.key.enum, undefined);
   assert.equal(schema.properties.candidates.items.properties.rawValue.type, "string");
+  assert.equal(schema.properties.candidates.maxItems, undefined);
+  assert.equal(
+      schema.properties.candidates.items.properties.points.items.properties.row.maximum,
+      undefined,
+  );
 });
 
 test("retries are limited to OCR protocol failures", async () => {
