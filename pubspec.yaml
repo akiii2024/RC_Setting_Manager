@@ -2,7 +2,7 @@ name: rc_setting_manager
 description: "RC Setting Manager"
 publish_to: 'none'
 
-version: 0.0.1+1
+version: 0.1.0+2
 
 environment:
   sdk: '>=3.3.4 <4.0.0'

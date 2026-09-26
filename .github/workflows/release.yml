@@ -1,0 +1,76 @@
+name: Build and Release Android APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Java
+        uses: actions/setup-java@dded088997f5e2afcd0d8dbd8c3e95d3e3d9d6c6 # v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
+        with:
+          flutter-version: '3.35.3'
+          channel: 'stable'
+          cache: true
+
+      - name: Restore release keystore
+        env:
+          ANDROID_KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          mkdir -p android/keystores
+          echo "$ANDROID_KEYSTORE_B64" | base64 --decode > android/keystores/rc-setting-manager-upload.jks
+          cat > android/key.properties <<EOF
+          storePassword=$ANDROID_KEYSTORE_PASSWORD
+          keyPassword=$ANDROID_KEY_PASSWORD
+          keyAlias=$ANDROID_KEY_ALIAS
+          storeFile=../keystores/rc-setting-manager-upload.jks
+          EOF
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run tests
+        run: flutter test
+
+      - name: Build APK (release, signed)
+        run: flutter build apk --release
+
+      - name: Rename artifact
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk \
+             "dist/RC_Setting_Manager-v${VERSION}.apk"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@68444eb4515f93d782e01990d09b05f0cc4a22e4 # v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: RC_Setting_Manager ${{ github.ref_name }}
+          generate_release_notes: true
+          files: dist/*.apk
+          fail_on_unmatched_files: true
