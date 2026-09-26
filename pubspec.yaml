@@ -35,7 +35,7 @@ dependencies:
   firebase_storage: ^13.0.6
   file_picker: ^11.0.3
   video_player: ^2.10.1
-  archive: ^4.0.9
+  archive: ^4.3.0
   hive_ce_flutter: ^2.3.4
 
 dev_dependencies:
