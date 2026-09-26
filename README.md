@@ -104,7 +104,7 @@ Functions のリージョンは既定で `asia-northeast1` です。変更する
 ### 対応デバイス・OS
 
 #### Android
-- **OSバージョン**: Android 5.0（API 21）以上
+- **OSバージョン**: Android 7.0（API 24）以上
 - **インストール方法**: APKファイルまたはPWA（プログレッシブウェブアプリ）
 
 #### iOS
