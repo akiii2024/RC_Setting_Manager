@@ -50,7 +50,9 @@ jobs:
           EOF
 
       - name: Install dependencies
-        run: flutter pub get
+        run: |
+          flutter pub upgrade firebase_app_check firebase_app_check_web firebase_core
+          flutter pub get
 
       - name: Run tests
         run: flutter test
