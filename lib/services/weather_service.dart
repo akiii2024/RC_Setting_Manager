@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:rc_setting_manager/utils/app_logger.dart';
 import 'dart:convert';
 import 'dart:math' as math;
@@ -36,6 +37,7 @@ class WeatherService {
   }
 
   Future<WeatherData> fetchCurrentWeather({bool forceRefresh = false}) async {
+    late final Future<WeatherData> weatherOperation;
     try {
       debugLog(
         '[Weather Debug] getCurrentWeather: getting current position...',
@@ -47,11 +49,12 @@ class WeatherService {
         'lon=${position.longitude}',
       );
 
-      return fetchWeatherByCoordinates(
+      weatherOperation = fetchWeatherByCoordinates(
         position.latitude,
         position.longitude,
         forceRefresh: forceRefresh,
       );
+      unawaited(weatherOperation);
     } on LocationException catch (e) {
       throw WeatherException(
         e.message,
@@ -65,6 +68,7 @@ class WeatherService {
         },
       );
     }
+    return weatherOperation;
   }
 
   Future<WeatherData?> getWeatherByCoordinates(

@@ -34,7 +34,7 @@ void main() {
           );
 
           final expectedWeight =
-              ((style.fontWeight ?? FontWeight.w400).index + 1) * 100.0;
+              (style.fontWeight ?? FontWeight.w400).value.toDouble();
           final weightVariation = style.fontVariations?.singleWhere(
             (variation) => variation.axis == 'wght',
           );

@@ -13,7 +13,7 @@ abstract final class AppTheme {
       // Flutter 3.35 does not map FontWeight to a variable font's wght axis.
       // Noto Sans JP defaults to 100, so set the effective weight explicitly.
       fontVariations: <FontVariation>[
-        FontVariation('wght', (fontWeight.index + 1) * 100.0),
+        FontVariation('wght', fontWeight.value.toDouble()),
       ],
     );
   }
