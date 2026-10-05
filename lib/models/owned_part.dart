@@ -3,6 +3,10 @@ const Set<String> ownedPartCategories = {
   'battery',
   'body',
   'tire',
+  'damper',
+  'spring',
+  'wheel',
+  'electronics',
 };
 
 class OwnedPart {

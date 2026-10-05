@@ -3,7 +3,57 @@ import '../../models/owned_part.dart';
 import '../../models/saved_setting.dart';
 
 /// Pure lookup and projection rules for the owned-parts feature.
+enum OwnedPartSort { name, category, createdAt }
+
 abstract final class OwnedPartQueries {
+  static List<OwnedPart> search(
+    Iterable<OwnedPart> parts, {
+    String query = '',
+    OwnedPartSort sort = OwnedPartSort.name,
+  }) {
+    final normalized = query.trim().toLowerCase();
+    final result = parts
+        .where((part) => part.name.toLowerCase().contains(normalized))
+        .toList();
+    result.sort((a, b) {
+      final comparison = switch (sort) {
+        OwnedPartSort.name =>
+          a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+        OwnedPartSort.category => a.category.compareTo(b.category),
+        OwnedPartSort.createdAt => b.createdAt.compareTo(a.createdAt),
+      };
+      if (comparison != 0) return comparison;
+      final nameComparison = a.name.compareTo(b.name);
+      return nameComparison != 0 ? nameComparison : a.id.compareTo(b.id);
+    });
+    return result;
+  }
+
+  static List<SavedSetting> references(
+    OwnedPart part,
+    Iterable<SavedSetting> savedSettings,
+  ) {
+    final keys = switch (part.category) {
+      'spring' => const [
+          'spring',
+          'frontSpring',
+          'rearSpring',
+          'frontDamperSpring',
+          'rearDamperSpring'
+        ],
+      'damper' => const ['damper', 'frontDamperType', 'rearDamperType'],
+      'electronics' => const ['electronics', 'esc', 'servo', 'receiver'],
+      _ => historyKeysForSettingSuggestions(part.category),
+    };
+    return savedSettings
+        .where((setting) => keys.any((key) {
+              final value = setting.settings[key];
+              return value is String &&
+                  findByName([part], part.category, value) != null;
+            }))
+        .toList(growable: false);
+  }
+
   static List<OwnedPart> byCategory(
     Iterable<OwnedPart> parts,
     String category,

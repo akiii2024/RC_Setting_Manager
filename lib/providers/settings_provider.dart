@@ -340,13 +340,7 @@ class SettingsProvider extends ChangeNotifier {
   Future<SettingsOperationResult<bool>> deleteOwnedPart(String id) async {
     return _commitMutation<bool>(
       operation: 'deleteOwnedPart',
-      mutate: () {
-        if (_ownedParts.every((part) => part.id != id)) {
-          return false;
-        }
-        _ownedPartStore.delete(id);
-        return true;
-      },
+      mutate: () => _ownedPartStore.remove(id),
       didChange: (value) => value,
       sync: (cloud, snapshot) => cloud.saveOwnedParts(snapshot.ownedParts),
     );

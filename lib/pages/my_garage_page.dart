@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../domain/parts/owned_part_queries.dart';
 import '../models/car.dart';
 import '../models/manufacturer.dart';
 import '../models/owned_part.dart';
@@ -186,7 +187,7 @@ class _GarageSummaryCard extends StatelessWidget {
   }
 }
 
-const List<String> _garagePartCategories = ['motor', 'battery', 'body', 'tire'];
+final List<String> _garagePartCategories = ownedPartCategories.toList();
 
 String _partCategoryLabel(String category, bool isEnglish) {
   switch (category) {
@@ -196,6 +197,14 @@ String _partCategoryLabel(String category, bool isEnglish) {
       return _garageText(isEnglish, 'Battery', 'バッテリー');
     case 'body':
       return _garageText(isEnglish, 'Body', 'ボディ');
+    case 'damper':
+      return _garageText(isEnglish, 'Damper', 'ダンパー');
+    case 'spring':
+      return _garageText(isEnglish, 'Spring', 'スプリング');
+    case 'wheel':
+      return _garageText(isEnglish, 'Wheel', 'ホイール');
+    case 'electronics':
+      return _garageText(isEnglish, 'Electronics', '電子機器');
     case 'tire':
       return _garageText(isEnglish, 'Tire', 'タイヤ');
   }
@@ -205,7 +214,7 @@ String _partCategoryLabel(String category, bool isEnglish) {
 String _candidateKey(OwnedPartImportCandidate candidate) =>
     '${candidate.category}::${candidate.name}';
 
-class _OwnedPartsSection extends StatelessWidget {
+class _OwnedPartsSection extends StatefulWidget {
   final bool isEnglish;
 
   const _OwnedPartsSection({
@@ -213,8 +222,19 @@ class _OwnedPartsSection extends StatelessWidget {
   });
 
   @override
+  State<_OwnedPartsSection> createState() => _OwnedPartsSectionState();
+}
+
+class _OwnedPartsSectionState extends State<_OwnedPartsSection> {
+  String _query = '';
+  OwnedPartSort _sort = OwnedPartSort.name;
+  bool get isEnglish => widget.isEnglish;
+
+  @override
   Widget build(BuildContext context) {
     final settingsProvider = Provider.of<SettingsProvider>(context);
+    final parts = OwnedPartQueries.search(settingsProvider.ownedParts,
+        query: _query, sort: _sort);
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
 
@@ -278,17 +298,46 @@ class _OwnedPartsSection extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            for (final category in _garagePartCategories) ...[
-              _OwnedPartCategoryList(
-                category: category,
-                isEnglish: isEnglish,
-                parts: settingsProvider.getOwnedPartsByCategory(category),
-                onEdit: (part) => _showPartDialog(context, part: part),
-                onDelete: (part) => _confirmDelete(context, part),
+            TextField(
+              key: const Key('owned-parts-search'),
+              decoration: InputDecoration(
+                labelText:
+                    _garageText(isEnglish, 'Search part names', 'パーツ名を検索'),
+                prefixIcon: const Icon(Icons.search_rounded),
               ),
-              if (category != _garagePartCategories.last)
-                const Divider(height: 24),
-            ],
+              onChanged: (value) => setState(() => _query = value),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<OwnedPartSort>(
+              key: const Key('owned-parts-sort'),
+              initialValue: _sort,
+              isExpanded: true,
+              decoration: InputDecoration(
+                labelText: _garageText(isEnglish, 'Sort by', '並び替え'),
+              ),
+              items: [
+                DropdownMenuItem(
+                    value: OwnedPartSort.name,
+                    child: Text(_garageText(isEnglish, 'Name', '名前'))),
+                DropdownMenuItem(
+                    value: OwnedPartSort.category,
+                    child: Text(_garageText(isEnglish, 'Category', 'カテゴリ'))),
+                DropdownMenuItem(
+                    value: OwnedPartSort.createdAt,
+                    child: Text(
+                        _garageText(isEnglish, 'Newest first', '登録日（新しい順）'))),
+              ],
+              onChanged: (value) {
+                if (value != null) setState(() => _sort = value);
+              },
+            ),
+            const SizedBox(height: 16),
+            _OwnedPartList(
+              isEnglish: isEnglish,
+              parts: parts,
+              onEdit: (part) => _showPartDialog(context, part: part),
+              onDelete: (part) => _confirmDelete(context, part),
+            ),
           ],
         ),
       ),
@@ -301,8 +350,12 @@ class _OwnedPartsSection extends StatelessWidget {
   }) async {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
+    final references = part == null
+        ? 0
+        : OwnedPartQueries.references(part, settingsProvider.savedSettings)
+            .length;
     var selectedCategory = part?.category ?? _garagePartCategories.first;
-    final controller = TextEditingController(text: part?.name ?? '');
+    var name = part?.name ?? '';
 
     final saved = await showDialog<bool>(
       context: context,
@@ -315,11 +368,17 @@ class _OwnedPartsSection extends StatelessWidget {
                     ? _garageText(isEnglish, 'Add Owned Part', '所持パーツを追加')
                     : _garageText(isEnglish, 'Edit Owned Part', '所持パーツを編集'),
               ),
+              scrollable: true,
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (references > 0) ...[
+                    Text(_referenceWarning(references)),
+                    const SizedBox(height: 16),
+                  ],
                   DropdownButtonFormField<String>(
                     initialValue: selectedCategory,
+                    isExpanded: true,
                     decoration: InputDecoration(
                       labelText: _garageText(isEnglish, 'Category', 'カテゴリ'),
                     ),
@@ -342,13 +401,15 @@ class _OwnedPartsSection extends StatelessWidget {
                     },
                   ),
                   const SizedBox(height: 16),
-                  TextField(
-                    controller: controller,
+                  TextFormField(
+                    initialValue: name,
+                    onChanged: (value) => name = value,
                     autofocus: true,
                     decoration: InputDecoration(
                       labelText: _garageText(isEnglish, 'Part Name', 'パーツ名'),
                     ),
-                    onSubmitted: (_) => Navigator.of(dialogContext).pop(true),
+                    onFieldSubmitted: (_) =>
+                        Navigator.of(dialogContext).pop(true),
                   ),
                 ],
               ),
@@ -369,12 +430,9 @@ class _OwnedPartsSection extends StatelessWidget {
     );
 
     if (saved != true || !context.mounted) {
-      controller.dispose();
       return;
     }
 
-    final name = controller.text;
-    controller.dispose();
     final operationKey = part == null
         ? 'add:$selectedCategory:${name.trim().toLowerCase()}'
         : 'update:${part.id}';
@@ -444,11 +502,17 @@ class _OwnedPartsSection extends StatelessWidget {
   Future<void> _confirmDelete(BuildContext context, OwnedPart part) async {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
+    final references =
+        OwnedPartQueries.references(part, settingsProvider.savedSettings)
+            .length;
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
+            scrollable: true,
             title: Text(_garageText(isEnglish, 'Delete Part', 'パーツを削除')),
-            content: Text(part.name),
+            content: Text(
+                '${part.name}\n\n${_garageText(isEnglish, 'Remove this part from your inventory?', 'このパーツを所持パーツから削除しますか？')}'
+                '${references == 0 ? '' : '\n\n${_referenceWarning(references)}'}'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -456,6 +520,10 @@ class _OwnedPartsSection extends StatelessWidget {
               ),
               FilledButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Theme.of(dialogContext).colorScheme.error,
+                  foregroundColor: Theme.of(dialogContext).colorScheme.onError,
+                ),
                 child: Text(_garageText(isEnglish, 'Delete', '削除')),
               ),
             ],
@@ -623,6 +691,11 @@ class _OwnedPartsSection extends StatelessWidget {
     );
   }
 
+  String _referenceWarning(int count) => _garageText(
+      isEnglish,
+      'Used in $count saved settings. Editing or deleting this part will not change saved settings.',
+      '$count 件の保存済みセッティングで使用中です。編集・削除しても保存済みセッティングの値は変更されません。');
+
   void _showPartSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message)),
@@ -630,15 +703,13 @@ class _OwnedPartsSection extends StatelessWidget {
   }
 }
 
-class _OwnedPartCategoryList extends StatelessWidget {
-  final String category;
+class _OwnedPartList extends StatelessWidget {
   final bool isEnglish;
   final List<OwnedPart> parts;
   final ValueChanged<OwnedPart> onEdit;
   final ValueChanged<OwnedPart> onDelete;
 
-  const _OwnedPartCategoryList({
-    required this.category,
+  const _OwnedPartList({
     required this.isEnglish,
     required this.parts,
     required this.onEdit,
@@ -653,16 +724,12 @@ class _OwnedPartCategoryList extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          _partCategoryLabel(category, isEnglish),
-          style: theme.textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        const SizedBox(height: 8),
         if (parts.isEmpty)
           Text(
-            _garageText(isEnglish, 'No parts registered.', '登録済みパーツはありません。'),
+            _garageText(
+                isEnglish,
+                'No matching parts. Add a part or change your search.',
+                '該当するパーツはありません。パーツを追加するか検索条件を変更してください。'),
             style: theme.textTheme.bodySmall?.copyWith(
               color: colorScheme.onSurfaceVariant,
             ),
@@ -673,6 +740,7 @@ class _OwnedPartCategoryList extends StatelessWidget {
               contentPadding: EdgeInsets.zero,
               dense: true,
               title: Text(part.name),
+              subtitle: Text(_partCategoryLabel(part.category, isEnglish)),
               trailing: Wrap(
                 spacing: 4,
                 children: [

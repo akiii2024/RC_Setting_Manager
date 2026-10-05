@@ -95,8 +95,20 @@ class OwnedPartStore {
     return true;
   }
 
-  void delete(String id) {
+  bool rename(String id, String name) {
+    final index = _parts.indexWhere((part) => part.id == id);
+    if (index == -1) return false;
+    return update(id, category: _parts[index].category, name: name);
+  }
+
+  bool remove(String id) {
+    final previousLength = _parts.length;
     _parts.removeWhere((part) => part.id == id);
+    return _parts.length != previousLength;
+  }
+
+  void delete(String id) {
+    remove(id);
   }
 
   List<OwnedPartImportCandidate> importCandidates(
