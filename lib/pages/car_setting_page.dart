@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:convert';
+import '../services/setting_draft_service.dart';
 import 'package:rc_setting_manager/utils/app_logger.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -24,6 +27,7 @@ import '../services/api_consent_service.dart';
 import '../widgets/ai_provider_indicator.dart';
 import '../utils/settings_operation_feedback.dart';
 
+part 'car_setting_page_draft.dart';
 part 'car_setting_page_ui_helpers.dart';
 part 'car_setting_page_track_search_dialog.dart';
 part 'car_setting_page_conversation_dialog.dart';
@@ -64,8 +68,24 @@ class _CarSettingPageState extends State<CarSettingPage>
         _CarSettingPaperEditor,
         _CarSettingSaveFlow,
         _CarSettingNormalEditor,
-        _CarSettingTrf420xEditor {
+        _CarSettingTrf420xEditor,
+        WidgetsBindingObserver {
   late final _CarSettingEditController _editController;
+  late SettingDraftService _draftService;
+  bool _draftReady = false;
+  String? _lastDraft;
+
+  @override
+  Future<void> _clearDraftAfterSave() async {
+    _draftReady = false;
+    await _draftService.clear();
+  }
+
+  @override
+  void setState(VoidCallback fn) {
+    super.setState(fn);
+    if (_draftReady) _scheduleDraft();
+  }
 
   @override
   String get carName => _editController.carName;
@@ -124,6 +144,7 @@ class _CarSettingPageState extends State<CarSettingPage>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _editController = _CarSettingEditController(
       page: widget,
       settingDefinition: getCarSettingDefinition(widget.originalCar.id),
@@ -131,6 +152,11 @@ class _CarSettingPageState extends State<CarSettingPage>
     debugLog('Car ID: ${widget.originalCar.id}'); // デバッグ用ログ
     debugLog('Car Setting Definition: $_carSettingDefinition'); // デバッグ用ログ
 
+    _draftService =
+        SettingDraftService(widget.originalCar.id, widget.savedSettingId);
+    _settingNameController.addListener(_scheduleDraft);
+    _trackNameController.addListener(_scheduleDraft);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _restoreDraft());
     _initializeSettings();
     // 位置情報と天気情報の初期化を少し遅延させる
     Future.delayed(const Duration(milliseconds: 500), () async {
@@ -145,7 +171,18 @@ class _CarSettingPageState extends State<CarSettingPage>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state != AppLifecycleState.resumed) {
+      unawaited(_draftService.flush());
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _settingNameController.removeListener(_scheduleDraft);
+    _trackNameController.removeListener(_scheduleDraft);
+    unawaited(_draftService.flush());
     _editController.dispose();
     super.dispose();
   }
@@ -260,6 +297,8 @@ class _CarSettingPageState extends State<CarSettingPage>
     );
 
     if (derivedSetting != null && mounted) {
+      _draftReady = false;
+      unawaited(_draftService.clear());
       setState(() {
         settings = Map<String, dynamic>.from(derivedSetting.settings);
         _initialSettingsSnapshot =
@@ -268,6 +307,10 @@ class _CarSettingPageState extends State<CarSettingPage>
         _activeSavedSettingId = derivedSetting.id;
         _isEditing = true;
       });
+      _draftService =
+          SettingDraftService(widget.originalCar.id, derivedSetting.id);
+      _lastDraft = jsonEncode(_draftValue());
+      _draftReady = true;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(

@@ -2,6 +2,7 @@ part of 'car_setting_page.dart';
 
 mixin _CarSettingSaveFlow on State<CarSettingPage> {
   Map<String, dynamic> get settings;
+  Future<void> _clearDraftAfterSave();
   bool get _isEditing;
   String? get _activeSavedSettingId;
   TextEditingController get _settingNameController;
@@ -258,6 +259,7 @@ mixin _CarSettingSaveFlow on State<CarSettingPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(_savedSnackBarMessage(isEnglish, garageAction))),
     );
+    await _clearDraftAfterSave();
     _finishSettingSaveAndPop();
   }
 
@@ -322,6 +324,7 @@ mixin _CarSettingSaveFlow on State<CarSettingPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(isEnglish ? 'Setting updated' : '設定を更新しました')),
     );
+    await _clearDraftAfterSave();
     _finishSettingSaveAndPop();
   }
 }
