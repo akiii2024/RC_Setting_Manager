@@ -57,7 +57,7 @@ final List<SettingItem> trf420SpecificSettings = [
     label: 'リア ダンパーポジション（ステー）',
     constraints: {'selectGuide': 'insideOutside'},
     options: const ['1', '2', '3'],
-    defaultValue: '1',
+    defaultValue: '2',
   ),
   SettingItem(
     key: 'rearDamperPositionArm',
@@ -66,7 +66,7 @@ final List<SettingItem> trf420SpecificSettings = [
     label: 'リア ダンパーポジション（アーム）',
     constraints: {'selectGuide': 'insideOutside'},
     options: const ['1', '2', '3', '4'],
-    defaultValue: '1',
+    defaultValue: '2',
   ),
   SettingItem(
     key: 'frontToeAngle',
@@ -75,7 +75,7 @@ final List<SettingItem> trf420SpecificSettings = [
     label: 'フロント トー角',
     unit: '°',
     constraints: {'min': -5, 'max': 5, 'step': 0.1},
-    defaultValue: '0',
+    defaultValue: '-1',
   ),
   SettingItem(
     key: 'rearToeAngle',
@@ -84,7 +84,7 @@ final List<SettingItem> trf420SpecificSettings = [
     label: 'リア トー角',
     unit: '°',
     constraints: {'min': -5, 'max': 5, 'step': 0.1},
-    defaultValue: '0',
+    defaultValue: '3',
   ),
   _numberSetting(
     key: 'frontUprightSpacer',

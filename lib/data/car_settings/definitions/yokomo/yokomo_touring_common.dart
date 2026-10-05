@@ -2,6 +2,11 @@ import '../../../../models/car_setting_definition.dart';
 import '../common/setting_item_helpers.dart';
 
 /// Yokomoツーリングカーで共通する左右の基本項目を構築する。
+/// 公開セットアップを参考に、車高5mm・負キャンバー2度を汎用の基準にする。
+/// https://www.teamyokomo.com/pages/setting-sheets
+/// トーはトーインを正、トーアウトを負とする。
+/// ドループは既存の0〜10mm範囲のゲージ値を想定する。実測時は測定基準を確認。
+/// キットで指定できない別売メカ/タイヤは空欄、追加ウェイトは0g。
 ///
 /// 各車固有の選択肢とスタビ範囲は呼び出し側で明示する。
 List<SettingItem> yokomoTouringSideSettings({
@@ -49,7 +54,7 @@ List<SettingItem> yokomoTouringSideSettings({
       unit: '°',
       min: -5,
       max: 5,
-      defaultValue: '-1',
+      defaultValue: '-2',
     ),
     numberSetting(
       key: '${prefix}SwayBar',
@@ -72,6 +77,7 @@ List<SettingItem> yokomoTouringSideSettings({
       unit: 'mm',
       max: 10,
       step: 0.1,
+      defaultValue: prefix == 'front' ? '5' : '4.5',
     ),
     numberSetting(
       key: '${prefix}ArmOuterLower',
@@ -88,6 +94,7 @@ List<SettingItem> yokomoTouringSideSettings({
       min: -5,
       max: 5,
       step: 0.1,
+      defaultValue: prefix == 'front' ? '-1' : '3',
     ),
     if (includeWeight)
       numberSetting(
@@ -136,7 +143,7 @@ List<SettingItem> yokomoTouringShockSettings({
       min: 0.5,
       max: 3.0,
       step: 0.1,
-      defaultValue: '1.0',
+      defaultValue: '1.1',
       constraints: {
         'composite': 'damperPiston',
         'pistonKey': '${prefix}Piston',

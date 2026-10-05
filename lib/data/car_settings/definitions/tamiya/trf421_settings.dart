@@ -19,6 +19,7 @@ List<SettingItem> _trf421EndSettings({
       label: '$labelPrefix アッパーアームスペーサー F',
       unit: 'mm',
       max: 10,
+      defaultValue: '2',
     ),
     numberSetting(
       key: '${prefix}DamperMountSpacer',
@@ -26,6 +27,7 @@ List<SettingItem> _trf421EndSettings({
       label: '$labelPrefix ダンパーマウントスペーサー',
       unit: 'mm',
       max: 10,
+      defaultValue: prefix == 'front' ? '1' : '2',
     ),
     numberSetting(
       key: '${prefix}UpperArmSpacerOut',
@@ -33,6 +35,7 @@ List<SettingItem> _trf421EndSettings({
       label: '$labelPrefix アッパーアームスペーサー R',
       unit: 'mm',
       max: 10,
+      defaultValue: '2',
     ),
     numberSetting(
       key: '${prefix}Spacer',
@@ -62,6 +65,7 @@ List<SettingItem> _trf421EndSettings({
       unit: 'mm',
       max: 10,
       step: 0.1,
+      defaultValue: prefix == 'front' ? '5' : '4.5',
     ),
     selectSetting(
       key: '${prefix}DiffPositionShim',
@@ -97,6 +101,7 @@ List<SettingItem> _trf421EndSettings({
       label: '$labelPrefix キャスター角',
       unit: '°',
       max: 10,
+      defaultValue: prefix == 'front' ? '4' : '0',
     ),
     numberSetting(
       key: '${prefix}CamberAngle',
@@ -105,7 +110,7 @@ List<SettingItem> _trf421EndSettings({
       unit: '°',
       min: -10,
       max: 10,
-      defaultValue: '-1',
+      defaultValue: '-2',
     ),
     numberSetting(
       key: '${prefix}GroundClearance',
@@ -125,7 +130,7 @@ List<SettingItem> _trf421EndSettings({
       min: 1.0,
       max: 3.0,
       step: 0.1,
-      defaultValue: '1.0',
+      defaultValue: '1.2',
       constraints: {
         'composite': 'stabilizer',
         'noteKey': '${prefix}StabilizerNote',
@@ -195,6 +200,7 @@ final List<SettingItem> trf421SpecificSettings = [
     min: -5,
     max: 5,
     step: 0.1,
+    defaultValue: '-1',
   ),
   numberSetting(
     key: 'rearToeAngle',
@@ -204,6 +210,7 @@ final List<SettingItem> trf421SpecificSettings = [
     min: -5,
     max: 5,
     step: 0.1,
+    defaultValue: '3',
   ),
   numberSetting(
     key: 'frontUprightSpacer',
@@ -244,12 +251,14 @@ final List<SettingItem> trf421SpecificSettings = [
     label: 'ロワデッキ厚',
     unit: 'mm',
     max: 10,
+    defaultValue: '2.25',
   ),
   selectSetting(
     key: 'lowerDeckMaterial',
     category: 'top',
     label: 'ロワデッキ材質',
     options: const ['アルミ', 'カーボン'],
+    defaultValue: 'カーボン',
   ),
   selectSetting(
     key: 'upperDeck',
@@ -264,6 +273,7 @@ final List<SettingItem> trf421SpecificSettings = [
     rows: 2,
     cols: 7,
     multiple: true,
+    defaultValue: '',
   ),
   textSetting(
     key: 'servoHorn',
@@ -276,6 +286,7 @@ final List<SettingItem> trf421SpecificSettings = [
     label: 'サーボホーン長',
     unit: 'mm',
     max: 50,
+    defaultValue: '20',
   ),
   numberSetting(
     key: 'servoHornSpacer',
@@ -326,7 +337,7 @@ final List<SettingItem> trf421SpecificSettings = [
     min: 60,
     max: 120,
     step: 1,
-    defaultValue: '60',
+    defaultValue: '116',
   ),
   numberSetting(
     key: 'pinionGear',
@@ -336,7 +347,7 @@ final List<SettingItem> trf421SpecificSettings = [
     min: 20,
     max: 60,
     step: 1,
-    defaultValue: '20',
+    defaultValue: '30',
   ),
   textSetting(
     key: 'battery',
