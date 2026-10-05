@@ -10,6 +10,7 @@ import 'package:rc_setting_manager/models/manufacturer.dart';
 import 'package:rc_setting_manager/models/track_location.dart';
 import 'package:rc_setting_manager/pages/home_page.dart';
 import 'package:rc_setting_manager/pages/login_page.dart';
+import 'package:rc_setting_manager/pages/my_garage_page.dart';
 import 'package:rc_setting_manager/pages/quick_run_log_page.dart';
 import 'package:rc_setting_manager/pages/simple_import_page.dart';
 import 'package:rc_setting_manager/pages/tools_page.dart';
@@ -110,7 +111,15 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('No chassis in My Garage'),
       300,
-      scrollable: find.byType(Scrollable).last,
+      scrollable: find
+          .descendant(
+            of: find.descendant(
+              of: find.byType(MyGaragePage),
+              matching: find.byType(ListView),
+            ),
+            matching: find.byType(Scrollable),
+          )
+          .first,
     );
     expect(find.text('No chassis in My Garage'), findsOneWidget);
   });
