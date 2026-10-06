@@ -27,7 +27,7 @@ mixin _CarSettingEnvironment on State<CarSettingPage> {
   set _isWeatherLoading(bool value);
 
   // 位置情報を取得してトラック名を自動入力
-  Future<void> _initializeLocationAndTrack() async {
+  Future<void> _initializeLocationAndTrack({bool updateSettings = true}) async {
     if (!mounted) return;
 
     final settingsProvider =
@@ -60,18 +60,20 @@ mixin _CarSettingEnvironment on State<CarSettingPage> {
       if (nearestTrack != null && mounted) {
         setState(() {
           _currentTrack = nearestTrack;
-          _trackNameController.text = nearestTrack.name;
+          if (updateSettings) {
+            _trackNameController.text = nearestTrack.name;
 
-          // 路面情報を自動入力
-          _updateSurfaceFromTrack(nearestTrack);
+            // 路面情報を自動入力
+            _updateSurfaceFromTrack(nearestTrack);
 
-          // セッティング名にトラック名を含める（新規作成時のみ）
-          if (!_isEditing) {
-            final now = DateTime.now();
-            final formattedDate =
-                '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-            _settingNameController.text =
-                '$formattedDate-${nearestTrack.name}-$carName';
+            // セッティング名にトラック名を含める（新規作成時のみ）
+            if (!_isEditing) {
+              final now = DateTime.now();
+              final formattedDate =
+                  '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+              _settingNameController.text =
+                  '$formattedDate-${nearestTrack.name}-$carName';
+            }
           }
         });
       } else {
@@ -135,7 +137,10 @@ mixin _CarSettingEnvironment on State<CarSettingPage> {
   }
 
   // 天気情報を取得して気温・湿度を自動入力
-  Future<void> _initializeWeather({bool forceRefresh = false}) async {
+  Future<void> _initializeWeather({
+    bool forceRefresh = false,
+    bool updateSettings = true,
+  }) async {
     if (!mounted) return;
 
     final settingsProvider =
@@ -185,8 +190,10 @@ mixin _CarSettingEnvironment on State<CarSettingPage> {
           _weatherErrorStatus = null;
         });
 
-        // 気温と湿度を自動入力
-        _updateWeatherSettings(weather);
+        // 初期取得では復元済みの気温・湿度を保持する。
+        if (updateSettings) {
+          _updateWeatherSettings(weather);
+        }
 
         debugLog('[Weather Debug] SUCCESS: 天気情報を取得しました: ${weather.toString()}');
       }

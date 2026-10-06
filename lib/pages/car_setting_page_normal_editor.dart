@@ -9,6 +9,7 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
   );
 
   Map<String, dynamic> get settings;
+  Set<String> get _invalidNumberInputs;
   CarSettingDefinition? get _carSettingDefinition;
   TrackLocation? get _currentTrack;
   WeatherData? get _currentWeather;
@@ -43,6 +44,25 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
     List<String> aliases,
     String value,
   );
+
+  void _updateNumberSetting(String key, String input) {
+    final value = double.tryParse(input) ?? 0.0;
+    setState(() {
+      if (!value.isFinite) {
+        _invalidNumberInputs.add(key);
+        return;
+      }
+      _invalidNumberInputs.remove(key);
+      settings[key] = value;
+    });
+  }
+
+  String? _numberInputErrorText(String key) {
+    if (!_invalidNumberInputs.contains(key)) return null;
+    final isEnglish =
+        Provider.of<SettingsProvider>(context, listen: false).isEnglish;
+    return isEnglish ? 'Enter a valid number' : '有効な数値を入力してください';
+  }
 
   Widget _buildSettingTabs(BuildContext context) {
     if (_carSettingDefinition == null) {
@@ -815,17 +835,16 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
             SizedBox(
               width: 128,
               child: TextFormField(
-                decoration: const InputDecoration(
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  border: const OutlineInputBorder(),
                   suffixText: 'φ',
+                  errorText: _numberInputErrorText(diameterKey),
                 ),
                 keyboardType:
                     const TextInputType.numberWithOptions(decimal: true),
                 initialValue: settings[diameterKey]?.toString() ?? '',
                 onChanged: (value) {
-                  setState(() {
-                    settings[diameterKey] = double.tryParse(value) ?? 0.0;
-                  });
+                  _updateNumberSetting(diameterKey, value);
                 },
               ),
             ),
@@ -1140,13 +1159,12 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
             border: const OutlineInputBorder(),
             suffixText: setting.unit,
             suffixIcon: _buildAutoFillIcon(setting),
+            errorText: _numberInputErrorText(setting.key),
           ),
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
           initialValue: settings[setting.key]?.toString() ?? '0',
           onChanged: (value) {
-            setState(() {
-              settings[setting.key] = double.tryParse(value) ?? 0.0;
-            });
+            _updateNumberSetting(setting.key, value);
           },
         ),
       ],
@@ -1217,9 +1235,10 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
                       )
                     : null,
           ),
-          initialValue: setting.key == 'date' && setting.isAutoFilled
-              ? DateTime.now().toString().split(' ')[0]
-              : settings[setting.key]?.toString() ?? '',
+          initialValue: settings[setting.key]?.toString() ??
+              (setting.key == 'date' && setting.isAutoFilled
+                  ? DateTime.now().toString().split(' ')[0]
+                  : ''),
           onChanged: (value) {
             setState(() {
               settings[setting.key] = value;
