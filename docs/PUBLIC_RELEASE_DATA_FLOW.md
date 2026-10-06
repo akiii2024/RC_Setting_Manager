@@ -1,6 +1,6 @@
 # 公開前整備のコード調査記録
 
-確認日：2026-10-06。対象：今回のブランチの実装。サーバーの配布状態・Console設定や第三者サービスでの保持期間は、このコード調査だけでは確定できません。
+確認日：2026-10-06。対象：最新GitHub main（`7e64ac2`）上に公開前整備を適用した実装。自動下書き保存とバージョン`0.1.0+2`を含めて確認した。サーバーの配布状態・Console設定や第三者サービスでの保持期間は、このコード調査だけでは確定できません。
 
 ## 公開版のモード
 
@@ -17,11 +17,12 @@
 | 対象 | 端末内保存・処理 | 外部通信 | 主な根拠 |
 | --- | --- | --- | --- |
 | 車両、保存設定、走行記録、所有パーツ、表示・言語・エディタ設定 | SharedPreferencesの`settings_state_v2`。旧キーは移行読み込み用に残る | 通常の公開版では同期なし | `repositories/settings_local_repository.dart`、`models/settings_snapshot_v2.dart`、`providers/settings_provider.dart` |
+| 編集中の下書き | SharedPreferencesの`setting_draft_v1:`キー。車両ID・設定IDごとに設定値・名前・コース名を自動保存し、復元・破棄に使用 | 同期なし、XMLバックアップにも含まれない | `services/setting_draft_service.dart`、`pages/car_setting_page_draft.dart`、`pages/car_setting_page_save_flow.dart` |
 | テーマ・チュートリアル・同意・AIプロバイダーとモデル | SharedPreferences | 値自体の自動送信は確認されない | `providers/theme_provider.dart`、`repositories/tutorial_preferences_repository.dart`、`services/api_consent_service.dart`、`services/ai_configuration_service.dart` |
 | コース | 同梱JSON、カスタムコースはSharedPreferences `custom_tracks` | 最寄り候補の距離計算は端末内 | `services/track_location_service.dart`、`data/track_locations.json` |
 | 位置・天気 | geolocatorの単発取得。照会座標・時刻・天気はSharedPreferences `weather_cache_current_v1` | `getCurrentWeather` → OpenWeatherへ座標送信 | `services/location_service.dart`、`services/weather_service.dart`、`functions/index.js` |
 | 画像・OCR | image_pickerでカメラ／画像選択。処理中メモリ、採用値は設定として保存 | 標準Geminiは`extractSettingSheet`経由。OpenAI／Anthropicは直接API。画像、車種・項目カタログ等を送信 | `services/ocr_service.dart`、`pages/ocr_import_page.dart`、`services/ai_provider_client.dart` |
-| AI相談 | 会話はサービスインスタンス内メモリ。採用して保存した提案は設定データ | 標準Geminiは`generateSettingAdvice`経由。OpenAI／Anthropicは直接API。車種・設定・関連走行メモ・コース・天気・入力メッセージ等 | `services/ai_advisor_service.dart`、`services/ai_advisor_context_builder.dart` |
+| AI相談 | 会話はサービスインスタンス内メモリ。採用して保存した提案は設定データ | 標準Geminiは`generateSettingAdvice`、会話形式の`generateGeminiContent`経由。OpenAI／Anthropicは直接API。車種・設定・関連走行メモ・コース・天気・入力メッセージ等 | `services/ai_advisor_service.dart`、`services/ai_advisor_context_builder.dart` |
 | 個人APIキー | ネイティブはflutter_secure_storage、Webはstatic Mapでタブ内メモリ。通常バックアップ・設定同期から分離 | 使用するプロバイダーへの認証情報。Functionsへ個人キーを転送しない | `services/ai_configuration_service.dart`、`services/ai_provider_client.dart` |
 | テレメトリー・任意動画・同期ジョブ | Hive `telemetry_sessions_v1`、`telemetry_videos_v1`、`telemetry_sync_jobs_v1`。CSV解析・コース推定は端末内 | 現在Storage同期は無効。実装上の同期は動画を除いた最大20 MiBのanalysis.stg | `services/telemetry_repository.dart`、`services/telemetry_analysis_service.dart`、`services/telemetry_sync_service.dart` |
 | テレメトリーAI分析 | ローカル特徴量と間引いた代表波形を作成、結果をセッションへ保存 | `generateTelemetryAnalysis`または個人キーのAPI。元CSV・動画を送信しない | `services/telemetry_feature_service.dart`、`services/telemetry_ai_analysis_service.dart`、`pages/telemetry_analysis_page.dart` |
