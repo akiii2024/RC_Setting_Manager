@@ -106,7 +106,7 @@ Material 3 のセマンティックカラーを使います。色は「見た目
 形状は柔らかく、情報構造は明快にします。
 
 - カード: `24` radius、`surfaceContainerLow`、薄い `outlineVariant`、原則 elevation `0`。
-- 入力欄: `18` radius、`surfaceContainerHigh`。フォーカス時のみ primary の `2` dp 枠。
+- 入力欄: `18` radius、`surfaceContainerHigh`。ダークテーマの通常時は `outline` の `1` dp 枠で境界を明示し、ライトテーマの通常時は枠なし。フォーカス時のみ primary の `2` dp 枠。
 - リスト項目: `20` radius、最小高 `64`。
 - ダイアログ: `28` radius。
 - Bottom Sheet: 上辺 `32` radius。

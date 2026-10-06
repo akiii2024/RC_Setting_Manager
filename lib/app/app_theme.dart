@@ -108,6 +108,10 @@ abstract final class AppTheme {
       colorScheme.onSurface,
     );
 
+    final inputBorderSide = brightness == Brightness.dark
+        ? BorderSide(color: colorScheme.outline)
+        : BorderSide.none;
+
     return baseTheme.copyWith(
       scaffoldBackgroundColor: colorScheme.surface,
       canvasColor: colorScheme.surface,
@@ -246,11 +250,11 @@ abstract final class AppTheme {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide.none,
+          borderSide: inputBorderSide,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide.none,
+          borderSide: inputBorderSide,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
