@@ -49,6 +49,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - pubspec.yaml
     - assets/launcher_icon/ios_icon.png
     - assets/fonts/OFL.txt
     - assets/google_fonts/
