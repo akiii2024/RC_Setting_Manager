@@ -49,6 +49,7 @@
 - `utils/app_logger.dart` のログはdebugのみ。デバッグログには位置座標や認証情報の識別子が含まれる箇所があるため、公開Issueへ無加工で貼らない。
 - GitHub APIではPagesがworkflow配布で既存の公開URLを持ち、Repository Variable `FIREBASE_APP_CHECK_WEB_KEY` が存在することを確認。今回のPRは本番Firebase設定を変更せず、外部APIの実通信検証も行わない。
 - 過去の `PUBLICATION_AUDIT.md` は当時の検証結果。今回の変更に対する検証結果はPR本文に記録する。
+- push時の通知を受けGitHub Dependabotのopenアラートを追加確認した。`functions/package-lock.json`のruntime依存に4件（high 1、medium 2、low 1）がある。対象は`@grpc/grpc-js`と`qs`。highの[アラート #9](https://github.com/akiii2024/RC_Setting_Manager/security/dependabot/9)は、特定のgRPCサーバー認証構成における`getAuthContext`の証明書判定が対象。このアプリのFunctionsコードには同APIによるサーバー認証処理は見つからないが、依存・配布環境を含めた悪用成立条件は未監査。依存更新と詳細評価は今回の説明整備の範囲外として残す。過去の「既知脆弱性0件」を現在の保証に使わない。
 
 ## 公開文書の正本
 
