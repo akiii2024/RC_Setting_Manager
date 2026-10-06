@@ -10,20 +10,22 @@ extension _CarSettingDraft on _CarSettingPageState {
   void _scheduleDraft() {
     if (!_draftReady) return;
     final value = _draftValue();
-    final encoded = jsonEncode(value);
-    if (encoded == _lastDraft) return;
-    _lastDraft = encoded;
-    _draftService.schedule(value);
+    final encoded = SettingDraftService.encodeDraft(value);
+    if (encoded == null || encoded == _lastDraft) return;
+    if (_draftService.schedule(value)) {
+      _lastDraft = encoded;
+    }
   }
 
-  Future<void> _restoreDraft() async {
+  Future<bool> _restoreDraft() async {
+    var restored = false;
     Map<String, dynamic>? draft;
     try {
       draft = await _draftService.read();
     } catch (_) {
       // A preferences failure must not block editing.
     }
-    if (!mounted) return;
+    if (!mounted) return false;
     if (draft != null) {
       final isEnglish = context.read<SettingsProvider>().isEnglish;
       final restore = await showDialog<bool>(
@@ -49,8 +51,9 @@ extension _CarSettingDraft on _CarSettingPageState {
           ),
         ),
       );
-      if (!mounted) return;
+      if (!mounted) return false;
       if (restore == true) {
+        restored = true;
         setState(() {
           settings = Map<String, dynamic>.from(draft!['settings'] as Map);
           _settingNameController.text = draft['name'] as String;
@@ -60,8 +63,9 @@ extension _CarSettingDraft on _CarSettingPageState {
         await _draftService.clear();
       }
     }
-    if (!mounted) return;
-    _lastDraft = jsonEncode(_draftValue());
+    if (!mounted) return false;
+    _lastDraft = SettingDraftService.encodeDraft(_draftValue());
     _draftReady = true;
+    return restored;
   }
 }

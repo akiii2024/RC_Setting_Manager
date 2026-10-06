@@ -9,6 +9,8 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
   );
 
   Map<String, dynamic> get settings;
+  void _updateNumberSetting(String key, String input);
+  String? _numberInputErrorText(String key);
 
   _SelectGuideLabels _insideOutsideSelectGuideLabels();
 
@@ -53,13 +55,12 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                 labelText: isEnglish ? 'Camber Angle' : 'キャンバー角',
                 border: const OutlineInputBorder(),
                 suffixText: '°',
+                errorText: _numberInputErrorText('frontCamber'),
               ),
               initialValue: settings['frontCamber']?.toString() ?? '0.0',
               keyboardType: TextInputType.number,
               onChanged: (value) {
-                setState(() {
-                  settings['frontCamber'] = double.tryParse(value) ?? 0.0;
-                });
+                _updateNumberSetting('frontCamber', value);
               },
             ),
           ),
@@ -71,13 +72,12 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                 labelText: isEnglish ? 'Ride Height' : '車高',
                 border: const OutlineInputBorder(),
                 suffixText: 'mm',
+                errorText: _numberInputErrorText('frontRideHeight'),
               ),
               initialValue: settings['frontRideHeight']?.toString() ?? '0.0',
               keyboardType: TextInputType.number,
               onChanged: (value) {
-                setState(() {
-                  settings['frontRideHeight'] = double.tryParse(value) ?? 0.0;
-                });
+                _updateNumberSetting('frontRideHeight', value);
               },
             ),
           ),
@@ -148,13 +148,12 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                 labelText: isEnglish ? 'Toe Angle' : 'トー角',
                 border: const OutlineInputBorder(),
                 suffixText: '°',
+                errorText: _numberInputErrorText('frontToe'),
               ),
               initialValue: settings['frontToe']?.toString() ?? '0.0',
               keyboardType: TextInputType.number,
               onChanged: (value) {
-                setState(() {
-                  settings['frontToe'] = double.tryParse(value) ?? 0.0;
-                });
+                _updateNumberSetting('frontToe', value);
               },
             ),
           ),
@@ -186,13 +185,12 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                 labelText: isEnglish ? 'Caster Angle' : 'キャスター角',
                 border: const OutlineInputBorder(),
                 suffixText: '°',
+                errorText: _numberInputErrorText('frontCasterAngle'),
               ),
               initialValue: settings['frontCasterAngle']?.toString() ?? '0.0',
               keyboardType: TextInputType.number,
               onChanged: (value) {
-                setState(() {
-                  settings['frontCasterAngle'] = double.tryParse(value) ?? 0.0;
-                });
+                _updateNumberSetting('frontCasterAngle', value);
               },
             ),
           ),
@@ -222,16 +220,16 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                       decoration: InputDecoration(
                         labelText: isEnglish ? 'Inside (mm)' : '内側 (mm)',
                         border: const OutlineInputBorder(),
+                        errorText:
+                            _numberInputErrorText('frontUpperArmSpacerInside'),
                       ),
                       initialValue:
                           settings['frontUpperArmSpacerInside']?.toString() ??
                               '0.0',
                       keyboardType: TextInputType.number,
                       onChanged: (value) {
-                        setState(() {
-                          settings['frontUpperArmSpacerInside'] =
-                              double.tryParse(value) ?? 0.0;
-                        });
+                        _updateNumberSetting(
+                            'frontUpperArmSpacerInside', value);
                       },
                     ),
                   ),
@@ -242,16 +240,16 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                       decoration: InputDecoration(
                         labelText: isEnglish ? 'Outside (mm)' : '外側 (mm)',
                         border: const OutlineInputBorder(),
+                        errorText:
+                            _numberInputErrorText('frontUpperArmSpacerOutside'),
                       ),
                       initialValue:
                           settings['frontUpperArmSpacerOutside']?.toString() ??
                               '0.0',
                       keyboardType: TextInputType.number,
                       onChanged: (value) {
-                        setState(() {
-                          settings['frontUpperArmSpacerOutside'] =
-                              double.tryParse(value) ?? 0.0;
-                        });
+                        _updateNumberSetting(
+                            'frontUpperArmSpacerOutside', value);
                       },
                     ),
                   ),
@@ -269,15 +267,13 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                         labelText:
                             isEnglish ? 'Lower Arm Spacer' : 'ロアアームスペーサー (mm)',
                         border: const OutlineInputBorder(),
+                        errorText: _numberInputErrorText('frontLowerArmSpacer'),
                       ),
                       initialValue:
                           settings['frontLowerArmSpacer']?.toString() ?? '0.0',
                       keyboardType: TextInputType.number,
                       onChanged: (value) {
-                        setState(() {
-                          settings['frontLowerArmSpacer'] =
-                              double.tryParse(value) ?? 0.0;
-                        });
+                        _updateNumberSetting('frontLowerArmSpacer', value);
                       },
                     ),
                   ),
@@ -291,18 +287,16 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                     'frontWheelHub',
                     'ホイールハブ',
                     TextFormField(
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'ホイールハブ (mm)',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
+                        errorText: _numberInputErrorText('frontWheelHub'),
                       ),
                       initialValue:
                           settings['frontWheelHub']?.toString() ?? '0.0',
                       keyboardType: TextInputType.number,
                       onChanged: (value) {
-                        setState(() {
-                          settings['frontWheelHub'] =
-                              double.tryParse(value) ?? 0.0;
-                        });
+                        _updateNumberSetting('frontWheelHub', value);
                       },
                     ),
                   ),
@@ -310,18 +304,16 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                     'frontWheelHubSpacer',
                     'ホイールハブスペーサー',
                     TextFormField(
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'ホイールハブスペーサー (mm)',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
+                        errorText: _numberInputErrorText('frontWheelHubSpacer'),
                       ),
                       initialValue:
                           settings['frontWheelHubSpacer']?.toString() ?? '0.0',
                       keyboardType: TextInputType.number,
                       onChanged: (value) {
-                        setState(() {
-                          settings['frontWheelHubSpacer'] =
-                              double.tryParse(value) ?? 0.0;
-                        });
+                        _updateNumberSetting('frontWheelHubSpacer', value);
                       },
                     ),
                   ),
@@ -335,17 +327,15 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                     'frontDroop',
                     'ドループ',
                     TextFormField(
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'ドループ (mm)',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
+                        errorText: _numberInputErrorText('frontDroop'),
                       ),
                       initialValue: settings['frontDroop']?.toString() ?? '0.0',
                       keyboardType: TextInputType.number,
                       onChanged: (value) {
-                        setState(() {
-                          settings['frontDroop'] =
-                              double.tryParse(value) ?? 0.0;
-                        });
+                        _updateNumberSetting('frontDroop', value);
                       },
                     ),
                   ),
@@ -535,19 +525,19 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                             'frontDamperOffsetStay',
                             'ステー',
                             TextFormField(
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: 'ステー (mm)',
-                                border: OutlineInputBorder(),
+                                border: const OutlineInputBorder(),
+                                errorText: _numberInputErrorText(
+                                    'frontDamperOffsetStay'),
                               ),
                               initialValue: settings['frontDamperOffsetStay']
                                       ?.toString() ??
                                   '0.0',
                               keyboardType: TextInputType.number,
                               onChanged: (value) {
-                                setState(() {
-                                  settings['frontDamperOffsetStay'] =
-                                      double.tryParse(value) ?? 0.0;
-                                });
+                                _updateNumberSetting(
+                                    'frontDamperOffsetStay', value);
                               },
                             ),
                           ),
@@ -555,19 +545,19 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                             'frontDamperOffsetArm',
                             'サスアーム',
                             TextFormField(
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: 'サスアーム (mm)',
-                                border: OutlineInputBorder(),
+                                border: const OutlineInputBorder(),
+                                errorText: _numberInputErrorText(
+                                    'frontDamperOffsetArm'),
                               ),
                               initialValue: settings['frontDamperOffsetArm']
                                       ?.toString() ??
                                   '0.0',
                               keyboardType: TextInputType.number,
                               onChanged: (value) {
-                                setState(() {
-                                  settings['frontDamperOffsetArm'] =
-                                      double.tryParse(value) ?? 0.0;
-                                });
+                                _updateNumberSetting(
+                                    'frontDamperOffsetArm', value);
                               },
                             ),
                           ),

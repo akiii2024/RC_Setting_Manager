@@ -2,6 +2,7 @@ part of 'car_setting_page.dart';
 
 mixin _CarSettingSaveFlow on State<CarSettingPage> {
   Map<String, dynamic> get settings;
+  Set<String> get _invalidNumberInputs;
   Future<void> _clearDraftAfterSave();
   bool get _isEditing;
   String? get _activeSavedSettingId;
@@ -213,18 +214,31 @@ mixin _CarSettingSaveFlow on State<CarSettingPage> {
   }
 
   bool _validateSettingName(bool isEnglish) {
-    if (_settingNameController.text.trim().isNotEmpty) {
-      return true;
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          isEnglish ? 'Please enter a setting name' : 'セッティング名を入力してください',
+    if (_settingNameController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isEnglish ? 'Please enter a setting name' : 'セッティング名を入力してください',
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
-        backgroundColor: Theme.of(context).colorScheme.error,
-      ),
-    );
-    return false;
+      );
+      return false;
+    }
+    if (_invalidNumberInputs.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isEnglish
+                ? 'Please enter valid numbers in the highlighted fields'
+                : 'エラーのある数値欄を修正してください',
+          ),
+          backgroundColor: Theme.of(context).colorScheme.error,
+        ),
+      );
+      return false;
+    }
+    return true;
   }
 
   Future<void> _performNewSettingSave(

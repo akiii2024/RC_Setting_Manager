@@ -15,6 +15,14 @@ class SettingDraftService {
 
   String get key => 'setting_draft_v1:${jsonEncode([carId, settingId])}';
 
+  static String? encodeDraft(Map<String, dynamic> draft) {
+    try {
+      return jsonEncode(draft);
+    } on JsonUnsupportedObjectError {
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>?> read() async {
     await _writes;
     final prefs = await SharedPreferences.getInstance();
@@ -34,10 +42,13 @@ class SettingDraftService {
     return null;
   }
 
-  void schedule(Map<String, dynamic> draft) {
-    _pending = jsonEncode(draft);
+  bool schedule(Map<String, dynamic> draft) {
+    final encoded = encodeDraft(draft);
+    if (encoded == null) return false;
+    _pending = encoded;
     _timer?.cancel();
     _timer = Timer(const Duration(milliseconds: 600), flush);
+    return true;
   }
 
   Future<void> _enqueue(Future<void> Function(SharedPreferences) action) {

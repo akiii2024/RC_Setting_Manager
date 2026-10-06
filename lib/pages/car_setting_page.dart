@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 import '../services/setting_draft_service.dart';
 import 'package:rc_setting_manager/utils/app_logger.dart';
 import 'package:flutter/material.dart';
@@ -74,6 +73,9 @@ class _CarSettingPageState extends State<CarSettingPage>
   late SettingDraftService _draftService;
   bool _draftReady = false;
   String? _lastDraft;
+  int _editorRevision = 0;
+  @override
+  final Set<String> _invalidNumberInputs = <String>{};
 
   @override
   Future<void> _clearDraftAfterSave() async {
@@ -92,7 +94,12 @@ class _CarSettingPageState extends State<CarSettingPage>
 
   @override
   Map<String, dynamic> get settings => _editController.settings;
-  set settings(Map<String, dynamic> value) => _editController.settings = value;
+  set settings(Map<String, dynamic> value) {
+    _editController.settings = value;
+    // initialValue を内部に保持する入力部品も、新しい設定へ同期する。
+    _editorRevision++;
+    _invalidNumberInputs.clear();
+  }
 
   Map<String, dynamic> get _initialSettingsSnapshot =>
       _editController.initialSettingsSnapshot;
@@ -156,16 +163,16 @@ class _CarSettingPageState extends State<CarSettingPage>
         SettingDraftService(widget.originalCar.id, widget.savedSettingId);
     _settingNameController.addListener(_scheduleDraft);
     _trackNameController.addListener(_scheduleDraft);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _restoreDraft());
     _initializeSettings();
-    // 位置情報と天気情報の初期化を少し遅延させる
-    Future.delayed(const Duration(milliseconds: 500), () async {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final restored = await _restoreDraft();
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+      if (!mounted) return;
+      // 復元した入力値を保持し、位置情報・天気の表示だけを更新する。
+      // Safariで位置情報要求が競合しないよう、順番に実行する。
+      await _initializeLocationAndTrack(updateSettings: !restored);
       if (mounted) {
-        // Safariで位置情報要求が競合しないよう、順番に実行する。
-        await _initializeLocationAndTrack();
-        if (mounted) {
-          await _initializeWeather();
-        }
+        await _initializeWeather(updateSettings: !restored);
       }
     });
   }
@@ -309,7 +316,7 @@ class _CarSettingPageState extends State<CarSettingPage>
       });
       _draftService =
           SettingDraftService(widget.originalCar.id, derivedSetting.id);
-      _lastDraft = jsonEncode(_draftValue());
+      _lastDraft = SettingDraftService.encodeDraft(_draftValue());
       _draftReady = true;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -722,11 +729,14 @@ class _CarSettingPageState extends State<CarSettingPage>
             ),
           ],
         ),
-        body: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: usePaperStyleEditor
-              ? _buildPaperEditorBody(context, isEnglish)
-              : _buildSettingTabs(context),
+        body: KeyedSubtree(
+          key: ValueKey(_editorRevision),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: usePaperStyleEditor
+                ? _buildPaperEditorBody(context, isEnglish)
+                : _buildSettingTabs(context),
+          ),
         ),
         bottomNavigationBar: _buildSaveActionBar(isEnglish),
       ),

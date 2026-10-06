@@ -52,4 +52,34 @@ void main() {
     expect(await service.read(), isNull);
     expect(prefs.getString('saved_settings'), 'unchanged');
   });
+
+  test('invalid drafts do not interrupt a pending valid draft', () async {
+    final service = SettingDraftService('car', 'id');
+    expect(service.schedule(draft('valid')), isTrue);
+    expect(service.schedule({...draft('invalid'), 'value': double.infinity}),
+        isFalse);
+    await service.flush();
+    expect((await service.read())?['name'], 'valid');
+  });
+
+  test(
+      'invalid drafts do not overwrite a saved draft and later valid changes resume',
+      () async {
+    final service = SettingDraftService('car', 'id');
+    expect(service.schedule(draft('saved')), isTrue);
+    await service.flush();
+
+    for (final invalid in <Map<String, dynamic>>[
+      {...draft('infinity'), 'value': double.infinity},
+      {...draft('nan'), 'value': double.nan},
+      {...draft('unsupported'), 'value': Object()},
+    ]) {
+      expect(service.schedule(invalid), isFalse);
+    }
+    expect((await service.read())?['name'], 'saved');
+
+    expect(service.schedule(draft('updated')), isTrue);
+    await service.flush();
+    expect((await service.read())?['name'], 'updated');
+  });
 }
