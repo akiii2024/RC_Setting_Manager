@@ -82,11 +82,13 @@ SettingItem gridSetting({
   required int rows,
   required int cols,
   bool multiple = false,
+  String defaultValue = '',
   Map<String, dynamic> constraints = const {},
 }) {
   return SettingItem(
     key: key,
     type: 'grid',
+    defaultValue: defaultValue,
     category: category,
     label: label,
     constraints: _mergedConstraints(

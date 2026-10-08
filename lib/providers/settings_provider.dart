@@ -597,6 +597,7 @@ class SettingsProvider extends ChangeNotifier {
           );
         }
 
+        late final Future<_CommittedMutation<void>> commitOperation;
         try {
           late List<SavedSetting> cloudSettings;
           late List<RunLog> cloudRunLogs;
@@ -658,7 +659,7 @@ class SettingsProvider extends ChangeNotifier {
           }
           _ensureCloudTarget(target, operation: 'cloud load commit');
 
-          return _commitMutationNow<void>(
+          commitOperation = _commitMutationNow<void>(
             operation: 'loadFromFirebase',
             cloudTargetCapture: targetCapture,
             mutate: () {
@@ -686,6 +687,7 @@ class SettingsProvider extends ChangeNotifier {
               visibilitySettings: snapshot.visibilitySettings,
             ),
           );
+          unawaited(commitOperation);
         } catch (error, stackTrace) {
           debugLog('Firebase読み込みエラー: $error');
           return _CommittedMutation(
@@ -699,6 +701,7 @@ class SettingsProvider extends ChangeNotifier {
             ),
           );
         }
+        return commitOperation;
       },
     );
     _mutationQueue = localCommit.then<void>(

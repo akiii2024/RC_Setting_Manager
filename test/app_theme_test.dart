@@ -34,7 +34,7 @@ void main() {
           );
 
           final expectedWeight =
-              ((style.fontWeight ?? FontWeight.w400).index + 1) * 100.0;
+              (style.fontWeight ?? FontWeight.w400).value.toDouble();
           final weightVariation = style.fontVariations?.singleWhere(
             (variation) => variation.axis == 'wght',
           );
@@ -56,6 +56,60 @@ void main() {
           textTheme.titleLarge?.fontFamily,
           startsWith('SpaceGrotesk_'),
         );
+      });
+    }
+  });
+
+  group('AppTheme input visibility', () {
+    test('dark input boundaries have at least 3:1 contrast', () {
+      final theme = AppTheme.dark();
+      final decoration = theme.inputDecorationTheme;
+
+      for (final border in [decoration.border, decoration.enabledBorder]) {
+        final side = (border! as OutlineInputBorder).borderSide;
+        expect(side.style, BorderStyle.solid);
+        expect(side.width, 1);
+        expect(side.color, theme.colorScheme.outline);
+        for (final background in [
+          decoration.fillColor!,
+          theme.colorScheme.surface,
+          theme.colorScheme.surfaceContainerLow,
+          theme.colorScheme.surfaceContainerHigh,
+        ]) {
+          expect(
+              _contrastRatio(side.color, background), greaterThanOrEqualTo(3));
+        }
+      }
+    });
+
+    test('light inputs retain their borderless appearance', () {
+      final decoration = AppTheme.light().inputDecorationTheme;
+      expect(decoration.fillColor, const Color(0xFFE6E8F2));
+      for (final border in [decoration.border, decoration.enabledBorder]) {
+        expect((border! as OutlineInputBorder).borderSide, BorderSide.none);
+      }
+    });
+
+    for (final entry in <String, ThemeData Function()>{
+      'light': AppTheme.light,
+      'dark': AppTheme.dark,
+    }.entries) {
+      test('${entry.key} inputs preserve focus and error boundaries', () {
+        final theme = entry.value();
+        final decoration = theme.inputDecorationTheme;
+        for (final entry in {
+          decoration.focusedBorder!:
+              BorderSide(color: theme.colorScheme.primary, width: 2),
+          decoration.errorBorder!: BorderSide(color: theme.colorScheme.error),
+          decoration.focusedErrorBorder!:
+              BorderSide(color: theme.colorScheme.error, width: 2),
+        }.entries) {
+          final border = entry.key as OutlineInputBorder;
+          expect(border.borderRadius, BorderRadius.circular(18));
+          expect(border.borderSide, entry.value);
+          expect(_contrastRatio(border.borderSide.color, decoration.fillColor!),
+              greaterThanOrEqualTo(3));
+        }
       });
     }
   });
@@ -102,3 +156,13 @@ List<TextStyle> _allTextStyles(TextTheme textTheme) => [
       textTheme.labelMedium,
       textTheme.labelSmall,
     ].whereType<TextStyle>().toList(growable: false);
+
+double _contrastRatio(Color first, Color second) {
+  final firstLuminance = first.computeLuminance();
+  final secondLuminance = second.computeLuminance();
+  final lighter =
+      firstLuminance > secondLuminance ? firstLuminance : secondLuminance;
+  final darker =
+      firstLuminance < secondLuminance ? firstLuminance : secondLuminance;
+  return (lighter + 0.05) / (darker + 0.05);
+}

@@ -13,7 +13,7 @@ abstract final class AppTheme {
       // Flutter 3.35 does not map FontWeight to a variable font's wght axis.
       // Noto Sans JP defaults to 100, so set the effective weight explicitly.
       fontVariations: <FontVariation>[
-        FontVariation('wght', (fontWeight.index + 1) * 100.0),
+        FontVariation('wght', fontWeight.value.toDouble()),
       ],
     );
   }
@@ -107,6 +107,10 @@ abstract final class AppTheme {
       baseTheme.textTheme,
       colorScheme.onSurface,
     );
+
+    final inputBorderSide = brightness == Brightness.dark
+        ? BorderSide(color: colorScheme.outline)
+        : BorderSide.none;
 
     return baseTheme.copyWith(
       scaffoldBackgroundColor: colorScheme.surface,
@@ -246,11 +250,11 @@ abstract final class AppTheme {
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide.none,
+          borderSide: inputBorderSide,
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide.none,
+          borderSide: inputBorderSide,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),

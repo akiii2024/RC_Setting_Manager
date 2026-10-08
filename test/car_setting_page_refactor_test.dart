@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:rc_setting_manager/services/setting_draft_service.dart';
 import 'package:rc_setting_manager/models/car.dart';
 import 'package:rc_setting_manager/models/manufacturer.dart';
 import 'package:rc_setting_manager/models/saved_setting.dart';
@@ -51,8 +52,11 @@ Future<SettingsProvider> _pumpEditor(
   String? settingName,
   List<SavedSetting> storedSettings = const [],
   bool paperEditor = false,
+  Map<String, dynamic>? initialDraft,
 }) async {
   SharedPreferences.setMockInitialValues({
+    if (initialDraft != null)
+      SettingDraftService(car.id, savedSettingId).key: jsonEncode(initialDraft),
     'language_settings': true,
     'cars_settings': jsonEncode([car.toJson()]),
     'saved_settings':
@@ -92,6 +96,35 @@ Finder _textFormFieldWithInitialValue(String value) {
 }
 
 void main() {
+  for (final restore in [true, false]) {
+    testWidgets('draft dialog ${restore ? 'restores' : 'discards'} edits',
+        (tester) async {
+      final car = _car();
+      await _pumpEditor(tester, car: car, initialDraft: {
+        'settings': {'motor': 'Draft motor'},
+        'name': 'Recovered setup',
+        'trackName': 'Recovered circuit',
+      });
+      await tester.pumpAndSettle();
+      expect(find.text('Restore draft?'), findsOneWidget);
+      await tester.tap(find.text(restore ? 'Restore' : 'Discard'));
+      await tester.pumpAndSettle();
+      final nameField = find.byWidgetPredicate((widget) =>
+          widget is TextField &&
+          widget.decoration?.labelText == 'Setting Name');
+      expect(tester.widget<TextField>(nameField).controller!.text,
+          restore ? 'Recovered setup' : isNot('Recovered setup'));
+      final service = SettingDraftService(car.id, null);
+      if (!restore) expect(await service.read(), isNull);
+      await tester.enterText(nameField, 'Changed after dialog');
+      await tester.pump(const Duration(milliseconds: 600));
+      expect((await service.read())?['name'], 'Changed after dialog');
+      await tester.tap(find.text('Save Setting'));
+      await tester.pumpAndSettle();
+      expect(await service.read(), isNull);
+    });
+  }
+
   testWidgets('layout switch preserves input and favorite selection',
       (tester) async {
     final car = _car();

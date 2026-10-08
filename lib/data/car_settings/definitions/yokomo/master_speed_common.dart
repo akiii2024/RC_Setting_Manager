@@ -47,6 +47,7 @@ List<SettingItem> masterSpeedSpecificSettings({required bool isMs2}) {
       label: 'フロント アッパーアーム位置',
       rows: 1,
       cols: 5,
+      defaultValue: '',
     ),
     numberSetting(
       key: 'frontBellCrankPostSpacer',
@@ -67,6 +68,7 @@ List<SettingItem> masterSpeedSpecificSettings({required bool isMs2}) {
       label: 'フロント ベルクランクスペーサー',
       unit: 'mm',
       max: 10,
+      defaultValue: '1',
     ),
     numberSetting(
       key: 'frontSpacerFF',
@@ -74,6 +76,7 @@ List<SettingItem> masterSpeedSpecificSettings({required bool isMs2}) {
       label: 'フロント スペーサー FF',
       unit: 'mm',
       max: 10,
+      defaultValue: '0.5',
     ),
     numberSetting(
       key: 'frontSpacerFR',
@@ -81,6 +84,7 @@ List<SettingItem> masterSpeedSpecificSettings({required bool isMs2}) {
       label: 'フロント スペーサー FR',
       unit: 'mm',
       max: 10,
+      defaultValue: '0.5',
     ),
     if (!isMs2)
       selectSetting(
@@ -102,6 +106,7 @@ List<SettingItem> masterSpeedSpecificSettings({required bool isMs2}) {
       label: 'フロント アウタースペーサー',
       unit: 'mm',
       max: 10,
+      defaultValue: '1',
     ),
     ..._masterSpeedSideSettings(
       prefix: 'front',
@@ -125,6 +130,7 @@ List<SettingItem> masterSpeedSpecificSettings({required bool isMs2}) {
       rows: 1,
       cols: isMs2 ? 2 : 3,
       multiple: true,
+      defaultValue: '',
     ),
     textSetting(
       key: 'rearGear',
@@ -149,6 +155,7 @@ List<SettingItem> masterSpeedSpecificSettings({required bool isMs2}) {
       label: 'リア スペーサー RF',
       unit: 'mm',
       max: 10,
+      defaultValue: '1',
     ),
     numberSetting(
       key: 'rearSpacerRR',
@@ -156,6 +163,7 @@ List<SettingItem> masterSpeedSpecificSettings({required bool isMs2}) {
       label: 'リア スペーサー RR',
       unit: 'mm',
       max: 10,
+      defaultValue: '1',
     ),
     numberSetting(
       key: 'rearInnerSpacer',
@@ -163,6 +171,7 @@ List<SettingItem> masterSpeedSpecificSettings({required bool isMs2}) {
       label: 'リア インナースペーサー',
       unit: 'mm',
       max: 10,
+      defaultValue: '2',
     ),
     numberSetting(
       key: 'rearOuterSpacer',
@@ -170,6 +179,7 @@ List<SettingItem> masterSpeedSpecificSettings({required bool isMs2}) {
       label: 'リア アウタースペーサー',
       unit: 'mm',
       max: 10,
+      defaultValue: '1',
     ),
     if (isMs2) ...[
       numberSetting(
@@ -223,7 +233,7 @@ List<SettingItem> masterSpeedSpecificSettings({required bool isMs2}) {
       min: 60,
       max: 120,
       step: 1,
-      defaultValue: '60',
+      defaultValue: '116',
     ),
     numberSetting(
       key: 'pinionGear',
@@ -233,7 +243,7 @@ List<SettingItem> masterSpeedSpecificSettings({required bool isMs2}) {
       min: 20,
       max: 60,
       step: 1,
-      defaultValue: '20',
+      defaultValue: '30',
     ),
     textSetting(
       key: 'battery',
@@ -265,6 +275,7 @@ List<SettingItem> masterSpeedSpecificSettings({required bool isMs2}) {
       rows: isMs2 ? 6 : 8,
       cols: 1,
       multiple: true,
+      defaultValue: '',
     ),
     gridSetting(
       key: 'batteryPosition',
@@ -273,6 +284,7 @@ List<SettingItem> masterSpeedSpecificSettings({required bool isMs2}) {
       rows: 4,
       cols: 2,
       multiple: true,
+      defaultValue: '',
     ),
     textSetting(
       key: 'tire',

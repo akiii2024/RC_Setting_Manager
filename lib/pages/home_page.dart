@@ -278,7 +278,7 @@ class _HomePageState extends State<HomePage> {
       1 => _t(isEnglish, 'My Garage', 'マイガレージ'),
       2 => _t(isEnglish, 'History', '履歴'),
       3 => _t(isEnglish, 'Tools', 'ツール'),
-      _ => 'ENGINEERING PRECISION',
+      _ => 'RC Setting Manager',
     };
   }
 

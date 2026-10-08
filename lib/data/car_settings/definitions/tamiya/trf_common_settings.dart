@@ -2,6 +2,8 @@ import '../../../../models/car_setting_definition.dart';
 import '../common/setting_item_helpers.dart';
 
 /// TRF421系で共通する前後ダンパー項目を構築する。
+/// キット説明図のロッド露出8mm・エア抜き穴1mmを基準にする。
+/// https://www.tamiya.com/japan/download/rcmanual/42384.pdf
 ///
 /// シート表記が異なるエア抜き穴のラベルだけを車種側から受け取る。
 List<SettingItem> trfDamperSettings({
@@ -17,6 +19,7 @@ List<SettingItem> trfDamperSettings({
       label: '$labelPrefix ダンパーポジション',
       options: const ['1', '2', '3'],
       constraints: const {'selectGuide': 'insideOutside'},
+      defaultValue: '2',
     ),
     numberSetting(
       key: '${prefix}SusArm',
@@ -43,7 +46,7 @@ List<SettingItem> trfDamperSettings({
       min: 1.0,
       max: 3.0,
       step: 0.1,
-      defaultValue: '1.0',
+      defaultValue: '1.1',
       constraints: {
         'composite': 'damperPiston',
         'pistonKey': '${prefix}DamperPiston',
@@ -86,6 +89,7 @@ List<SettingItem> trfDamperSettings({
       label: '$labelPrefix ストローク長',
       unit: 'mm',
       max: 50,
+      defaultValue: '8',
     ),
     numberSetting(
       key: '${prefix}DamperAirHole',
@@ -94,6 +98,7 @@ List<SettingItem> trfDamperSettings({
       unit: 'mm',
       max: 5,
       step: 0.1,
+      defaultValue: '1',
     ),
   ];
 }

@@ -130,3 +130,6 @@ coverage/
 .test_coverage/
 
 setting_sheet_pdf/
+
+# Android template temp dir
+.tmp_android_template*/

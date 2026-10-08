@@ -19,6 +19,19 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Verify pubspec version matches tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          TAG_VERSION="${TAG#v}"
+          PUB_VERSION=$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)
+          if [ "$TAG_VERSION" != "$PUB_VERSION" ]; then
+            echo "::error::tag v$TAG_VERSION != pubspec version $PUB_VERSION. Update pubspec.yaml before tagging."
+            exit 1
+          fi
+          echo "version OK: $PUB_VERSION"
+
       - name: Setup Java
         uses: actions/setup-java@c5195efecf7bdfc987ee8bae7a71cb8b11521c00 # v4.7.1
         with:
