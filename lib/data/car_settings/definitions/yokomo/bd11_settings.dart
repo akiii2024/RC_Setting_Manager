@@ -44,6 +44,7 @@ final List<SettingItem> bd11SpecificSettings = [
     label: 'フロント アッパーアーム位置',
     rows: 1,
     cols: 5,
+    defaultValue: '',
   ),
   selectSetting(
     key: 'frontCHub',
@@ -70,6 +71,7 @@ final List<SettingItem> bd11SpecificSettings = [
     label: 'フロント ベルクランクスペーサー',
     unit: 'mm',
     max: 10,
+    defaultValue: '1',
   ),
   numberSetting(
     key: 'frontSpacerFF',
@@ -77,6 +79,7 @@ final List<SettingItem> bd11SpecificSettings = [
     label: 'フロント スペーサー FF',
     unit: 'mm',
     max: 10,
+    defaultValue: '0.5',
   ),
   numberSetting(
     key: 'frontSpacerFR',
@@ -84,6 +87,7 @@ final List<SettingItem> bd11SpecificSettings = [
     label: 'フロント スペーサー FR',
     unit: 'mm',
     max: 10,
+    defaultValue: '0.5',
   ),
   selectSetting(
     key: 'frontSteeringBlock',
@@ -115,6 +119,7 @@ final List<SettingItem> bd11SpecificSettings = [
     label: 'リア アッパーアーム位置',
     rows: 1,
     cols: 5,
+    defaultValue: '',
   ),
   textSetting(
     key: 'rearGear',
@@ -139,6 +144,7 @@ final List<SettingItem> bd11SpecificSettings = [
     label: 'リア スペーサー RF',
     unit: 'mm',
     max: 10,
+    defaultValue: '1',
   ),
   numberSetting(
     key: 'rearSpacerRR',
@@ -146,6 +152,7 @@ final List<SettingItem> bd11SpecificSettings = [
     label: 'リア スペーサー RR',
     unit: 'mm',
     max: 10,
+    defaultValue: '1',
   ),
   numberSetting(
     key: 'rearInnerSpacer',
@@ -153,6 +160,7 @@ final List<SettingItem> bd11SpecificSettings = [
     label: 'リア インナースペーサー',
     unit: 'mm',
     max: 10,
+    defaultValue: '2',
   ),
   numberSetting(
     key: 'rearOuterSpacer',
@@ -160,6 +168,7 @@ final List<SettingItem> bd11SpecificSettings = [
     label: 'リア アウタースペーサー',
     unit: 'mm',
     max: 10,
+    defaultValue: '1',
   ),
   ..._bd11SetupSideSettings(
     prefix: 'rear',
@@ -198,7 +207,7 @@ final List<SettingItem> bd11SpecificSettings = [
     min: 60,
     max: 120,
     step: 1,
-    defaultValue: '60',
+    defaultValue: '116',
   ),
   numberSetting(
     key: 'pinionGear',
@@ -208,7 +217,7 @@ final List<SettingItem> bd11SpecificSettings = [
     min: 20,
     max: 60,
     step: 1,
-    defaultValue: '20',
+    defaultValue: '30',
   ),
   textSetting(
     key: 'battery',
@@ -240,6 +249,7 @@ final List<SettingItem> bd11SpecificSettings = [
     rows: 3,
     cols: 2,
     multiple: true,
+    defaultValue: '',
   ),
   textSetting(
     key: 'frontTire',

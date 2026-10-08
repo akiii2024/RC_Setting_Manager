@@ -77,6 +77,67 @@ void main() {
     expect(legacy.carSettingsDefinitions, same(carSettingsDefinitions));
   });
 
+  test('組み立て後の全車種で数値初期値とselect初期値が制約を満たす', () {
+    for (final entry in carSettingsDefinitions.entries) {
+      for (final setting in entry.value.availableSettings) {
+        final reason = '${entry.key}/${setting.key}';
+        expect(setting.defaultValue, isA<String>(), reason: reason);
+        if (setting.type == 'number') {
+          final value = double.tryParse(setting.defaultValue!);
+          expect(value, isNotNull, reason: reason);
+          expect(value!.isFinite, isTrue, reason: reason);
+          expect(value, greaterThanOrEqualTo(setting.constraints['min'] as num),
+              reason: reason);
+          expect(value, lessThanOrEqualTo(setting.constraints['max'] as num),
+              reason: reason);
+        } else if (setting.type == 'text' && setting.key != 'date') {
+          expect(setting.defaultValue, isEmpty, reason: reason);
+        } else if (setting.type == 'select') {
+          expect(setting.options, contains(setting.defaultValue),
+              reason: reason);
+        }
+      }
+    }
+  });
+
+  test('共通定義とコピー先にも走行可能な基準値を設定する', () {
+    for (final entry in carSettingsDefinitions.entries) {
+      final defaults = {
+        for (final setting in entry.value.availableSettings)
+          setting.key: setting.defaultValue,
+      };
+      final isTamiya = entry.key.startsWith('tamiya/');
+      for (final end in ['front', 'rear']) {
+        expect(
+            defaults['$end${isTamiya ? 'GroundClearance' : 'RideHeight'}'], '5',
+            reason: entry.key);
+        expect(defaults['$end${isTamiya ? 'CamberAngle' : 'Camber'}'], '-2',
+            reason: entry.key);
+        expect(defaults['$end${isTamiya ? 'DamperPistonHole' : 'PistonHole'}'],
+            '4',
+            reason: entry.key);
+        // 自由記述のオイル銘柄/粘度は利用者が指定する。
+        expect(defaults['$end${isTamiya ? 'DamperOil' : 'ShockOil'}'], '',
+            reason: entry.key);
+      }
+      expect(defaults['motor'], '', reason: entry.key);
+      expect(defaults['spurGear'], '116', reason: entry.key);
+      expect(defaults['pinionGear'], '30', reason: entry.key);
+    }
+    expect(
+        carSettingsDefinitions['tamiya/trf421x']!
+            .availableSettings
+            .firstWhere((setting) => setting.key == 'lowerDeck')
+            .defaultValue,
+        '2');
+    expect(
+        carSettingsDefinitions['tamiya/trf420']!
+            .availableSettings
+            .firstWhere((setting) => setting.key == 'rearToeAngle')
+            .defaultValue,
+        '3');
+  });
+
   test('全車種のキー・カテゴリ・選択肢・複合metadataを維持する', () {
     final actual = {
       for (final entry in carSettingsDefinitions.entries)
@@ -90,7 +151,7 @@ void main() {
         'categories': 'ac31c2e7',
         'options': '3c11f54c',
         'composites': '769dd45f',
-        'fullShape': '5e64db6d',
+        'fullShape': 'bfa271f4',
       },
       'tamiya/trf420': {
         'count': 99,
@@ -98,7 +159,7 @@ void main() {
         'categories': 'e8eb5d01',
         'options': '9ca9378b',
         'composites': '2a570281',
-        'fullShape': 'd57f5778',
+        'fullShape': '3d175545',
       },
       'tamiya/trf420x': {
         'count': 94,
@@ -106,7 +167,7 @@ void main() {
         'categories': '616648bb',
         'options': 'eb8442e1',
         'composites': '2a570281',
-        'fullShape': '6af6b11c',
+        'fullShape': '7cdcda3b',
       },
       'tamiya/trf421x': {
         'count': 100,
@@ -114,7 +175,7 @@ void main() {
         'categories': 'f4593996',
         'options': 'a96eeec0',
         'composites': '769dd45f',
-        'fullShape': '998bb7f2',
+        'fullShape': '0b46186d',
       },
       'yokomo/bd11': {
         'count': 75,
@@ -122,7 +183,7 @@ void main() {
         'categories': '394e6391',
         'options': 'a366082c',
         'composites': '5c2b6309',
-        'fullShape': 'c377fbae',
+        'fullShape': '717a5077',
       },
       'yokomo/bd12': {
         'count': 77,
@@ -130,7 +191,7 @@ void main() {
         'categories': 'd9ce3b24',
         'options': '6b73060e',
         'composites': '4ad23d91',
-        'fullShape': 'ad24fd6c',
+        'fullShape': 'dfdedfa0',
       },
       'yokomo/ms1_0': {
         'count': 74,
@@ -138,7 +199,7 @@ void main() {
         'categories': '9278acf3',
         'options': '6cc854c8',
         'composites': '39675f6d',
-        'fullShape': '0497a676',
+        'fullShape': '404b9f0d',
       },
       'yokomo/ms2_0': {
         'count': 75,
@@ -146,7 +207,7 @@ void main() {
         'categories': '907e0516',
         'options': '04e11613',
         'composites': '39675f6d',
-        'fullShape': 'ed3a8420',
+        'fullShape': 'f04b3561',
       },
     });
   });
