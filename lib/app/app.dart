@@ -193,8 +193,7 @@ class MyApp extends StatelessWidget {
               title: 'RC Setting Manager',
               theme: AppTheme.light(),
               darkTheme: AppTheme.dark(),
-              themeMode:
-                  themeProvider.isDarkMode ? ThemeMode.dark : ThemeMode.light,
+              themeMode: themeProvider.themeMode,
               localizationsDelegates: const [
                 GlobalMaterialLocalizations.delegate,
                 GlobalWidgetsLocalizations.delegate,

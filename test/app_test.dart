@@ -16,12 +16,13 @@ Widget _withAppDependencies({
   required AppModeProvider mode,
   required SettingsProvider settings,
   Widget child = const MyApp(),
+  ThemeProvider? themeProvider,
 }) {
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<AppModeProvider>.value(value: mode),
       ChangeNotifierProvider<SettingsProvider>.value(value: settings),
-      ChangeNotifierProvider(create: (_) => ThemeProvider()),
+      ChangeNotifierProvider(create: (_) => themeProvider ?? ThemeProvider()),
       Provider<AuthService?>.value(value: null),
     ],
     child: child,
@@ -48,6 +49,40 @@ void main() {
     });
   });
 
+  testWidgets('端末の明るさに追従し、ライトとダークの固定を優先する', (tester) async {
+    final mode =
+        AppModeProvider(preferredOnline: false, isFirebaseReady: false);
+    final settings = SettingsProvider(appModeProvider: mode);
+    final theme = await ThemeProvider.create();
+    addTearDown(mode.dispose);
+    addTearDown(settings.dispose);
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    await tester.pumpWidget(_withAppDependencies(
+        mode: mode, settings: settings, themeProvider: theme));
+    await _pumpUntilInitialized(tester, settings);
+    await tester.pumpAndSettle();
+
+    Brightness brightness() =>
+        Theme.of(tester.element(find.byType(HomePage))).brightness;
+    expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
+        ThemeMode.system);
+    expect(brightness(), Brightness.light);
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    await tester.pumpAndSettle();
+    expect(brightness(), Brightness.dark);
+
+    await theme.setThemeMode(ThemeMode.light);
+    await tester.pumpAndSettle();
+    expect(brightness(), Brightness.light);
+    await theme.setThemeMode(ThemeMode.dark);
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.light;
+    await tester.pumpAndSettle();
+    expect(brightness(), Brightness.dark);
+    await theme.setThemeMode(ThemeMode.system);
+    await tester.pumpAndSettle();
+    expect(brightness(), Brightness.light);
+  });
   testWidgets('application root preserves locale, routes, and offline home',
       (tester) async {
     final mode = AppModeProvider(
