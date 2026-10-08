@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.example" "\0"
-            VALUE "FileDescription", "settingsheet_manager" "\0"
+            VALUE "FileDescription", "RC Setting Manager" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "settingsheet_manager" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2025 com.example. All rights reserved." "\0"
             VALUE "OriginalFilename", "settingsheet_manager.exe" "\0"
-            VALUE "ProductName", "settingsheet_manager" "\0"
+            VALUE "ProductName", "RC Setting Manager" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

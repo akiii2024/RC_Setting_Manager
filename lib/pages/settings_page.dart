@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/settings_provider.dart';
@@ -14,6 +15,8 @@ import '../models/settings_operation_result.dart';
 import '../presentation/settings/visibility_settings_presenter.dart';
 import '../utils/settings_operation_feedback.dart';
 import '../utils/app_logger.dart';
+import '../utils/app_metadata.dart';
+import '../utils/external_url_launcher.dart';
 import 'import_export_page.dart';
 import 'ai_provider_settings_page.dart';
 
@@ -118,489 +121,494 @@ class _SettingsPageState extends State<SettingsPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
           children: [
-          SwitchListTile(
-            secondary: const Icon(Icons.dark_mode_outlined),
-            title: Text(isEnglish ? 'Dark Mode' : 'ダークモード'),
-            subtitle:
-                Text(isEnglish ? 'Switch to dark appearance' : 'アプリの外観を暗くします'),
-            value: themeProvider.isDarkMode,
-            onChanged: _isThemeMutationInFlight
-                ? null
-                : (bool value) async {
-                    setState(() => _isThemeMutationInFlight = true);
-                    try {
-                      final result = await themeProvider.setDarkMode(value);
-                      if (!context.mounted) return;
-                      handleSettingsOperationResult(
-                        context,
-                        result,
-                        isEnglish: isEnglish,
-                      );
-                    } finally {
-                      if (mounted) {
-                        setState(() => _isThemeMutationInFlight = false);
-                      }
-                    }
-                  },
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          ),
-          const SizedBox(height: 8.0),
-          const Divider(),
-          const SizedBox(height: 8.0),
-          ListTile(
-            leading: const Icon(Icons.visibility_outlined),
-            title: Text(isEnglish ? 'Display Settings' : '表示設定'),
-            subtitle: Text(isEnglish
-                ? 'Set display items for each machine'
-                : '各マシンごとの表示項目を設定します'),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              _showVisibilitySettingsDialog(context);
-            },
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          ),
-          const SizedBox(height: 16.0),
-          ListTile(
-            leading: const Icon(Icons.dashboard_customize_outlined),
-            title: Text(isEnglish ? 'Editor Layout' : '編集レイアウト'),
-            subtitle: Text(settingsProvider.usePaperStyleEditor
-                ? (isEnglish ? 'Paper UI' : '紙UI')
-                : (isEnglish ? 'App UI' : 'アプリUI')),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () => _showEditorLayoutDialog(context),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          ),
-          const SizedBox(height: 16.0),
-          ListTile(
-            leading: const Icon(Icons.save_outlined),
-            title: Text(isEnglish ? 'Auto Save' : '自動保存'),
-            subtitle: Text(isEnglish
-                ? 'Automatically save setting changes (Coming Soon)'
-                : 'セッティングの変更を自動的に保存します（準備中）'),
-            trailing: const Icon(Icons.lock_outline),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          ),
-          const SizedBox(height: 16.0),
-          ListTile(
-            leading: const Icon(Icons.language_rounded),
-            title: Text(isEnglish ? 'Language' : '言語'),
-            subtitle: Text(isEnglish ? 'English' : '日本語'),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () => _showLanguageDialog(context),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          ),
-          const SizedBox(height: 16.0),
-          ListTile(
-            title: Text(
-              isEnglish ? 'Location and Weather Services' : '位置情報・天気サービス',
-            ),
-            subtitle: Text(_locationConsentStatusText(isEnglish)),
-            leading: const Icon(Icons.location_on_outlined),
-            trailing: _isLoadingLocationConsent
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.arrow_forward_ios),
-            onTap: _isLoadingLocationConsent
-                ? null
-                : () => _showLocationConsentSettingsDialog(
-                      context,
-                      isEnglish,
-                    ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          ),
-          const SizedBox(height: 16.0),
-          ListTile(
-            title: Text(
-              isEnglish ? 'AI Provider and API Key' : 'AIプロバイダー・APIキー',
-            ),
-            subtitle: Text(
-              _isLoadingAiProvider
-                  ? (isEnglish ? 'Loading...' : '読み込み中...')
-                  : (_aiProviderSummary ??
-                      (isEnglish ? 'Not configured' : '未設定')),
-            ),
-            leading: const Icon(Icons.key_outlined),
-            trailing: _isLoadingAiProvider
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.arrow_forward_ios),
-            onTap: _isLoadingAiProvider
-                ? null
-                : () async {
-                    await Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (context) => AiProviderSettingsPage(
+            SwitchListTile(
+              secondary: const Icon(Icons.dark_mode_outlined),
+              title: Text(isEnglish ? 'Dark Mode' : 'ダークモード'),
+              subtitle: Text(
+                  isEnglish ? 'Switch to dark appearance' : 'アプリの外観を暗くします'),
+              value: themeProvider.isDarkMode,
+              onChanged: _isThemeMutationInFlight
+                  ? null
+                  : (bool value) async {
+                      setState(() => _isThemeMutationInFlight = true);
+                      try {
+                        final result = await themeProvider.setDarkMode(value);
+                        if (!context.mounted) return;
+                        handleSettingsOperationResult(
+                          context,
+                          result,
                           isEnglish: isEnglish,
-                        ),
-                      ),
-                    );
-                    await _loadAiProviderState();
-                  },
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          ),
-          const SizedBox(height: 16.0),
-          ListTile(
-            title: Text(
-              isEnglish ? 'AI and OCR Data Sharing' : 'AI・OCRのデータ送信',
-            ),
-            subtitle: Text(_aiConsentStatusText(isEnglish)),
-            leading: const Icon(Icons.policy_outlined),
-            trailing: _isLoadingAiConsent
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.arrow_forward_ios),
-            onTap: _isLoadingAiConsent
-                ? null
-                : () => _showAiConsentSettingsDialog(
-                      context,
-                      isEnglish,
-                    ),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          ),
-          const SizedBox(height: 8.0),
-          const Divider(),
-          const SizedBox(height: 8.0),
-          if (_showOnlineFeatures()) ...[
-            // オンライン機能セクション
-            ListTile(
-              title: Text(isEnglish ? 'Online Features' : 'オンライン機能'),
-              subtitle: Text(isEnglish
-                  ? 'Sign in to sync your data across devices'
-                  : 'サインインしてデバイス間でデータを同期'),
+                        );
+                      } finally {
+                        if (mounted) {
+                          setState(() => _isThemeMutationInFlight = false);
+                        }
+                      }
+                    },
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             ),
-            if (authService == null || !authService.isFirebaseAvailable) ...[
+            const SizedBox(height: 8.0),
+            const Divider(),
+            const SizedBox(height: 8.0),
+            ListTile(
+              leading: const Icon(Icons.visibility_outlined),
+              title: Text(isEnglish ? 'Display Settings' : '表示設定'),
+              subtitle: Text(isEnglish
+                  ? 'Set display items for each machine'
+                  : '各マシンごとの表示項目を設定します'),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () {
+                _showVisibilitySettingsDialog(context);
+              },
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            ),
+            const SizedBox(height: 16.0),
+            ListTile(
+              leading: const Icon(Icons.dashboard_customize_outlined),
+              title: Text(isEnglish ? 'Editor Layout' : '編集レイアウト'),
+              subtitle: Text(settingsProvider.usePaperStyleEditor
+                  ? (isEnglish ? 'Paper UI' : '紙UI')
+                  : (isEnglish ? 'App UI' : 'アプリUI')),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () => _showEditorLayoutDialog(context),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            ),
+            const SizedBox(height: 16.0),
+            ListTile(
+              leading: const Icon(Icons.save_outlined),
+              title: Text(isEnglish ? 'Auto Save' : '自動保存'),
+              subtitle: Text(isEnglish
+                  ? 'Automatically save setting changes (Coming Soon)'
+                  : 'セッティングの変更を自動的に保存します（準備中）'),
+              trailing: const Icon(Icons.lock_outline),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            ),
+            const SizedBox(height: 16.0),
+            ListTile(
+              leading: const Icon(Icons.language_rounded),
+              title: Text(isEnglish ? 'Language' : '言語'),
+              subtitle: Text(isEnglish ? 'English' : '日本語'),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () => _showLanguageDialog(context),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            ),
+            const SizedBox(height: 16.0),
+            ListTile(
+              title: Text(
+                isEnglish ? 'Location and Weather Services' : '位置情報・天気サービス',
+              ),
+              subtitle: Text(_locationConsentStatusText(isEnglish)),
+              leading: const Icon(Icons.location_on_outlined),
+              trailing: _isLoadingLocationConsent
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.arrow_forward_ios),
+              onTap: _isLoadingLocationConsent
+                  ? null
+                  : () => _showLocationConsentSettingsDialog(
+                        context,
+                        isEnglish,
+                      ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            ),
+            const SizedBox(height: 16.0),
+            ListTile(
+              title: Text(
+                isEnglish ? 'AI Provider and API Key' : 'AIプロバイダー・APIキー',
+              ),
+              subtitle: Text(
+                _isLoadingAiProvider
+                    ? (isEnglish ? 'Loading...' : '読み込み中...')
+                    : (_aiProviderSummary ??
+                        (isEnglish ? 'Not configured' : '未設定')),
+              ),
+              leading: const Icon(Icons.key_outlined),
+              trailing: _isLoadingAiProvider
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.arrow_forward_ios),
+              onTap: _isLoadingAiProvider
+                  ? null
+                  : () async {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => AiProviderSettingsPage(
+                            isEnglish: isEnglish,
+                          ),
+                        ),
+                      );
+                      await _loadAiProviderState();
+                    },
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            ),
+            const SizedBox(height: 16.0),
+            ListTile(
+              title: Text(
+                isEnglish ? 'AI and OCR Data Sharing' : 'AI・OCRのデータ送信',
+              ),
+              subtitle: Text(_aiConsentStatusText(isEnglish)),
+              leading: const Icon(Icons.policy_outlined),
+              trailing: _isLoadingAiConsent
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.arrow_forward_ios),
+              onTap: _isLoadingAiConsent
+                  ? null
+                  : () => _showAiConsentSettingsDialog(
+                        context,
+                        isEnglish,
+                      ),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            ),
+            const SizedBox(height: 8.0),
+            const Divider(),
+            const SizedBox(height: 8.0),
+            if (_showOnlineFeatures()) ...[
+              // オンライン機能セクション
               ListTile(
-                title: Text(
-                    isEnglish ? 'Firebase Not Available' : 'Firebaseが利用できません'),
+                title: Text(isEnglish ? 'Online Features' : 'オンライン機能'),
                 subtitle: Text(isEnglish
-                    ? 'Please check Firebase configuration'
-                    : 'Firebase設定を確認してください'),
-                leading: const Icon(Icons.warning, color: Colors.orange),
+                    ? 'Sign in to sync your data across devices'
+                    : 'サインインしてデバイス間でデータを同期'),
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               ),
-            ] else if (!authService.isSignedIn) ...[
-              ListTile(
-                title: Text(isEnglish ? 'Sign In / Sign Up' : 'サインイン / サインアップ'),
-                subtitle: Text(isEnglish
-                    ? 'Create account or sign in to sync data'
-                    : 'アカウントを作成またはサインインしてデータを同期'),
-                leading: const Icon(Icons.login),
-                trailing: const Icon(Icons.arrow_forward_ios),
-                onTap: () {
-                  Navigator.of(context).pushNamed('/login');
-                },
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              ),
-            ] else if (authService.isGuestUser) ...[
-              // ゲストユーザー用のアカウント作成セクション
-              ListTile(
-                title: Text(isEnglish ? 'Create Account' : 'アカウント作成'),
-                subtitle: Text(isEnglish
-                    ? 'Convert guest account to permanent account'
-                    : 'ゲストアカウントを永続アカウントに変換'),
-                leading: const Icon(Icons.person_add, color: Colors.blue),
-                trailing: const Icon(Icons.arrow_forward_ios),
-                onTap: () {
-                  Navigator.of(context).pushNamed('/login');
-                },
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              ),
-              ListTile(
-                title: Text(isEnglish ? 'Guest Account' : 'ゲストアカウント'),
-                subtitle: Text(isEnglish
-                    ? 'Your data is saved locally and in cloud'
-                    : 'データはローカルとクラウドに保存されています'),
-                leading: const Icon(Icons.person_outline, color: Colors.green),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              ),
-            ] else ...[
-              ListTile(
-                title: Text(isEnglish ? 'Signed in as' : 'サインイン中'),
-                subtitle: Text(authService.currentUser?.email ?? ''),
-                leading: const Icon(Icons.account_circle),
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              ),
-              SwitchListTile(
-                title: Text(isEnglish ? 'Online Sync' : 'オンライン同期'),
-                subtitle: Text(isEnglish
-                    ? 'Automatically sync data to cloud'
-                    : 'データを自動的にクラウドに同期'),
-                value: appModeProvider?.isOnlineActive ?? false,
-                onChanged: appModeProvider == null ||
-                        _isOnlineModeMutationInFlight
-                    ? null
-                    : (bool value) async {
-                        setState(() => _isOnlineModeMutationInFlight = true);
-                        try {
-                          if (value) {
-                            await appModeProvider.setOnlineAndInit();
-                            final syncResult =
-                                await settingsProvider.syncToFirebase();
-                            if (!context.mounted) return;
-                            if (syncResult is SettingsOperationFailure<void>) {
+              if (authService == null || !authService.isFirebaseAvailable) ...[
+                ListTile(
+                  title: Text(isEnglish
+                      ? 'Firebase Not Available'
+                      : 'Firebaseが利用できません'),
+                  subtitle: Text(isEnglish
+                      ? 'Please check Firebase configuration'
+                      : 'Firebase設定を確認してください'),
+                  leading: const Icon(Icons.warning, color: Colors.orange),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                ),
+              ] else if (!authService.isSignedIn) ...[
+                ListTile(
+                  title:
+                      Text(isEnglish ? 'Sign In / Sign Up' : 'サインイン / サインアップ'),
+                  subtitle: Text(isEnglish
+                      ? 'Create account or sign in to sync data'
+                      : 'アカウントを作成またはサインインしてデータを同期'),
+                  leading: const Icon(Icons.login),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    Navigator.of(context).pushNamed('/login');
+                  },
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                ),
+              ] else if (authService.isGuestUser) ...[
+                // ゲストユーザー用のアカウント作成セクション
+                ListTile(
+                  title: Text(isEnglish ? 'Create Account' : 'アカウント作成'),
+                  subtitle: Text(isEnglish
+                      ? 'Convert guest account to permanent account'
+                      : 'ゲストアカウントを永続アカウントに変換'),
+                  leading: const Icon(Icons.person_add, color: Colors.blue),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () {
+                    Navigator.of(context).pushNamed('/login');
+                  },
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                ),
+                ListTile(
+                  title: Text(isEnglish ? 'Guest Account' : 'ゲストアカウント'),
+                  subtitle: Text(isEnglish
+                      ? 'Your data is saved locally and in cloud'
+                      : 'データはローカルとクラウドに保存されています'),
+                  leading:
+                      const Icon(Icons.person_outline, color: Colors.green),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                ),
+              ] else ...[
+                ListTile(
+                  title: Text(isEnglish ? 'Signed in as' : 'サインイン中'),
+                  subtitle: Text(authService.currentUser?.email ?? ''),
+                  leading: const Icon(Icons.account_circle),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                ),
+                SwitchListTile(
+                  title: Text(isEnglish ? 'Online Sync' : 'オンライン同期'),
+                  subtitle: Text(isEnglish
+                      ? 'Automatically sync data to cloud'
+                      : 'データを自動的にクラウドに同期'),
+                  value: appModeProvider?.isOnlineActive ?? false,
+                  onChanged: appModeProvider == null ||
+                          _isOnlineModeMutationInFlight
+                      ? null
+                      : (bool value) async {
+                          setState(() => _isOnlineModeMutationInFlight = true);
+                          try {
+                            if (value) {
+                              await appModeProvider.setOnlineAndInit();
+                              final syncResult =
+                                  await settingsProvider.syncToFirebase();
+                              if (!context.mounted) return;
+                              if (syncResult
+                                  is SettingsOperationFailure<void>) {
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text(isEnglish
+                                        ? 'Online sync was enabled, but the initial upload failed. Your data remains saved on this device.'
+                                        : 'オンライン同期は有効になりましたが、初回同期に失敗しました。データは端末に保存されています。'),
+                                    backgroundColor: Colors.orange,
+                                  ),
+                                );
+                                return;
+                              }
+                              final warning =
+                                  (syncResult as SettingsOperationSuccess<void>)
+                                      .warning;
+                              if (warning != null) {
+                                handleSettingsOperationResult(
+                                  context,
+                                  syncResult,
+                                  isEnglish: isEnglish,
+                                );
+                                return;
+                              }
+                            } else {
+                              await appModeProvider.setOffline();
+                            }
+                            if (mounted) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text(value
+                                      ? (isEnglish
+                                          ? 'Online sync enabled'
+                                          : 'オンライン同期が有効になりました')
+                                      : (isEnglish
+                                          ? 'Online sync disabled'
+                                          : 'オンライン同期が無効になりました')),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            debugLog('Online mode toggle failed: $e');
+                            if (mounted) {
                               messenger.showSnackBar(
                                 SnackBar(
                                   content: Text(isEnglish
-                                      ? 'Online sync was enabled, but the initial upload failed. Your data remains saved on this device.'
-                                      : 'オンライン同期は有効になりましたが、初回同期に失敗しました。データは端末に保存されています。'),
-                                  backgroundColor: Colors.orange,
+                                      ? 'Failed to toggle sync.'
+                                      : '同期の切り替えに失敗しました。'),
+                                  backgroundColor: Colors.red,
                                 ),
                               );
-                              return;
                             }
-                            final warning =
-                                (syncResult as SettingsOperationSuccess<void>)
-                                    .warning;
-                            if (warning != null) {
-                              handleSettingsOperationResult(
-                                context,
-                                syncResult,
-                                isEnglish: isEnglish,
-                              );
-                              return;
+                          } finally {
+                            if (mounted) {
+                              setState(
+                                  () => _isOnlineModeMutationInFlight = false);
                             }
-                          } else {
-                            await appModeProvider.setOffline();
                           }
-                          if (mounted) {
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text(value
-                                    ? (isEnglish
-                                        ? 'Online sync enabled'
-                                        : 'オンライン同期が有効になりました')
-                                    : (isEnglish
-                                        ? 'Online sync disabled'
-                                        : 'オンライン同期が無効になりました')),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          debugLog('Online mode toggle failed: $e');
-                          if (mounted) {
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text(isEnglish
-                                    ? 'Failed to toggle sync.'
-                                    : '同期の切り替えに失敗しました。'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        } finally {
-                          if (mounted) {
-                            setState(
-                                () => _isOnlineModeMutationInFlight = false);
-                          }
-                        }
-                      },
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              ),
-              ListTile(
-                title: Text(isEnglish ? 'Sync Now' : '今すぐ同期'),
-                subtitle: Text(isEnglish
-                    ? 'Manually sync data to cloud'
-                    : '手動でデータをクラウドに同期'),
-                leading: const Icon(Icons.sync),
-                trailing: const Icon(Icons.arrow_forward_ios),
-                onTap: !(appModeProvider?.isOnlineActive ?? false) ||
-                        _isCloudOperationInFlight
-                    ? null
-                    : () async {
-                        setState(() => _isCloudOperationInFlight = true);
-                        try {
-                          final result =
-                              await settingsProvider.syncToFirebase();
-                          if (context.mounted &&
-                              handleSettingsOperationResult(
-                                context,
-                                result,
-                                isEnglish: isEnglish,
-                              )) {
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text(isEnglish
-                                    ? 'Data synced successfully'
-                                    : 'データの同期が完了しました'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                    isEnglish ? 'Sync failed.' : '同期に失敗しました。'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        } finally {
-                          if (mounted) {
-                            setState(() => _isCloudOperationInFlight = false);
-                          }
-                        }
-                      },
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              ),
-              ListTile(
-                title: Text(isEnglish ? 'Load from Cloud' : 'クラウドから読み込み'),
-                subtitle: Text(isEnglish
-                    ? 'Load data from cloud storage'
-                    : 'クラウドストレージからデータを読み込み'),
-                leading: const Icon(Icons.cloud_download),
-                trailing: const Icon(Icons.arrow_forward_ios),
-                onTap: !(appModeProvider?.isOnlineActive ?? false) ||
-                        _isCloudOperationInFlight
-                    ? null
-                    : () async {
-                        setState(() => _isCloudOperationInFlight = true);
-                        try {
-                          final result =
-                              await settingsProvider.loadFromFirebase();
-                          if (context.mounted &&
-                              handleSettingsOperationResult(
-                                context,
-                                result,
-                                isEnglish: isEnglish,
-                              )) {
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text(isEnglish
-                                    ? 'Data loaded successfully'
-                                    : 'データの読み込みが完了しました'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          }
-                        } catch (e) {
-                          if (mounted) {
-                            messenger.showSnackBar(
-                              SnackBar(
-                                content: Text(isEnglish
-                                    ? 'Load failed.'
-                                    : '読み込みに失敗しました。'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        } finally {
-                          if (mounted) {
-                            setState(() => _isCloudOperationInFlight = false);
-                          }
-                        }
-                      },
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              ),
-              ListTile(
-                title: Text(isEnglish ? 'Sign Out' : 'サインアウト'),
-                leading: const Icon(Icons.logout),
-                trailing: const Icon(Icons.arrow_forward_ios),
-                onTap: () async {
-                  try {
-                    await authService.signOut();
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(isEnglish
-                              ? 'Signed out successfully'
-                              : 'サインアウトしました'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                    }
-                  } catch (e) {
-                    if (mounted) {
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text(isEnglish
-                              ? 'Sign out failed.'
-                              : 'サインアウトに失敗しました。'),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                    }
-                  }
-                },
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-              ),
-            ],
-          ],
-          const SizedBox(height: 16.0),
-          const Divider(),
-          const SizedBox(height: 16.0),
-          ListTile(
-            title: Text(isEnglish ? 'Import / Export' : 'インポート / エクスポート'),
-            subtitle: Text(isEnglish
-                ? 'Backup and restore data using XML files'
-                : 'XMLファイルを使用してデータをバックアップ・復元'),
-            leading: const Icon(Icons.import_export),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const ImportExportPage(),
+                        },
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
                 ),
-              );
-            },
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          ),
-          const SizedBox(height: 16.0),
-          ListTile(
-            key: const Key('tutorial-replay-tile'),
-            title: Text(
-              isEnglish ? 'View Tutorial' : 'チュートリアルを見る',
+                ListTile(
+                  title: Text(isEnglish ? 'Sync Now' : '今すぐ同期'),
+                  subtitle: Text(isEnglish
+                      ? 'Manually sync data to cloud'
+                      : '手動でデータをクラウドに同期'),
+                  leading: const Icon(Icons.sync),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: !(appModeProvider?.isOnlineActive ?? false) ||
+                          _isCloudOperationInFlight
+                      ? null
+                      : () async {
+                          setState(() => _isCloudOperationInFlight = true);
+                          try {
+                            final result =
+                                await settingsProvider.syncToFirebase();
+                            if (context.mounted &&
+                                handleSettingsOperationResult(
+                                  context,
+                                  result,
+                                  isEnglish: isEnglish,
+                                )) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text(isEnglish
+                                      ? 'Data synced successfully'
+                                      : 'データの同期が完了しました'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text(isEnglish
+                                      ? 'Sync failed.'
+                                      : '同期に失敗しました。'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          } finally {
+                            if (mounted) {
+                              setState(() => _isCloudOperationInFlight = false);
+                            }
+                          }
+                        },
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                ),
+                ListTile(
+                  title: Text(isEnglish ? 'Load from Cloud' : 'クラウドから読み込み'),
+                  subtitle: Text(isEnglish
+                      ? 'Load data from cloud storage'
+                      : 'クラウドストレージからデータを読み込み'),
+                  leading: const Icon(Icons.cloud_download),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: !(appModeProvider?.isOnlineActive ?? false) ||
+                          _isCloudOperationInFlight
+                      ? null
+                      : () async {
+                          setState(() => _isCloudOperationInFlight = true);
+                          try {
+                            final result =
+                                await settingsProvider.loadFromFirebase();
+                            if (context.mounted &&
+                                handleSettingsOperationResult(
+                                  context,
+                                  result,
+                                  isEnglish: isEnglish,
+                                )) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text(isEnglish
+                                      ? 'Data loaded successfully'
+                                      : 'データの読み込みが完了しました'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
+                          } catch (e) {
+                            if (mounted) {
+                              messenger.showSnackBar(
+                                SnackBar(
+                                  content: Text(isEnglish
+                                      ? 'Load failed.'
+                                      : '読み込みに失敗しました。'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            }
+                          } finally {
+                            if (mounted) {
+                              setState(() => _isCloudOperationInFlight = false);
+                            }
+                          }
+                        },
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                ),
+                ListTile(
+                  title: Text(isEnglish ? 'Sign Out' : 'サインアウト'),
+                  leading: const Icon(Icons.logout),
+                  trailing: const Icon(Icons.arrow_forward_ios),
+                  onTap: () async {
+                    try {
+                      await authService.signOut();
+                      if (mounted) {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(isEnglish
+                                ? 'Signed out successfully'
+                                : 'サインアウトしました'),
+                            backgroundColor: Colors.green,
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(isEnglish
+                                ? 'Sign out failed.'
+                                : 'サインアウトに失敗しました。'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16.0, vertical: 8.0),
+                ),
+              ],
+            ],
+            const SizedBox(height: 16.0),
+            const Divider(),
+            const SizedBox(height: 16.0),
+            ListTile(
+              title: Text(isEnglish ? 'Import / Export' : 'インポート / エクスポート'),
+              subtitle: Text(isEnglish
+                  ? 'Backup and restore data using XML files'
+                  : 'XMLファイルを使用してデータをバックアップ・復元'),
+              leading: const Icon(Icons.import_export),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const ImportExportPage(),
+                  ),
+                );
+              },
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             ),
-            subtitle: Text(
-              isEnglish
-                  ? 'Review the basic workflow and main controls'
-                  : '基本の使い方と主な操作をもう一度確認します',
+            const SizedBox(height: 16.0),
+            ListTile(
+              key: const Key('tutorial-replay-tile'),
+              title: Text(
+                isEnglish ? 'View Tutorial' : 'チュートリアルを見る',
+              ),
+              subtitle: Text(
+                isEnglish
+                    ? 'Review the basic workflow and main controls'
+                    : '基本の使い方と主な操作をもう一度確認します',
+              ),
+              leading: const Icon(Icons.help_outline_rounded),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () => Navigator.of(context).pushNamed('/tutorial'),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             ),
-            leading: const Icon(Icons.help_outline_rounded),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () => Navigator.of(context).pushNamed('/tutorial'),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          ),
-          const SizedBox(height: 16.0),
-          ListTile(
-            title: Text(isEnglish ? 'About This App' : 'アプリについて'),
-            trailing: const Icon(Icons.arrow_forward_ios),
-            onTap: () => _showAboutDialog(context),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          ),
+            const SizedBox(height: 16.0),
+            ListTile(
+              title: Text(isEnglish ? 'About This App' : 'アプリについて'),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () => _showAboutDialog(context),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            ),
           ],
         ),
       ),
@@ -1697,10 +1705,47 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  Widget _buildExternalLink(
+    BuildContext context, {
+    required String label,
+    required String url,
+    required bool isEnglish,
+  }) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: TextButton.icon(
+        onPressed: () async {
+          try {
+            final renderBox = context.findRenderObject();
+            await openExternalUrl(
+              url,
+              sharePositionOrigin: renderBox is RenderBox && renderBox.hasSize
+                  ? renderBox.localToGlobal(Offset.zero) & renderBox.size
+                  : null,
+            );
+          } on Object {
+            await Clipboard.setData(ClipboardData(text: url));
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(isEnglish
+                    ? 'URL copied to clipboard. Open it in your browser.'
+                    : 'URLをコピーしました。ブラウザに貼り付けて開いてください。'),
+              ),
+            );
+          }
+        },
+        icon: const Icon(Icons.open_in_new),
+        label: Text(label),
+      ),
+    );
+  }
+
   void _showAboutDialog(BuildContext context) {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
+    final versionFuture = AppMetadata.loadVersion();
 
     showDialog(
       context: context,
@@ -1708,18 +1753,56 @@ class _SettingsPageState extends State<SettingsPage> {
         return AlertDialog(
           title: Text(isEnglish ? 'About This App' : 'アプリについて'),
           contentPadding: const EdgeInsets.fromLTRB(24.0, 20.0, 24.0, 24.0),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(isEnglish ? 'RC Car Setting Manager' : 'RCカーセッティング管理アプリ'),
-              const SizedBox(height: 16),
-              Text(isEnglish ? 'Version: 0.0.1' : 'バージョン: 0.0.1'),
-              const SizedBox(height: 16),
-              Text(isEnglish
-                  ? 'This app helps you manage settings for your RC cars.'
-                  : 'このアプリはRCカーのセッティングを管理するためのアプリです。'),
-            ],
+          content: FutureBuilder<String>(
+            future: versionFuture,
+            builder: (context, snapshot) {
+              final version = snapshot.hasError
+                  ? (isEnglish ? 'Unavailable' : '取得不可')
+                  : snapshot.data ?? (isEnglish ? 'Loading...' : '読み込み中...');
+              return SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('RC Setting Manager'),
+                    const SizedBox(height: 16),
+                    Text(isEnglish ? 'Version: $version' : 'バージョン: $version'),
+                    const SizedBox(height: 16),
+                    Text(isEnglish
+                        ? 'An app for managing RC car setups, run records, and telemetry.'
+                        : 'RCカーのセッティング、走行記録、テレメトリーを管理するアプリです。'),
+                    const SizedBox(height: 8),
+                    Text(
+                      isEnglish
+                          ? 'Links open in a new tab on web and use the system share sheet on other platforms.'
+                          : 'Webでは新しいタブで開き、その他の環境では共有シートを使います。',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 20),
+                    _buildExternalLink(
+                      context,
+                      label: 'Privacy Policy',
+                      isEnglish: isEnglish,
+                      url:
+                          'https://akiii2024.github.io/RC_Setting_Manager/privacy.html',
+                    ),
+                    _buildExternalLink(
+                      context,
+                      label: isEnglish ? 'GitHub Repository' : 'GitHubリポジトリ',
+                      isEnglish: isEnglish,
+                      url: 'https://github.com/akiii2024/RC_Setting_Manager',
+                    ),
+                    _buildExternalLink(
+                      context,
+                      label: isEnglish ? 'Report an issue' : '不具合を報告する',
+                      isEnglish: isEnglish,
+                      url:
+                          'https://github.com/akiii2024/RC_Setting_Manager/issues',
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
           actions: [
             TextButton(

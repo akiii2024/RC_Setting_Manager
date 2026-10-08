@@ -190,7 +190,7 @@ class MyApp extends StatelessWidget {
         return Consumer<ThemeProvider>(
           builder: (context, themeProvider, child) {
             return MaterialApp(
-              title: 'Engineering Precision',
+              title: 'RC Setting Manager',
               theme: AppTheme.light(),
               darkTheme: AppTheme.dark(),
               themeMode:

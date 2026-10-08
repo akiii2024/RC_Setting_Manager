@@ -2,6 +2,11 @@
 
 ラジコンのセッティングをスマホアプリで記録・管理するアプリです。
 セッティングを記録するだけではなく、AIによる分析や画像からの自動読み取りも可能です。
+主に競技RCツーリングカー向けの、開発初期の個人開発アプリです。
+
+[Web版を試す](https://akiii2024.github.io/RC_Setting_Manager/) · [Privacy Policy](https://akiii2024.github.io/RC_Setting_Manager/privacy.html) · [不具合報告・問い合わせ](https://github.com/akiii2024/RC_Setting_Manager/issues)
+
+現在の公開版は端末内保存が中心で、アカウントへのログイン・クラウド同期・デバイス間同期は無効です。AI・OCR・天気は同意して利用した場合に外部サービスへ通信します。扱う情報・送信先・削除方法は [Privacy Policy](web/privacy.html)を参照してください。
 
 <div align="left">
   <img src="images/home_screen.png" alt="ホーム画面" width="250" style="margin-right: 20px;">
@@ -13,12 +18,12 @@
 - ラジコンカーのセッティング情報を記録・管理
 - 画像からセッティング値を自動読み取り（OCR機能）
 - AIによるセッティングの分析とアドバイス
-- 天気情報の自動取得と記録
+- 天気情報の取得と記録（同意・位置情報権限が必要）
 - トラック情報の管理と路面タイプの記録
-- 複数の車種に対応
+- 複数の車種に対応（現在標準対応：TAMIYA TRF420 / TRF420X / TRF421 / TRF421X、YOKOMO BD11 / BD12 / MS1.0 / MS2.0）
 - セッティング履歴の管理
 - データのインポート・エクスポート
-- クラウド同期でデバイス間でデータ共有
+- クラウド同期でデバイス間でデータ共有（現在の公開版では無効）
 
 ## 提供方式
 
@@ -59,7 +64,7 @@
 
 4. AIアドバイスを活用
 
-現在のセッティングや天気・トラック情報を基に、AIが最適なセッティングを提案します。
+現在のセッティングや天気・トラック情報を基に、AIが参考となるセッティングを提案します。
 
 5. 履歴を確認
 
@@ -70,10 +75,10 @@
 - セッティング管理（複数の車種に対応）
 - OCR機能（画像からセッティング値を自動読み取り）
 - AIアドバイザー（セッティングの分析と提案）
-- 天気情報の自動取得（気温・湿度を自動記録）
+- 天気情報の取得（現在位置の気温・湿度などを記録）
 - トラック情報管理（路面タイプの記録）
 - データのインポート・エクスポート（バックアップと復元）
-- クラウド同期（Firebase認証とデータ同期）
+- クラウド同期（アカウントログイン・データ同期は現在無効）
 - セッティング履歴（過去の記録を確認・比較）
 - 計算ツール（ギヤレシオ計算など）
 - ダークモード対応
@@ -81,7 +86,7 @@
 
 ## AIプロバイダーの設定
 
-OpenAI、Anthropic、Geminiのうち使用するプロバイダーを「設定 → AIプロバイダー・APIキー」で選べます。標準GeminiはFirebase Functionsを経由し、個人設定のOpenAI・Anthropic・Geminiは保存したAPIキーとモデルを使用します。AIアドバイザーとOCRは、ここで選択したプロバイダーを使用します。
+OpenAI、Anthropic、Geminiのうち使用するプロバイダーを「設定 → AIプロバイダー・APIキー」で選べます。標準GeminiはFirebase Functionsを経由し、個人設定のOpenAI・Anthropicは入力したAPIキーとモデルを使用します。AIアドバイザーとOCRは、ここで選択したプロバイダーを使用します。
 
 APIキーはソースコードや設定バックアップには含めず、ネイティブ版ではOSのセキュアストレージに保存します。Web版では永続保存せずタブ内メモリだけに保持するため、再読み込み後は再入力が必要です。表示中はブラウザ上のコードからキーを利用できるため、信頼できるHTTPS環境で、利用制限を設定した専用キーを使用してください。
 
@@ -95,7 +100,7 @@ firebase functions:secrets:set GEMINI_API_KEY
 firebase deploy --only functions
 ```
 
-標準GeminiのAIアドバイザーは`generateSettingAdvice`、構造化OCRは`extractSettingSheet`を使用します。個人設定プロバイダーのキーはFunctionsへ送信しません。
+標準GeminiのAIアドバイザーは`generateSettingAdvice`・`generateGeminiContent`、構造化OCRは`extractSettingSheet`を使用します。個人設定プロバイダーのキーはFunctionsへ送信しません。
 
 Functions のリージョンは既定で `asia-northeast1` です。変更する場合は Flutter ビルド時に `--dart-define=FIREBASE_FUNCTIONS_REGION=your-region` を指定してください。
 
@@ -121,9 +126,9 @@ Functions のリージョンは既定で `asia-northeast1` です。変更する
 
 - **カメラ**: OCR機能でセッティングシートの画像を撮影する場合に必要
 - **ストレージ**: セッティングデータの保存に必要
-- **インターネット接続**: 
+- **インターネット接続**:
   - 基本的な機能（セッティング記録・編集）はオフラインでも利用可能
-  - クラウド同期・AI機能・OCR機能・Firebase認証にはインターネット接続が必要
+  - 初回読み込み・更新・AI機能・OCR機能・天気情報の取得にはインターネット接続が必要（標準Gemini・天気はFirebaseの匿名認証・App Checkを使用）
 
 ### 推奨環境
 

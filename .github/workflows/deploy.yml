@@ -72,6 +72,9 @@ jobs:
         --dart-define=FIREBASE_APP_CHECK_WEB_KEY="$FIREBASE_APP_CHECK_WEB_KEY"
         --release
       
+    - name: Check public Web artifact
+      run: node tool/check_public_web.mjs build/web
+
     - name: Upload artifact
       uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
       with:
