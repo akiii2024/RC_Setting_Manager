@@ -1,20 +1,20 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/settings_operation_result.dart';
 import '../utils/app_logger.dart';
 
 abstract interface class ThemePreferencesRepository {
-  Future<bool?> loadDarkMode();
+  Future<ThemeMode?> loadThemeMode();
 
-  Future<bool> saveDarkMode(bool value);
+  Future<bool> saveThemeMode(ThemeMode value);
 }
 
 typedef ThemeSharedPreferencesLoader = Future<SharedPreferences> Function();
 typedef ThemeSharedPreferencesWriter = Future<bool> Function(
   SharedPreferences preferences,
   String key,
-  bool value,
+  String value,
 );
 typedef ThemeSharedPreferencesReloader = Future<void> Function(
   SharedPreferences preferences,
@@ -28,31 +28,41 @@ class SharedPreferencesThemePreferencesRepository
     ThemeSharedPreferencesReloader? preferencesReloader,
   })  : _preferencesLoader = preferencesLoader ?? SharedPreferences.getInstance,
         _preferencesWriter = preferencesWriter ??
-            ((preferences, key, value) => preferences.setBool(key, value)),
+            ((preferences, key, value) => preferences.setString(key, value)),
         _preferencesReloader =
             preferencesReloader ?? ((preferences) => preferences.reload());
 
   static const String darkModeKey = 'isDarkMode';
+  static const String themeModeKey = 'themeMode';
 
   final ThemeSharedPreferencesLoader _preferencesLoader;
   final ThemeSharedPreferencesWriter _preferencesWriter;
   final ThemeSharedPreferencesReloader _preferencesReloader;
 
   @override
-  Future<bool?> loadDarkMode() async {
+  Future<ThemeMode?> loadThemeMode() async {
     final preferences = await _preferencesLoader();
-    return preferences.getBool(darkModeKey);
+    final storedMode = preferences.getString(themeModeKey);
+    for (final mode in ThemeMode.values) {
+      if (mode.name == storedMode) return mode;
+    }
+    // 既存のオン／オフ設定を維持し、未設定の場合だけ端末に同期する。
+    return switch (preferences.getBool(darkModeKey)) {
+      true => ThemeMode.dark,
+      false => ThemeMode.light,
+      null => null,
+    };
   }
 
   @override
-  Future<bool> saveDarkMode(bool value) async {
+  Future<bool> saveThemeMode(ThemeMode value) async {
     final preferences = await _preferencesLoader();
     late final bool didSave;
     try {
       didSave = await _preferencesWriter(
         preferences,
-        darkModeKey,
-        value,
+        themeModeKey,
+        value.name,
       );
     } catch (error, stackTrace) {
       await _restoreCache(preferences, saveFailure: error);
@@ -108,26 +118,26 @@ class ThemeProvider extends ChangeNotifier {
   }
 
   final ThemePreferencesRepository _preferencesRepository;
-  bool _isDarkMode = false;
+  ThemeMode _themeMode = ThemeMode.system;
   bool _isInitialized = false;
   bool _isDisposed = false;
   Future<void>? _initialization;
   Future<void> _operationQueue = Future<void>.value();
 
-  bool get isDarkMode => _isDarkMode;
+  ThemeMode get themeMode => _themeMode;
   bool get isInitialized => _isInitialized;
 
   Future<void> initialize() => _initialization ??= _initialize();
 
   Future<void> _initialize() async {
-    final storedValue = await _preferencesRepository.loadDarkMode();
+    final storedValue = await _preferencesRepository.loadThemeMode();
     if (_isDisposed) {
       throw StateError('ThemeProvider was disposed during initialization.');
     }
 
-    final didChange = storedValue != null && storedValue != _isDarkMode;
+    final didChange = storedValue != null && storedValue != _themeMode;
     if (storedValue != null) {
-      _isDarkMode = storedValue;
+      _themeMode = storedValue;
     }
     _isInitialized = true;
     if (didChange) {
@@ -135,23 +145,16 @@ class ThemeProvider extends ChangeNotifier {
     }
   }
 
-  Future<SettingsOperationResult<bool>> toggleTheme() {
+  Future<SettingsOperationResult<ThemeMode>> setThemeMode(ThemeMode value) {
     return _enqueueThemeChange(
-      operation: 'toggleTheme',
-      requestedValue: null,
-    );
-  }
-
-  Future<SettingsOperationResult<bool>> setDarkMode(bool value) {
-    return _enqueueThemeChange(
-      operation: 'setDarkMode',
+      operation: 'setThemeMode',
       requestedValue: value,
     );
   }
 
-  Future<SettingsOperationResult<bool>> _enqueueThemeChange({
+  Future<SettingsOperationResult<ThemeMode>> _enqueueThemeChange({
     required String operation,
-    required bool? requestedValue,
+    required ThemeMode requestedValue,
   }) {
     final result = _operationQueue.then(
       (_) => _persistThemeChange(
@@ -159,7 +162,7 @@ class ThemeProvider extends ChangeNotifier {
         requestedValue: requestedValue,
       ),
       onError: (Object error, StackTrace stackTrace) =>
-          SettingsOperationFailure<bool>(
+          SettingsOperationFailure<ThemeMode>(
         SettingsPersistenceFailure(
           kind: SettingsPersistenceFailureKind.write,
           operation: operation,
@@ -175,9 +178,9 @@ class ThemeProvider extends ChangeNotifier {
     return result;
   }
 
-  Future<SettingsOperationResult<bool>> _persistThemeChange({
+  Future<SettingsOperationResult<ThemeMode>> _persistThemeChange({
     required String operation,
-    required bool? requestedValue,
+    required ThemeMode requestedValue,
   }) async {
     if (_isDisposed) {
       return SettingsOperationFailure(
@@ -190,13 +193,13 @@ class ThemeProvider extends ChangeNotifier {
       );
     }
 
-    final nextValue = requestedValue ?? !_isDarkMode;
-    if (nextValue == _isDarkMode) {
-      return SettingsOperationSuccess(value: _isDarkMode);
+    final nextValue = requestedValue;
+    if (nextValue == _themeMode) {
+      return SettingsOperationSuccess(value: _themeMode);
     }
 
     try {
-      final didSave = await _preferencesRepository.saveDarkMode(nextValue);
+      final didSave = await _preferencesRepository.saveThemeMode(nextValue);
       if (!didSave) {
         throw StateError('テーマ設定の保存に失敗しました。');
       }
@@ -224,7 +227,7 @@ class ThemeProvider extends ChangeNotifier {
       );
     }
 
-    _isDarkMode = nextValue;
+    _themeMode = nextValue;
     notifyListeners();
     return SettingsOperationSuccess(value: nextValue);
   }

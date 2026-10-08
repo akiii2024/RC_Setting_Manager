@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rc_setting_manager/models/settings_operation_result.dart';
 import 'package:rc_setting_manager/providers/theme_provider.dart';
@@ -9,12 +10,11 @@ void main() {
   group('ThemeProvider initialization', () {
     test('create waits for the stored preference before publishing provider',
         () async {
-      final loadResult = Completer<bool?>();
+      final loadResult = Completer<ThemeMode?>();
       final repository = _FakeThemePreferencesRepository(
         onLoad: () => loadResult.future,
       );
       var completed = false;
-
       final providerFuture = ThemeProvider.create(
         preferencesRepository: repository,
       ).then((provider) {
@@ -23,20 +23,17 @@ void main() {
       });
       await Future<void>.delayed(Duration.zero);
       expect(completed, isFalse);
-
-      loadResult.complete(true);
+      loadResult.complete(ThemeMode.dark);
       final provider = await providerFuture;
       addTearDown(provider.dispose);
-
       expect(provider.isInitialized, isTrue);
-      expect(provider.isDarkMode, isTrue);
+      expect(provider.themeMode, ThemeMode.dark);
     });
 
     test('a read failure remains a startup failure', () async {
       final repository = _FakeThemePreferencesRepository(
-        onLoad: () => Future<bool?>.error(StateError('read failed')),
+        onLoad: () => Future<ThemeMode?>.error(StateError('read failed')),
       );
-
       await expectLater(
         ThemeProvider.create(preferencesRepository: repository),
         throwsA(isA<StateError>()),
@@ -45,52 +42,102 @@ void main() {
 
     test('completion after dispose does not publish the loaded value',
         () async {
-      final loadResult = Completer<bool?>();
+      final loadResult = Completer<ThemeMode?>();
       final repository = _FakeThemePreferencesRepository(
         onLoad: () => loadResult.future,
       );
       final provider = ThemeProvider(preferencesRepository: repository);
       var notificationCount = 0;
       provider.addListener(() => notificationCount++);
-
       final initialization = provider.initialize();
       provider.dispose();
-      loadResult.complete(true);
-
+      loadResult.complete(ThemeMode.dark);
       await expectLater(initialization, throwsStateError);
       expect(notificationCount, 0);
     });
 
-    test('SharedPreferences-backed create loads the persisted theme', () async {
+    test('missing preference defaults to system mode', () async {
+      SharedPreferences.setMockInitialValues({});
+      final provider = await ThemeProvider.create();
+      addTearDown(provider.dispose);
+      expect(provider.themeMode, ThemeMode.system);
+    });
+
+    test('SharedPreferences-backed create loads each persisted theme mode',
+        () async {
+      for (final mode in ThemeMode.values) {
+        SharedPreferences.setMockInitialValues({
+          SharedPreferencesThemePreferencesRepository.themeModeKey: mode.name,
+        });
+        final provider = await ThemeProvider.create();
+        expect(provider.themeMode, mode);
+        provider.dispose();
+      }
+    });
+
+    test('legacy dark mode preference is migrated when new key is absent',
+        () async {
       SharedPreferences.setMockInitialValues({
         SharedPreferencesThemePreferencesRepository.darkModeKey: true,
       });
-
       final provider = await ThemeProvider.create();
       addTearDown(provider.dispose);
-
-      expect(provider.isDarkMode, isTrue);
+      expect(provider.themeMode, ThemeMode.dark);
     });
-  });
 
-  group('ThemeProvider persistence', () {
-    test('successful change persists the SharedPreferences value', () async {
+    test('legacy light mode preference remains light', () async {
       SharedPreferences.setMockInitialValues({
         SharedPreferencesThemePreferencesRepository.darkModeKey: false,
       });
       final provider = await ThemeProvider.create();
       addTearDown(provider.dispose);
+      expect(provider.themeMode, ThemeMode.light);
+    });
+    test('new theme mode preference takes precedence over legacy bool',
+        () async {
+      SharedPreferences.setMockInitialValues({
+        SharedPreferencesThemePreferencesRepository.themeModeKey:
+            ThemeMode.system.name,
+        SharedPreferencesThemePreferencesRepository.darkModeKey: true,
+      });
+      final provider = await ThemeProvider.create();
+      addTearDown(provider.dispose);
+      expect(provider.themeMode, ThemeMode.system);
+    });
+  });
 
-      final result = await provider.setDarkMode(true);
+  group('ThemeProvider persistence', () {
+    test('each selected mode is restored after creating a new provider',
+        () async {
+      SharedPreferences.setMockInitialValues({
+        SharedPreferencesThemePreferencesRepository.darkModeKey: true,
+      });
+      var provider = await ThemeProvider.create();
+      for (final mode in [ThemeMode.light, ThemeMode.dark, ThemeMode.system]) {
+        final result = await provider.setThemeMode(mode);
+        expect(result.isSuccess, isTrue);
+        provider.dispose();
+        provider = await ThemeProvider.create();
+        expect(provider.themeMode, mode);
+      }
+      provider.dispose();
+    });
+    test('successful change persists the selected mode', () async {
+      SharedPreferences.setMockInitialValues({
+        SharedPreferencesThemePreferencesRepository.themeModeKey:
+            ThemeMode.system.name,
+      });
+      final provider = await ThemeProvider.create();
+      addTearDown(provider.dispose);
+      final result = await provider.setThemeMode(ThemeMode.dark);
       final preferences = await SharedPreferences.getInstance();
-
-      expect(result, isA<SettingsOperationSuccess<bool>>());
-      expect(provider.isDarkMode, isTrue);
+      expect(result, isA<SettingsOperationSuccess<ThemeMode>>());
+      expect(provider.themeMode, ThemeMode.dark);
       expect(
-        preferences.getBool(
-          SharedPreferencesThemePreferencesRepository.darkModeKey,
+        preferences.getString(
+          SharedPreferencesThemePreferencesRepository.themeModeKey,
         ),
-        isTrue,
+        ThemeMode.dark.name,
       );
     });
 
@@ -105,26 +152,21 @@ void main() {
       addTearDown(provider.dispose);
       var notificationCount = 0;
       provider.addListener(() => notificationCount++);
-
-      final result = await provider.setDarkMode(true);
-
-      expect(result, isA<SettingsOperationFailure<bool>>());
-      expect(provider.isDarkMode, isFalse);
+      final result = await provider.setThemeMode(ThemeMode.dark);
+      expect(result, isA<SettingsOperationFailure<ThemeMode>>());
+      expect(provider.themeMode, ThemeMode.system);
       expect(notificationCount, 0);
     });
 
-    test('false result restores a cache polluted before the platform failure',
+    test('false result restores a cache polluted before platform failure',
         () async {
-      const key = SharedPreferencesThemePreferencesRepository.darkModeKey;
-      SharedPreferences.setMockInitialValues({key: false});
+      const key = SharedPreferencesThemePreferencesRepository.themeModeKey;
+      SharedPreferences.setMockInitialValues({key: ThemeMode.system.name});
       final originalPreferences = await SharedPreferences.getInstance();
       final repository = SharedPreferencesThemePreferencesRepository(
         preferencesWriter: (preferences, key, value) async {
-          // Legacy SharedPreferences mutates its cache before the platform
-          // result is known. Resetting the mock platform to the old value
-          // simulates a platform write that returned false.
-          await preferences.setBool(key, value);
-          SharedPreferences.setMockInitialValues({key: false});
+          await preferences.setString(key, value);
+          SharedPreferences.setMockInitialValues({key: ThemeMode.system.name});
           return false;
         },
       );
@@ -134,14 +176,12 @@ void main() {
       addTearDown(provider.dispose);
       var notificationCount = 0;
       provider.addListener(() => notificationCount++);
-
-      final result = await provider.setDarkMode(true);
-
-      expect(result, isA<SettingsOperationFailure<bool>>());
-      expect(provider.isDarkMode, isFalse);
+      final result = await provider.setThemeMode(ThemeMode.dark);
+      expect(result, isA<SettingsOperationFailure<ThemeMode>>());
+      expect(provider.themeMode, ThemeMode.system);
       expect(notificationCount, 0);
-      expect(originalPreferences.getBool(key), isFalse);
-      expect(await repository.loadDarkMode(), isFalse);
+      expect(originalPreferences.getString(key), ThemeMode.system.name);
+      expect(await repository.loadThemeMode(), ThemeMode.system);
     });
 
     test('save exception keeps live state and notifications unchanged',
@@ -155,23 +195,21 @@ void main() {
       addTearDown(provider.dispose);
       var notificationCount = 0;
       provider.addListener(() => notificationCount++);
-
-      final result = await provider.toggleTheme();
-
-      expect(result, isA<SettingsOperationFailure<bool>>());
-      expect(provider.isDarkMode, isFalse);
+      final result = await provider.setThemeMode(ThemeMode.dark);
+      expect(result, isA<SettingsOperationFailure<ThemeMode>>());
+      expect(provider.themeMode, ThemeMode.system);
       expect(notificationCount, 0);
     });
 
     test('save exception restores a polluted cache before reporting failure',
         () async {
-      const key = SharedPreferencesThemePreferencesRepository.darkModeKey;
-      SharedPreferences.setMockInitialValues({key: false});
+      const key = SharedPreferencesThemePreferencesRepository.themeModeKey;
+      SharedPreferences.setMockInitialValues({key: ThemeMode.system.name});
       final originalPreferences = await SharedPreferences.getInstance();
       final repository = SharedPreferencesThemePreferencesRepository(
         preferencesWriter: (preferences, key, value) async {
-          await preferences.setBool(key, value);
-          SharedPreferences.setMockInitialValues({key: false});
+          await preferences.setString(key, value);
+          SharedPreferences.setMockInitialValues({key: ThemeMode.system.name});
           throw StateError('simulated platform exception');
         },
       );
@@ -181,20 +219,19 @@ void main() {
       addTearDown(provider.dispose);
       var notificationCount = 0;
       provider.addListener(() => notificationCount++);
-
-      final result = await provider.setDarkMode(true);
-
-      expect(result, isA<SettingsOperationFailure<bool>>());
-      expect(provider.isDarkMode, isFalse);
+      final result = await provider.setThemeMode(ThemeMode.dark);
+      expect(result, isA<SettingsOperationFailure<ThemeMode>>());
+      expect(provider.themeMode, ThemeMode.system);
       expect(notificationCount, 0);
-      expect(originalPreferences.getBool(key), isFalse);
-      expect(await repository.loadDarkMode(), isFalse);
+      expect(originalPreferences.getString(key), ThemeMode.system.name);
+      expect(await repository.loadThemeMode(), ThemeMode.system);
     });
 
     test('cache reload failure is preserved as an explicit operation failure',
         () async {
       SharedPreferences.setMockInitialValues({
-        SharedPreferencesThemePreferencesRepository.darkModeKey: false,
+        SharedPreferencesThemePreferencesRepository.themeModeKey:
+            ThemeMode.system.name,
       });
       final repository = SharedPreferencesThemePreferencesRepository(
         preferencesWriter: (preferences, key, value) async => false,
@@ -207,13 +244,11 @@ void main() {
       addTearDown(provider.dispose);
       var notificationCount = 0;
       provider.addListener(() => notificationCount++);
-
-      final result = await provider.setDarkMode(true);
-
-      final failure = result as SettingsOperationFailure<bool>;
+      final result = await provider.setThemeMode(ThemeMode.dark);
+      final failure = result as SettingsOperationFailure<ThemeMode>;
       expect(failure.failure.cause, isA<StateError>());
       expect('${failure.failure.cause}', contains('restore'));
-      expect(provider.isDarkMode, isFalse);
+      expect(provider.themeMode, ThemeMode.system);
       expect(notificationCount, 0);
     });
 
@@ -228,24 +263,21 @@ void main() {
       addTearDown(provider.dispose);
       var notificationCount = 0;
       provider.addListener(() => notificationCount++);
-
-      final operation = provider.setDarkMode(true);
+      final operation = provider.setThemeMode(ThemeMode.dark);
       await Future<void>.delayed(Duration.zero);
-      expect(provider.isDarkMode, isFalse);
+      expect(provider.themeMode, ThemeMode.system);
       expect(notificationCount, 0);
-
       saveResult.complete(true);
       final result = await operation;
-
-      expect(result, isA<SettingsOperationSuccess<bool>>());
-      expect(provider.isDarkMode, isTrue);
+      expect(result, isA<SettingsOperationSuccess<ThemeMode>>());
+      expect(provider.themeMode, ThemeMode.dark);
       expect(notificationCount, 1);
     });
 
     test('theme changes are serialized in request order', () async {
       final firstSave = Completer<bool>();
       final secondSave = Completer<bool>();
-      final saves = <bool>[];
+      final saves = <ThemeMode>[];
       final repository = _FakeThemePreferencesRepository(
         onSave: (value) {
           saves.add(value);
@@ -256,20 +288,17 @@ void main() {
         preferencesRepository: repository,
       );
       addTearDown(provider.dispose);
-
-      final firstOperation = provider.setDarkMode(true);
-      final secondOperation = provider.setDarkMode(false);
+      final firstOperation = provider.setThemeMode(ThemeMode.dark);
+      final secondOperation = provider.setThemeMode(ThemeMode.light);
       await Future<void>.delayed(Duration.zero);
-      expect(saves, [true]);
-
+      expect(saves, [ThemeMode.dark]);
       firstSave.complete(true);
       await firstOperation;
       await Future<void>.delayed(Duration.zero);
-      expect(saves, [true, false]);
-
+      expect(saves, [ThemeMode.dark, ThemeMode.light]);
       secondSave.complete(true);
       await secondOperation;
-      expect(provider.isDarkMode, isFalse);
+      expect(provider.themeMode, ThemeMode.light);
     });
   });
 }
@@ -280,13 +309,14 @@ class _FakeThemePreferencesRepository implements ThemePreferencesRepository {
     this.onSave,
   });
 
-  final Future<bool?> Function()? onLoad;
-  final Future<bool> Function(bool value)? onSave;
+  final Future<ThemeMode?> Function()? onLoad;
+  final Future<bool> Function(ThemeMode value)? onSave;
 
   @override
-  Future<bool?> loadDarkMode() => onLoad?.call() ?? Future.value(false);
+  Future<ThemeMode?> loadThemeMode() =>
+      onLoad?.call() ?? Future.value(ThemeMode.system);
 
   @override
-  Future<bool> saveDarkMode(bool value) =>
+  Future<bool> saveThemeMode(ThemeMode value) =>
       onSave?.call(value) ?? Future.value(true);
 }

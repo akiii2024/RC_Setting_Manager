@@ -9,7 +9,13 @@ import 'package:rc_setting_manager/services/api_consent_service.dart';
 import 'package:rc_setting_manager/services/auth_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-Future<void> _pumpSettingsPage(WidgetTester tester) async {
+Future<void> _pumpSettingsPage(
+  WidgetTester tester, {
+  ThemeProvider? themeProvider,
+  double textScale = 1,
+}) async {
+  final theme = themeProvider ?? await ThemeProvider.create();
+  addTearDown(theme.dispose);
   final settingsProvider = SettingsProvider(
     appModeProvider: AppModeProvider(
       preferredOnline: false,
@@ -21,10 +27,23 @@ Future<void> _pumpSettingsPage(WidgetTester tester) async {
     MultiProvider(
       providers: [
         ChangeNotifierProvider.value(value: settingsProvider),
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider.value(value: theme),
         Provider<AuthService?>.value(value: null),
       ],
-      child: const MaterialApp(home: SettingsPage()),
+      child: Consumer<ThemeProvider>(
+        builder: (context, theme, child) => MaterialApp(
+          theme: ThemeData.light(),
+          darkTheme: ThemeData.dark(),
+          themeMode: theme.themeMode,
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(textScale),
+            ),
+            child: child!,
+          ),
+          home: const SettingsPage(),
+        ),
+      ),
     ),
   );
 
@@ -42,6 +61,80 @@ void main() {
     ApiConsentService.resetPendingRequestsForTesting();
   });
 
+  testWidgets('テーマは3択から選択でき、選択した値が保存される', (tester) async {
+    await _pumpSettingsPage(tester);
+    expect(find.text('端末と同期'), findsOneWidget);
+
+    for (final entry in {
+      ThemeMode.light: 'ライト',
+      ThemeMode.dark: 'ダーク',
+      ThemeMode.system: '端末と同期',
+    }.entries) {
+      await tester.tap(find.text('テーマ'));
+      await tester.pumpAndSettle();
+      expect(find.byType(RadioListTile<ThemeMode>), findsNWidgets(3));
+      final dialog = find.byType(AlertDialog);
+      await tester
+          .tap(find.descendant(of: dialog, matching: find.text(entry.value)));
+      await tester.pumpAndSettle();
+      expect(dialog, findsNothing);
+      expect(find.text(entry.value), findsOneWidget);
+      final preferences = await SharedPreferences.getInstance();
+      expect(
+          preferences.getString(
+              SharedPreferencesThemePreferencesRepository.themeModeKey),
+          entry.key.name);
+    }
+  });
+
+  testWidgets('テーマ選択をキャンセルしても設定を変更しない', (tester) async {
+    await _pumpSettingsPage(tester);
+    await tester.tap(find.text('テーマ'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('キャンセル'));
+    await tester.pumpAndSettle();
+    expect(find.text('端末と同期'), findsOneWidget);
+    final preferences = await SharedPreferences.getInstance();
+    expect(
+        preferences.containsKey(
+            SharedPreferencesThemePreferencesRepository.themeModeKey),
+        isFalse);
+  });
+
+  testWidgets('テーマ保存の失敗を通知し、選択済みのテーマを維持する', (tester) async {
+    final theme = await ThemeProvider.create(
+      preferencesRepository: SharedPreferencesThemePreferencesRepository(
+        preferencesWriter: (_, key, value) async => false,
+      ),
+    );
+    await _pumpSettingsPage(tester, themeProvider: theme);
+    await tester.tap(find.text('テーマ'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('ダーク'));
+    await tester.pumpAndSettle();
+    expect(find.text('端末への保存に失敗しました。変更は適用されていません。'), findsOneWidget);
+    expect(find.text('端末と同期'), findsOneWidget);
+    expect(theme.themeMode, ThemeMode.system);
+  });
+
+  testWidgets('360dpのダーク表示と文字拡大でテーマを選択できる', (tester) async {
+    tester.view.physicalSize = const Size(360, 640);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    tester.platformDispatcher.platformBrightnessTestValue = Brightness.dark;
+    addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
+    await _pumpSettingsPage(tester, textScale: 2);
+    await tester.tap(find.text('テーマ'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('端末と同期'), findsNWidgets(2));
+    await tester.ensureVisible(find.text('ライト'));
+    await tester.tap(find.text('ライト'));
+    await tester.pumpAndSettle();
+    expect(find.text('ライト'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('suppressed location prompt can be restored from settings',
       (tester) async {
     await ApiConsentService.suppressPrompt(
