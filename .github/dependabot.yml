@@ -1,10 +1,33 @@
+# 依存更新はPRとして作成し、CIとレビュー後に手動でマージする。
+# minor/patchのみをグループ化し、major更新は個別PRにする。
 version: 2
 updates:
   - package-ecosystem: pub
     directory: "/"
     schedule:
       interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    groups:
+      flutterfire-minor-patch:
+        applies-to: version-updates
+        patterns:
+          - "firebase_*"
+          - "cloud_firestore"
+          - "cloud_functions"
+        update-types: [minor, patch]
+      flutter-minor-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        exclude-patterns:
+          - "firebase_*"
+          - "cloud_firestore"
+          - "cloud_functions"
+        update-types: [minor, patch]
     ignore:
       # These releases require a newer Dart/Flutter toolchain than Flutter 3.35.3.
       - dependency-name: image_picker
@@ -23,7 +46,23 @@ updates:
     directory: "/functions"
     schedule:
       interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    groups:
+      functions-runtime-minor-patch:
+        applies-to: version-updates
+        dependency-type: production
+        patterns: ["*"]
+        update-types: [minor, patch]
+      functions-dev-minor-patch:
+        applies-to: version-updates
+        dependency-type: development
+        patterns: ["*"]
+        update-types: [minor, patch]
     ignore:
       # firebase-admin 14 requires Node.js 22+, while Functions runs on Node.js 20.
       - dependency-name: firebase-admin
@@ -33,4 +72,14 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
     open-pull-requests-limit: 5
+    cooldown:
+      default-days: 7
+    groups:
+      actions-minor-patch:
+        applies-to: version-updates
+        patterns: ["*"]
+        update-types: [minor, patch]
