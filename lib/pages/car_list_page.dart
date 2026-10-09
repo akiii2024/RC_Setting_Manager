@@ -6,7 +6,6 @@ import '../models/manufacturer.dart';
 import '../models/car.dart';
 import '../models/visibility_settings.dart';
 import '../models/settings_operation_result.dart';
-import '../data/car_settings_definitions.dart';
 import '../utils/settings_operation_feedback.dart';
 
 // ユーティリティクラス - 車種ごとの設定を管理
@@ -501,10 +500,6 @@ class CarListItem extends StatelessWidget {
     final settingsProvider = Provider.of<SettingsProvider>(context);
     final isEnglish = settingsProvider.isEnglish;
 
-    // 車種の設定定義を取得
-    final carDefinition = getCarSettingDefinition(car.id);
-    final isVerified = carDefinition?.isHumanVerified ?? false;
-
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: InkWell(
@@ -539,27 +534,8 @@ class CarListItem extends StatelessWidget {
                             ),
                           ),
                         ),
-                        if (isVerified) ...[
-                          const SizedBox(width: 8),
-                          Tooltip(
-                            message: isEnglish ? 'Human Verified' : '人間確認済み',
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.blue,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Icon(
-                                Icons.verified,
-                                size: 16,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ),
-                        ],
+                        // 人間確認済みバッジは非表示（isHumanVerified フラグが
+                        // carDefinition に残っていても UI には出さない）
                       ],
                     ),
                     const SizedBox(height: 4),
