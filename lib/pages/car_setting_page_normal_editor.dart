@@ -46,9 +46,13 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
   );
 
   void _updateNumberSetting(String key, String input) {
-    final value = double.tryParse(input) ?? 0.0;
+    final parsedValue = parseSettingNumberInput(key, input);
+    final value = parsedValue ?? 0.0;
+    final invalidAngle = isSignedAngleSettingKey(key) &&
+        input.trim().isNotEmpty &&
+        parsedValue == null;
     setState(() {
-      if (!value.isFinite) {
+      if (!value.isFinite || invalidAngle) {
         _invalidNumberInputs.add(key);
         return;
       }
@@ -1147,27 +1151,56 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
   }
 
   Widget _buildNumberField(SettingItem setting) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSettingLabel(setting),
-        const SizedBox(height: 8),
-        TextFormField(
-          key:
-              ValueKey('${setting.key}_${settings[setting.key]}'), // 値が変わったら再構築
-          decoration: InputDecoration(
-            border: const OutlineInputBorder(),
-            suffixText: setting.unit,
-            suffixIcon: _buildAutoFillIcon(setting),
-            errorText: _numberInputErrorText(setting.key),
-          ),
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          initialValue: settings[setting.key]?.toString() ?? '0',
-          onChanged: (value) {
-            _updateNumberSetting(setting.key, value);
-          },
-        ),
-      ],
+    final isToe = isToeSettingKey(setting.key);
+    final hasSignedDirection = isSignedAngleSettingKey(setting.key);
+    final isEnglish =
+        Provider.of<SettingsProvider>(context, listen: false).isEnglish;
+    return StatefulBuilder(
+      builder: (context, setFieldState) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildSettingLabel(setting),
+          const SizedBox(height: 8),
+          if (hasSignedDirection)
+            SignedAngleInputField(
+              key: ValueKey('${isToe ? 'toe' : 'camber'}_${setting.key}'),
+              settingKey: setting.key,
+              initialValue: settings[setting.key],
+              unit: setting.unit,
+              errorText: _numberInputErrorText(setting.key),
+              isEnglish: isEnglish,
+              negativeLabel: isToe
+                  ? (isEnglish ? 'Toe-out' : 'トーアウト')
+                  : (isEnglish ? 'Negative camber' : 'ネガティブキャンバー'),
+              positiveLabel: isToe
+                  ? (isEnglish ? 'Toe-in' : 'トーイン')
+                  : (isEnglish ? 'Positive camber' : 'ポジティブキャンバー'),
+              negativeByDefault: !isToe,
+              onChanged: (value) {
+                _updateNumberSetting(setting.key, value);
+                setFieldState(() {});
+              },
+            )
+          else
+            TextFormField(
+              key: ValueKey('${setting.key}_${settings[setting.key]}'),
+              decoration: InputDecoration(
+                border: const OutlineInputBorder(),
+                suffixText: setting.unit,
+                suffixIcon: _buildAutoFillIcon(setting),
+                errorText: _numberInputErrorText(setting.key),
+              ),
+              keyboardType:
+                  const TextInputType.numberWithOptions(decimal: true),
+              initialValue:
+                  formatSettingNumberInput(setting.key, settings[setting.key]),
+              onChanged: (value) {
+                _updateNumberSetting(setting.key, value);
+                setFieldState(() {});
+              },
+            ),
+        ],
+      ),
     );
   }
 

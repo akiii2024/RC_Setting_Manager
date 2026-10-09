@@ -50,18 +50,13 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
           _buildTRF420XSettingFieldWithFavorite(
             'frontCamber',
             isEnglish ? 'Camber Angle' : 'キャンバー角',
-            TextFormField(
-              decoration: InputDecoration(
-                labelText: isEnglish ? 'Camber Angle' : 'キャンバー角',
-                border: const OutlineInputBorder(),
-                suffixText: '°',
-                errorText: _numberInputErrorText('frontCamber'),
-              ),
-              initialValue: settings['frontCamber']?.toString() ?? '0.0',
-              keyboardType: TextInputType.number,
-              onChanged: (value) {
-                _updateNumberSetting('frontCamber', value);
-              },
+            CamberInputField(
+              settingKey: 'frontCamber',
+              initialValue: settings['frontCamber'],
+              labelText: isEnglish ? 'Camber Angle' : 'キャンバー角',
+              errorText: _numberInputErrorText('frontCamber'),
+              isEnglish: isEnglish,
+              onChanged: (value) => _updateNumberSetting('frontCamber', value),
             ),
           ),
           _buildTRF420XSettingFieldWithFavorite(
@@ -143,18 +138,16 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
           _buildTRF420XSettingFieldWithFavorite(
             'frontToe',
             isEnglish ? 'Toe Angle' : 'トー角',
-            TextFormField(
-              decoration: InputDecoration(
-                labelText: isEnglish ? 'Toe Angle' : 'トー角',
-                border: const OutlineInputBorder(),
-                suffixText: '°',
-                errorText: _numberInputErrorText('frontToe'),
-              ),
-              initialValue: settings['frontToe']?.toString() ?? '0.0',
-              keyboardType: TextInputType.number,
-              onChanged: (value) {
-                _updateNumberSetting('frontToe', value);
-              },
+            SignedAngleInputField(
+              settingKey: 'frontToe',
+              initialValue: settings['frontToe'],
+              labelText: isEnglish ? 'Toe Angle' : 'トー角',
+              errorText: _numberInputErrorText('frontToe'),
+              isEnglish: isEnglish,
+              negativeLabel: isEnglish ? 'Toe-out' : 'トーアウト',
+              positiveLabel: isEnglish ? 'Toe-in' : 'トーイン',
+              negativeByDefault: false,
+              onChanged: (value) => _updateNumberSetting('frontToe', value),
             ),
           ),
           _buildTRF420XSettingFieldWithFavorite(

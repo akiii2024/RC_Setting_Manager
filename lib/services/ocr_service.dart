@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/ai_provider.dart';
 import '../models/car_setting_definition.dart';
 import '../models/ocr.dart';
+import '../utils/setting_number_input.dart';
 import '../utils/app_logger.dart';
 import 'ai_configuration_service.dart';
 import 'ai_provider_client.dart';
@@ -361,7 +362,11 @@ class OCRService {
           normalized = points.map((point) => point.toJson()).toList();
         }
       case 'number':
-        final number = _parseNumber(candidate.rawValue, entry.unit);
+        final number = _parseNumber(
+          candidate.key,
+          candidate.rawValue,
+          entry.unit,
+        );
         if (number == null || !number.isFinite) {
           rejection = '数値として読み取れませんでした';
           break;
@@ -378,9 +383,10 @@ class OCRService {
           }
         }
         if (rejection == null) {
-          normalized = number == number.truncateToDouble()
+          final numericText = number == number.truncateToDouble()
               ? number.toInt().toString()
               : number.toString();
+          normalized = formatSettingNumberInput(candidate.key, numericText);
         }
       case 'select':
         final options = entry.options ?? const <String>[];
@@ -501,8 +507,8 @@ class OCRService {
     ];
   }
 
-  double? _parseNumber(String rawValue, String? unit) {
-    var normalized = _normalizeFullWidth(rawValue)
+  double? _parseNumber(String key, String rawValue, String? unit) {
+    var normalized = normalizeSettingNumberInput(_normalizeFullWidth(rawValue))
         .replaceAll(',', '.')
         .replaceAll(RegExp(r'[()\[\]（）]'), ' ')
         .trim();
@@ -513,8 +519,8 @@ class OCRService {
         .replaceAll(
             RegExp(r'cst|mm|deg|degree|holes?|ポイント', caseSensitive: false), ' ')
         .replaceAll(RegExp(r'[#°度φΦＴTｇg％%]'), ' ');
-    final match = RegExp(r'-?\d+(?:\.\d+)?').firstMatch(normalized);
-    return match == null ? null : double.tryParse(match.group(0)!);
+    final match = RegExp(r'[-+]?\d+(?:\.\d+)?').firstMatch(normalized);
+    return match == null ? null : parseSettingNumberInput(key, match.group(0)!);
   }
 
   List<OcrGridPoint> _parseGridPoints(String rawValue) {

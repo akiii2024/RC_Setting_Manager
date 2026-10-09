@@ -20,6 +20,14 @@ void main() {
   group('ローカル正規化', () {
     final definitions = [
       SettingItem(
+        key: 'frontCamber',
+        type: 'number',
+        category: 'front',
+        label: 'フロントキャンバー',
+        unit: '°',
+        constraints: const {'min': -5, 'max': 5, 'step': 0.5},
+      ),
+      SettingItem(
         key: 'angle',
         type: 'number',
         category: 'basic',
@@ -72,6 +80,30 @@ void main() {
         {'row': 0, 'col': 1},
         {'row': 1, 'col': 2},
       ]);
+    });
+
+    test('キャンバーは符号なしを負数、明示符号を保持して正規化する', () {
+      final result = OcrMappingHelper.validateSettingsForImport(
+        {
+          'frontCamber': '2',
+          'angle': '+2',
+        },
+        definitions,
+      );
+      expect(result['frontCamber'], '-2');
+      expect(result['angle'], '2');
+
+      final explicitPositive = OcrMappingHelper.validateSettingsForImport(
+        {'frontCamber': '+２'},
+        definitions,
+      );
+      expect(explicitPositive['frontCamber'], '+2');
+
+      final explicitNegative = OcrMappingHelper.validateSettingsForImport(
+        {'frontCamber': '－２'},
+        definitions,
+      );
+      expect(explicitNegative['frontCamber'], '-2');
     });
 
     test('同じ数値の選択肢を数値だけで決めず、不正値を拒否する', () {
@@ -175,6 +207,45 @@ void main() {
         }
       });
     }
+  });
+
+  test('OCRService本体でもキャンバーの符号を正規化し、明示+を再検証後も保持する', () async {
+    final cases = <String, String>{
+      '2': '-2',
+      '+2': '+2',
+      '-2': '-2',
+      '＋２': '+2',
+      '−２': '-2',
+    };
+    for (final entry in cases.entries) {
+      final result = await _extractManaged({
+        'detectedModel': 'TRF420X',
+        'candidates': [
+          _candidate('frontCamberAngle', entry.key, 'high'),
+        ],
+      });
+      final candidate = result.candidates.single;
+      expect(candidate.value, entry.value, reason: entry.key);
+      final revalidated = OcrMappingHelper.validateSettingsForImport(
+        {'frontCamberAngle': candidate.value},
+        getCarSettingDefinition('tamiya/trf420x')!.availableSettings,
+      );
+      expect(revalidated['frontCamberAngle'], entry.value, reason: entry.key);
+    }
+
+    final otherNumber = await _extractManaged({
+      'detectedModel': 'TRF420X',
+      'candidates': [
+        _candidate('frontGroundClearance', '5', 'high'),
+      ],
+    });
+    expect(otherNumber.candidates.single.value, '5');
+    final negativeHeight = await _extractManaged({
+      'detectedModel': 'TRF420X',
+      'candidates': [_candidate('frontGroundClearance', '−５', 'high')],
+    });
+    expect(negativeHeight.candidates.single.value, isNull);
+    expect(negativeHeight.candidates.single.rejectionReason, contains('範囲外'));
   });
 
   test('未知キー・範囲外・競合値を選択不可にし、グリッドを整列する', () async {

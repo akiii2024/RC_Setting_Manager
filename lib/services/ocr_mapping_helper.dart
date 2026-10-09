@@ -1,4 +1,5 @@
 import '../models/car_setting_definition.dart';
+import '../utils/setting_number_input.dart';
 
 /// OCR結果のローカル照合と、インポート前の値検証を行う純粋ロジック。
 class OcrMappingHelper {
@@ -41,7 +42,7 @@ class OcrMappingHelper {
           numericText = numericText.replaceAll(unit, '');
         }
         numericText = cleanValue(numericText);
-        final number = double.tryParse(numericText);
+        final number = parseSettingNumberInput(item.key, numericText);
         if (number == null || !number.isFinite) continue;
 
         final minValue = item.constraints['min'];
@@ -62,9 +63,11 @@ class OcrMappingHelper {
           }
         }
 
-        validated[entry.key] = number == number.truncateToDouble()
+        final normalizedText = number == number.truncateToDouble()
             ? number.toInt().toString()
             : number.toString();
+        validated[entry.key] =
+            formatSettingNumberInput(item.key, normalizedText);
         continue;
       }
 

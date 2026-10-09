@@ -52,6 +52,7 @@ Future<SettingsProvider> _pumpEditor(
   String? settingName,
   List<SavedSetting> storedSettings = const [],
   bool paperEditor = false,
+  ThemeData? theme,
   Map<String, dynamic>? initialDraft,
 }) async {
   SharedPreferences.setMockInitialValues({
@@ -75,6 +76,7 @@ Future<SettingsProvider> _pumpEditor(
     ChangeNotifierProvider.value(
       value: provider,
       child: MaterialApp(
+        theme: theme,
         home: CarSettingPage(
           originalCar: car,
           savedSettings: savedSettings,
@@ -92,6 +94,19 @@ Future<SettingsProvider> _pumpEditor(
 Finder _textFormFieldWithInitialValue(String value) {
   return find.byWidgetPredicate(
     (widget) => widget is TextFormField && widget.initialValue == value,
+  );
+}
+
+String _angleText(WidgetTester tester, String key) {
+  final field = find.byKey(Key(key));
+  final editable =
+      find.descendant(of: field, matching: find.byType(EditableText));
+  return tester.widget<EditableText>(editable).controller.text;
+}
+
+TextField _angleInput(WidgetTester tester, String key) {
+  return tester.widget<TextField>(
+    find.descendant(of: find.byKey(Key(key)), matching: find.byType(TextField)),
   );
 }
 
@@ -252,4 +267,198 @@ void main() {
       '17.5T',
     );
   });
+
+  for (final paperEditor in [false, true]) {
+    testWidgets(
+        'camber direction survives edits and layout changes ($paperEditor)',
+        (tester) async {
+      final car = _car();
+      final values = <String, dynamic>{
+        'frontCamberAngle': 2.0,
+        'rearCamberAngle': -2.0,
+      };
+      final stored = SavedSetting(
+        id: 'camber-regression',
+        name: 'Camber Setup',
+        createdAt: DateTime(2026, 8, 12),
+        car: car,
+        settings: values,
+      );
+      final provider = await _pumpEditor(
+        tester,
+        car: car,
+        savedSettings: values,
+        savedSettingId: stored.id,
+        settingName: stored.name,
+        storedSettings: [stored],
+        paperEditor: paperEditor,
+        theme: paperEditor ? ThemeData.dark() : ThemeData.light(),
+      );
+      await tester.pumpAndSettle();
+
+      Future<void> openSection(String name) async {
+        final section = provider.usePaperStyleEditor
+            ? find.text(name).first
+            : find.widgetWithText(Tab, name);
+        await tester.ensureVisible(section);
+        await tester.pumpAndSettle();
+        await tester.tap(section);
+        await tester.pumpAndSettle();
+      }
+
+      Future<void> closeSection() async {
+        if (provider.usePaperStyleEditor) {
+          await tester.tap(find.byIcon(Icons.close));
+          await tester.pumpAndSettle();
+        }
+      }
+
+      await openSection('Front');
+      final front = find.byKey(const Key('frontCamberAngle'));
+      expect(_angleText(tester, 'frontCamberAngle'), '2.0');
+      expect(_angleInput(tester, 'frontCamberAngle').decoration?.helperText,
+          'Positive camber');
+      expect(_angleInput(tester, 'frontCamberAngle').keyboardType,
+          const TextInputType.numberWithOptions(decimal: true));
+
+      await tester.enterText(front, '+');
+      await tester.pump();
+      expect(_angleText(tester, 'frontCamberAngle'), '+');
+      expect(_angleInput(tester, 'frontCamberAngle').decoration?.errorText,
+          'Enter a valid number');
+      await tester.enterText(front, '+2');
+      await tester.pump();
+      expect(_angleText(tester, 'frontCamberAngle'), '2');
+      expect(_angleInput(tester, 'frontCamberAngle').decoration?.errorText,
+          isNull);
+      await tester.enterText(front, '－２');
+      await tester.pump();
+      expect(_angleText(tester, 'frontCamberAngle'), '2');
+      await closeSection();
+
+      await openSection('Rear');
+      await tester.enterText(find.byKey(const Key('rearCamberAngle')), '＋２．０');
+      await closeSection();
+
+      await provider.setPaperStyleEditor(!paperEditor);
+      await tester.pumpAndSettle();
+      await openSection('Front');
+      expect(_angleText(tester, 'frontCamberAngle'), '2.0');
+      expect(
+          tester
+              .widget<SegmentedButton<bool>>(
+                  find.byKey(const Key('frontCamberAngle_direction')))
+              .selected,
+          {true});
+      await closeSection();
+      await openSection('Rear');
+      expect(_angleText(tester, 'rearCamberAngle'), '2.0');
+      expect(
+          tester
+              .widget<SegmentedButton<bool>>(
+                  find.byKey(const Key('rearCamberAngle_direction')))
+              .selected,
+          {false});
+      await closeSection();
+
+      await tester.tap(find.text('Update Setting'));
+      await tester.pumpAndSettle();
+      expect(provider.savedSettings.single.settings['frontCamberAngle'], -2.0);
+      expect(provider.savedSettings.single.settings['rearCamberAngle'], 2.0);
+      expect(tester.takeException(), isNull);
+    });
+  }
+
+  for (final paperEditor in [false, true]) {
+    testWidgets(
+        'toe direction survives edits and layout changes ($paperEditor)',
+        (tester) async {
+      // 紙UIの既存グリッド項目も1列で収まる幅で画面操作を検証する。
+      await tester.binding.setSurfaceSize(const Size(500, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final car = _car();
+      final values = <String, dynamic>{
+        'frontToeAngle': -1.0,
+        'rearToeAngle': 3.0,
+      };
+      final stored = SavedSetting(
+        id: 'toe-regression',
+        name: 'Toe Setup',
+        createdAt: DateTime(2026, 8, 12),
+        car: car,
+        settings: values,
+      );
+      final provider = await _pumpEditor(
+        tester,
+        car: car,
+        savedSettings: values,
+        savedSettingId: stored.id,
+        settingName: stored.name,
+        storedSettings: [stored],
+        paperEditor: paperEditor,
+        theme: paperEditor ? ThemeData.dark() : ThemeData.light(),
+      );
+      await tester.pumpAndSettle();
+
+      Future<void> openSection() async {
+        final section = provider.usePaperStyleEditor
+            ? find.text('Top Deck').first
+            : find.widgetWithText(Tab, 'Top Deck');
+        await tester.ensureVisible(section);
+        await tester.pumpAndSettle();
+        await tester.tap(section);
+        await tester.pumpAndSettle();
+      }
+
+      Future<void> closeSection() async {
+        if (provider.usePaperStyleEditor) {
+          await tester.tap(find.byIcon(Icons.close));
+          await tester.pumpAndSettle();
+        }
+      }
+
+      await openSection();
+      expect(_angleText(tester, 'frontToeAngle'), '1.0');
+      expect(_angleInput(tester, 'frontToeAngle').decoration?.helperText,
+          'Toe-out');
+      expect(_angleText(tester, 'rearToeAngle'), '3.0');
+      expect(
+          _angleInput(tester, 'rearToeAngle').decoration?.helperText, 'Toe-in');
+      await tester.enterText(find.byKey(const Key('frontToeAngle')), 'ー２');
+      await tester.pump();
+      expect(_angleInput(tester, 'frontToeAngle').decoration?.errorText,
+          'Enter a valid number');
+      await tester.enterText(find.byKey(const Key('frontToeAngle')), '＋１．５');
+      await tester.enterText(find.byKey(const Key('rearToeAngle')), '−２．０');
+      await tester.pump();
+      expect(
+          _angleInput(tester, 'frontToeAngle').decoration?.errorText, isNull);
+      await closeSection();
+
+      await provider.setPaperStyleEditor(!paperEditor);
+      await tester.pumpAndSettle();
+      await openSection();
+      expect(_angleText(tester, 'frontToeAngle'), '1.5');
+      expect(_angleText(tester, 'rearToeAngle'), '2.0');
+      expect(
+          tester
+              .widget<SegmentedButton<bool>>(
+                  find.byKey(const Key('frontToeAngle_direction')))
+              .selected,
+          {false});
+      expect(
+          tester
+              .widget<SegmentedButton<bool>>(
+                  find.byKey(const Key('rearToeAngle_direction')))
+              .selected,
+          {true});
+      await closeSection();
+
+      await tester.tap(find.text('Update Setting'));
+      await tester.pumpAndSettle();
+      expect(provider.savedSettings.single.settings['frontToeAngle'], 1.5);
+      expect(provider.savedSettings.single.settings['rearToeAngle'], -2.0);
+      expect(tester.takeException(), isNull);
+    });
+  }
 }
