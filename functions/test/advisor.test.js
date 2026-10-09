@@ -16,7 +16,6 @@ function requestData() {
         category: "touring",
       },
       settingName: "Base",
-      definitionVerified: true,
       settings: [
         {
           key: "frontCamber",

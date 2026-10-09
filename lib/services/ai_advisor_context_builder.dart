@@ -75,7 +75,6 @@ class AIAdvisorContextBuilder {
         'category': car.category,
       },
       settingName: settingName.trim(),
-      definitionVerified: settingDefinition.isHumanVerified,
       settings: values,
       settingCatalog: catalog,
       track: track == null

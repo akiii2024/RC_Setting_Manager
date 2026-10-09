@@ -86,7 +86,6 @@ void main() {
     const context = AIAdvisorContext(
       vehicle: {'name': 'Test car'},
       settingName: 'Base',
-      definitionVerified: true,
       settings: [
         {'key': 'frontCamber', 'value': -1.0},
       ],

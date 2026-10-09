@@ -33,7 +33,6 @@ void main() {
       context: const AIAdvisorContext(
         vehicle: {'name': 'Car'},
         settingName: 'Base',
-        definitionVerified: true,
         settings: [],
         settingCatalog: [],
       ),
