@@ -23,7 +23,6 @@ class AdvisorMessage {
 class AIAdvisorContext {
   final Map<String, dynamic> vehicle;
   final String settingName;
-  final bool definitionVerified;
   final List<Map<String, dynamic>> settings;
   final List<Map<String, dynamic>> settingCatalog;
   final Map<String, dynamic>? track;
@@ -34,7 +33,6 @@ class AIAdvisorContext {
   const AIAdvisorContext({
     required this.vehicle,
     required this.settingName,
-    required this.definitionVerified,
     required this.settings,
     required this.settingCatalog,
     this.track,
@@ -47,7 +45,6 @@ class AIAdvisorContext {
     return {
       'vehicle': vehicle,
       'settingName': settingName,
-      'definitionVerified': definitionVerified,
       'settings': settings,
       'settingCatalog': settingCatalog,
       if (track != null) 'track': track,
