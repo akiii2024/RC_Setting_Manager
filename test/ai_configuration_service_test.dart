@@ -14,7 +14,11 @@ void main() {
     expect(AiProvider.openAI.defaultModel, 'gpt-5.6-sol');
     expect(AiProvider.anthropic.defaultModel, 'claude-sonnet-5');
     expect(AiProvider.gemini.defaultModel, 'gemini-3.8-flash');
+    expect(AiProvider.openCodeGo.value, 'opencode-go');
+    expect(AiProvider.openCodeGo.displayName, 'OpenCode Go');
+    expect(AiProvider.openCodeGo.defaultModel, 'kimi-k3');
     expect(AiProvider.tryParse(' OpenAI '), AiProvider.openAI);
+    expect(AiProvider.tryParse('opencode-go'), AiProvider.openCodeGo);
     expect(AiProvider.tryParse('unknown'), isNull);
   });
 

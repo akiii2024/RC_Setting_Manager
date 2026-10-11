@@ -13,6 +13,11 @@ enum AiProvider {
     value: 'gemini',
     displayName: 'Gemini',
     defaultModel: 'gemini-3.8-flash',
+  ),
+  openCodeGo(
+    value: 'opencode-go',
+    displayName: 'OpenCode Go',
+    defaultModel: 'kimi-k3',
   );
 
   const AiProvider({

@@ -457,6 +457,154 @@ void main() {
     providerClient.close();
   });
 
+  test('OpenCode Go sends chat completions with json_schema and session id',
+      () async {
+    late http.Request capturedRequest;
+    final transport = MockClient((request) async {
+      capturedRequest = request;
+      return http.Response(
+        jsonEncode({
+          'choices': [
+            {
+              'message': {
+                'role': 'assistant',
+                'content': jsonEncode({'answer': 'go-ok'}),
+              },
+            },
+          ],
+        }),
+        200,
+      );
+    });
+    final client = AiProviderClient(
+      configuration: _configuration(AiProvider.openCodeGo, model: 'kimi-k3'),
+      client: transport,
+    );
+
+    final result = await client.generateStructured(
+      system: 'System instruction',
+      prompt: 'Question',
+      schema: _schema,
+      schemaName: 'advisor_response',
+      maxTokens: 123,
+    );
+
+    expect(result, {'answer': 'go-ok'});
+    expect(capturedRequest.method, 'POST');
+    expect(
+      capturedRequest.url.toString(),
+      'https://opencode.ai/zen/go/v1/chat/completions',
+    );
+    expect(
+      _header(capturedRequest, 'authorization'),
+      'Bearer provider-secret-key',
+    );
+    final sessionId = _header(capturedRequest, 'x-opencode-session');
+    expect(sessionId, isNotEmpty);
+    expect(
+      RegExp(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+          .hasMatch(sessionId!),
+      isTrue,
+    );
+    expect(capturedRequest.headers['user-agent'], contains('RCSettingManager'));
+    final body = jsonDecode(capturedRequest.body) as Map<String, dynamic>;
+    expect(body['model'], 'kimi-k3');
+    expect(body['max_tokens'], 123);
+    final messages = body['messages'] as List;
+    expect(messages.first['role'], 'system');
+    expect(messages.first['content'], 'System instruction');
+    expect(messages.last['content'], 'Question');
+    final format = ((body['response_format'] as Map)['json_schema'] as Map);
+    expect(format['name'], 'advisor_response');
+    expect(format['strict'], isTrue);
+    expect(format['schema'], _schema);
+    expect(
+        capturedRequest.url.toString(), isNot(contains('provider-secret-key')));
+    expect(capturedRequest.body, isNot(contains('provider-secret-key')));
+    client.close();
+  });
+
+  test('OpenCode Go uses stable session id across requests', () async {
+    final requests = <http.Request>[];
+    final transport = MockClient((request) async {
+      requests.add(request);
+      return http.Response(
+        jsonEncode({
+          'choices': [
+            {
+              'message': {'role': 'assistant', 'content': 'ok'}
+            },
+          ],
+        }),
+        200,
+      );
+    });
+    final client = AiProviderClient(
+      configuration: _configuration(AiProvider.openCodeGo),
+      client: transport,
+    );
+
+    await client.generateText('one');
+    await client.generateText('two');
+    final first = _header(requests[0], 'x-opencode-session');
+    final second = _header(requests[1], 'x-opencode-session');
+    expect(first, isNotEmpty);
+    expect(second, first);
+    client.close();
+  });
+
+  test('OpenCode Go parses content parts and ignores reasoning-only output',
+      () async {
+    final client = AiProviderClient(
+      configuration: _configuration(AiProvider.openCodeGo),
+      client: MockClient((request) async => http.Response(
+            jsonEncode({
+              'choices': [
+                {
+                  'message': {
+                    'role': 'assistant',
+                    'content': jsonEncode({'answer': 'structured'}),
+                  },
+                  'finish_reason': 'stop',
+                },
+              ],
+            }),
+            200,
+          )),
+    );
+
+    final result = await client.generateStructured(
+      system: 'System',
+      prompt: 'Prompt',
+      schema: _schema,
+      schemaName: 'advisor_response',
+    );
+    expect(result, {'answer': 'structured'});
+    client.close();
+  });
+
+  test('OpenCode Go testConnection hits the models list endpoint', () async {
+    late http.Request capturedRequest;
+    final transport = MockClient((request) async {
+      capturedRequest = request;
+      return http.Response(jsonEncode({'object': 'list', 'data': []}), 200);
+    });
+    final client = AiProviderClient(
+      configuration: _configuration(AiProvider.openCodeGo),
+      client: transport,
+    );
+
+    expect(await client.testConnection(), isTrue);
+    expect(capturedRequest.method, 'GET');
+    expect(
+        capturedRequest.url.toString(), 'https://opencode.ai/zen/go/v1/models');
+    expect(
+      _header(capturedRequest, 'authorization'),
+      'Bearer provider-secret-key',
+    );
+    client.close();
+  });
+
   test('non-2xx errors do not expose API key or response body', () async {
     const secret = 'do-not-leak-this-key';
     late http.Request capturedRequest;

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
@@ -55,6 +56,8 @@ class AiProviderClient {
     Uri? openAiBaseUri,
     Uri? anthropicBaseUri,
     Uri? geminiBaseUri,
+    Uri? openCodeGoBaseUri,
+    String? sessionHeader,
   })  : provider = configuration.provider,
         model = _normalizedModel(
           configuration.provider,
@@ -72,7 +75,10 @@ class AiProviderClient {
         _anthropicBaseUri =
             anthropicBaseUri ?? Uri.parse('https://api.anthropic.com/v1'),
         _geminiBaseUri = geminiBaseUri ??
-            Uri.parse('https://generativelanguage.googleapis.com/v1beta') {
+            Uri.parse('https://generativelanguage.googleapis.com/v1beta'),
+        _openCodeGoBaseUri =
+            openCodeGoBaseUri ?? Uri.parse('https://opencode.ai/zen/go/v1'),
+        _sessionHeader = sessionHeader ?? _randomSessionId() {
     if (timeout <= Duration.zero) {
       throw ArgumentError('タイムアウト時間は0秒より長くしてください。');
     }
@@ -87,6 +93,19 @@ class AiProviderClient {
   final Uri _openAiBaseUri;
   final Uri _anthropicBaseUri;
   final Uri _geminiBaseUri;
+  final Uri _openCodeGoBaseUri;
+  final String _sessionHeader;
+
+  /// OpenCode Goは会話単位の安定したセッションIDを要求するため、
+  /// クライアントごとに1回だけ生成する。
+  static String _randomSessionId() {
+    final random = Random.secure();
+    final values = List<int>.generate(16, (_) => random.nextInt(256));
+    final hex = values.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    return '${hex.substring(0, 8)}-${hex.substring(8, 12)}-'
+        '${hex.substring(12, 16)}-${hex.substring(16, 20)}-'
+        '${hex.substring(20, 32)}';
+  }
 
   static String _requiredValue(
     String value,
@@ -247,6 +266,45 @@ class AiProviderClient {
             },
           },
         ),
+      AiProvider.openCodeGo => await _postJson(
+          _endpoint(_openCodeGoBaseUri, 'chat/completions'),
+          _headers(),
+          {
+            'model': model,
+            'messages': [
+              {'role': 'system', 'content': normalizedSystem},
+              {
+                'role': 'user',
+                'content': imageBytes == null
+                    ? normalizedPrompt
+                    : [
+                        {
+                          'type': 'text',
+                          'text': normalizedPrompt,
+                        },
+                        {
+                          'type': 'image_url',
+                          'image_url': {
+                            'url': _dataUrl(
+                              imageBytes,
+                              normalizedMimeType!,
+                            ),
+                          },
+                        },
+                      ],
+              },
+            ],
+            'response_format': {
+              'type': 'json_schema',
+              'json_schema': {
+                'name': normalizedSchemaName,
+                'strict': true,
+                'schema': schema,
+              },
+            },
+            'max_tokens': maxTokens,
+          },
+        ),
     };
 
     return _decodeStructuredOutput(_extractText(response));
@@ -349,6 +407,36 @@ class AiProviderClient {
             },
           },
         ),
+      AiProvider.openCodeGo => await _postJson(
+          _endpoint(_openCodeGoBaseUri, 'chat/completions'),
+          _headers(),
+          {
+            'model': model,
+            'messages': [
+              {
+                'role': 'user',
+                'content': imageBytes == null
+                    ? normalizedPrompt
+                    : [
+                        {
+                          'type': 'text',
+                          'text': normalizedPrompt,
+                        },
+                        {
+                          'type': 'image_url',
+                          'image_url': {
+                            'url': _dataUrl(
+                              imageBytes,
+                              normalizedMimeType!,
+                            ),
+                          },
+                        },
+                      ],
+              },
+            ],
+            'max_tokens': maxTokens,
+          },
+        ),
     };
 
     return _extractText(response);
@@ -362,6 +450,7 @@ class AiProviderClient {
       AiProvider.anthropic =>
         _endpoint(_anthropicBaseUri, 'models/$encodedModel'),
       AiProvider.gemini => _endpoint(_geminiBaseUri, 'models/$encodedModel'),
+      AiProvider.openCodeGo => _endpoint(_openCodeGoBaseUri, 'models'),
     };
 
     await _getJson(uri, _headers());
@@ -389,6 +478,14 @@ class AiProviderClient {
       AiProvider.gemini => {
           'Content-Type': 'application/json',
           'x-goog-api-key': _apiKey,
+        },
+      AiProvider.openCodeGo => {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_apiKey',
+          // OpenCode Goは汎用SDK名ではなく、クライアント固有の
+          // User-Agentと安定したセッションIDを要求する。
+          'User-Agent': 'RCSettingManager/0.2',
+          'x-opencode-session': _sessionHeader,
         },
     };
   }
@@ -561,6 +658,7 @@ class AiProviderClient {
       AiProvider.openAI => _openAiTextParts(response),
       AiProvider.anthropic => _anthropicTextParts(response),
       AiProvider.gemini => _geminiTextParts(response),
+      AiProvider.openCodeGo => _openCodeGoTextParts(response),
     };
     final text = parts.map((part) => part.trim()).where((part) {
       return part.isNotEmpty;
@@ -611,6 +709,31 @@ class AiProviderClient {
       final text = part['text'];
       if (text is String) {
         yield text;
+      }
+    }
+  }
+
+  /// OpenCode Go (chat/completions互換) の応答からテキスト部分を取り出す。
+  /// 思考モデルは`content`が空で`reasoning`や`reasoning_content`に
+  /// 推理部分だけが入ることがあるため、それらは出力対象にしない。
+  Iterable<String> _openCodeGoTextParts(Map<String, dynamic> response) sync* {
+    final choices = response['choices'];
+    if (choices is! List || choices.isEmpty) {
+      return;
+    }
+    final message = (choices.first as Map?)?['message'];
+    if (message is! Map) {
+      return;
+    }
+    final content = message['content'];
+    if (content is String) {
+      yield content;
+    } else if (content is List) {
+      for (final part in content.whereType<Map>()) {
+        final text = part['text'];
+        if (text is String) {
+          yield text;
+        }
       }
     }
   }
