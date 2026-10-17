@@ -97,8 +97,7 @@ class TelemetryAiAnalysisService {
     final settings = _providerClient == null
         ? await _configurationService.activeSettings
         : null;
-    final usesManagedGemini = settings?.provider == AiProvider.gemini &&
-        !await _configurationService.hasApiKey(AiProvider.gemini);
+    final usesManagedGemini = settings?.usesManagedGemini == true;
 
     late final Map<String, dynamic> rawAnalysis;
     late final String provider;
@@ -117,6 +116,7 @@ class TelemetryAiAnalysisService {
       provider = AiProvider.gemini.value;
       model = response['modelVersion'] as String? ?? settings!.model;
     } else {
+      await _configurationService.requireDeveloperMode();
       final injected = _providerClient;
       if (injected != null) {
         rawAnalysis = await injected.generateStructured(

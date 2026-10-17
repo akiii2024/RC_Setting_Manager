@@ -25,8 +25,7 @@ class AIAdvisorService {
   final FirebaseFunctionCaller _callFunction;
 
   Future<bool> get _usesFirebase async =>
-      _providerClient == null &&
-      await _configurationService.selectedProvider == AiProvider.gemini;
+      _providerClient == null && await _configurationService.usesManagedGemini;
 
   // 会話のコンテキスト情報
   Car? _contextCar;
@@ -136,6 +135,7 @@ class AIAdvisorService {
   Future<T> _withProviderClient<T>(
     Future<T> Function(AiProviderClient client) action,
   ) async {
+    await _configurationService.requireDeveloperMode();
     final injectedClient = _providerClient;
     if (injectedClient != null) {
       return action(injectedClient);

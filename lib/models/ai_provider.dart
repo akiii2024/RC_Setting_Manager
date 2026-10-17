@@ -43,23 +43,31 @@ enum AiProvider {
   }
 }
 
+enum AiAccessMode { managedGemini, personalApi }
+
 /// APIキーを含まない、永続化可能なAI設定。
 class AiProviderSettings {
   const AiProviderSettings({
     required this.provider,
     required this.model,
+    this.accessMode = AiAccessMode.managedGemini,
   });
 
   final AiProvider provider;
   final String model;
+  final AiAccessMode accessMode;
+
+  bool get usesManagedGemini => accessMode == AiAccessMode.managedGemini;
 
   AiProviderSettings copyWith({
     AiProvider? provider,
     String? model,
+    AiAccessMode? accessMode,
   }) {
     return AiProviderSettings(
       provider: provider ?? this.provider,
       model: model ?? this.model,
+      accessMode: accessMode ?? this.accessMode,
     );
   }
 
@@ -67,15 +75,17 @@ class AiProviderSettings {
   bool operator ==(Object other) {
     return other is AiProviderSettings &&
         other.provider == provider &&
-        other.model == model;
+        other.model == model &&
+        other.accessMode == accessMode;
   }
 
   @override
-  int get hashCode => Object.hash(provider, model);
+  int get hashCode => Object.hash(provider, model, accessMode);
 
   @override
   String toString() {
-    return 'AiProviderSettings(provider: ${provider.value}, model: $model)';
+    return 'AiProviderSettings(provider: ${provider.value}, model: $model, '
+        'accessMode: ${accessMode.name})';
   }
 }
 
@@ -88,7 +98,7 @@ class AiConfiguration extends AiProviderSettings {
     required super.provider,
     required super.model,
     required this.apiKey,
-  });
+  }) : super(accessMode: AiAccessMode.personalApi);
 
   final String apiKey;
 

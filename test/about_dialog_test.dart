@@ -64,6 +64,26 @@ Future<void> _openAbout(
   await tester.pumpAndSettle();
 }
 
+Future<void> _rebuildSettingsPage(WidgetTester tester) async {
+  final context = tester.element(find.byType(SettingsPage));
+  final settings = Provider.of<SettingsProvider>(context, listen: false);
+  final theme = Provider.of<ThemeProvider>(context, listen: false);
+  await tester.pumpWidget(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: settings),
+        ChangeNotifierProvider.value(value: theme),
+        Provider<AuthService?>.value(value: null),
+      ],
+      child: MaterialApp(
+        theme: AppTheme.light(),
+        home: const SettingsPage(),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
 void main() {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();
   setUp(() => rootBundle.evict('pubspec.yaml'));
@@ -134,6 +154,93 @@ void main() {
     expect(copiedUrl,
         'https://akiii2024.github.io/RC_Setting_Manager/privacy.html');
     expect(find.text('URLをコピーしました。ブラウザに貼り付けて開いてください。'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+      'version unlocks developer mode after seven taps and resets on close',
+      (tester) async {
+    await _openAbout(tester);
+    final version =
+        AppMetadata.parseVersion(File('pubspec.yaml').readAsStringSync());
+    final versionLabel = find.text('バージョン: $version');
+    for (var i = 0; i < 6; i++) {
+      await tester.tap(versionLabel);
+      await tester.pump();
+    }
+    await tester.tap(find.text('閉じる'));
+    await tester.pumpAndSettle();
+    expect(find.text('開発者モード'), findsNothing);
+
+    await tester.tap(find.text('アプリについて'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('バージョン: $version'));
+    await tester.pump();
+    await tester.tap(find.text('閉じる'));
+    await tester.pumpAndSettle();
+    expect(find.text('開発者モード'), findsNothing);
+
+    await tester.tap(find.text('アプリについて'));
+    await tester.pumpAndSettle();
+    for (var i = 0; i < 7; i++) {
+      await tester.tap(find.text('バージョン: $version'));
+      await tester.pump();
+    }
+    await tester.tap(find.text('閉じる'));
+    await tester.pumpAndSettle();
+    expect(find.text('開発者モード'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('developer mode controls personal AI entry and restores state',
+      (tester) async {
+    await _openAbout(tester);
+    final version =
+        AppMetadata.parseVersion(File('pubspec.yaml').readAsStringSync());
+    for (var i = 0; i < 7; i++) {
+      await tester.tap(find.text('バージョン: $version'));
+      await tester.pump();
+    }
+    await tester.tap(find.text('閉じる'));
+    await tester.pumpAndSettle();
+
+    final developerMode = find.text('開発者モード');
+    final personalSettings = find.text('個人AI API設定');
+    expect(developerMode, findsOneWidget);
+    expect(personalSettings, findsNothing);
+
+    await Scrollable.ensureVisible(tester.element(developerMode),
+        alignment: 0.5);
+    await tester.pumpAndSettle();
+    await tester.tap(developerMode);
+    await tester.pumpAndSettle();
+    await Scrollable.ensureVisible(tester.element(personalSettings),
+        alignment: 0.5);
+    await tester.pumpAndSettle();
+    expect(personalSettings, findsOneWidget);
+
+    await _rebuildSettingsPage(tester);
+    await Scrollable.ensureVisible(tester.element(find.text('開発者モード')),
+        alignment: 0.5);
+    await tester.pumpAndSettle();
+    expect(find.text('開発者モード'), findsOneWidget);
+    await Scrollable.ensureVisible(tester.element(find.text('個人AI API設定')),
+        alignment: 0.5);
+    await tester.pumpAndSettle();
+    expect(find.text('個人AI API設定'), findsOneWidget);
+
+    await Scrollable.ensureVisible(tester.element(find.text('開発者モード')),
+        alignment: 0.5);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('開発者モード'));
+    await tester.pumpAndSettle();
+    expect(find.text('個人AI API設定'), findsNothing);
+
+    await _rebuildSettingsPage(tester);
+    await Scrollable.ensureVisible(tester.element(find.text('開発者モード')),
+        alignment: 0.5);
+    expect(find.text('開発者モード'), findsOneWidget);
+    expect(find.text('個人AI API設定'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

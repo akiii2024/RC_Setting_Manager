@@ -249,10 +249,10 @@ class ApiConsentService {
           ? 'To provide AI advice, OCR, and telemetry driving analysis, the '
               'app sends the following data to the AI provider selected in '
               'Settings. Standard Gemini requests are sent through Firebase '
-              'Functions; other providers are contacted directly.'
+              'Functions; personal API keys contact the selected provider directly.'
           : 'AIアドバイス、OCR、テレメトリー走行分析を提供するため、以下のデータを'
               '設定画面で選択したAIプロバイダーへ送信します。標準GeminiはFirebase '
-              'Functionsを経由し、それ以外のプロバイダーは直接通信します。',
+              'Functionsを経由し、個人APIキーの利用時は選択先へ直接通信します。',
     };
   }
 

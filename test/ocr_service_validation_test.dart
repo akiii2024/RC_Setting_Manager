@@ -450,6 +450,9 @@ void main() {
       }),
     );
     addTearDown(providerClient.close);
+    final configuration = AiConfigurationService();
+    await configuration.unlockDeveloperMode();
+    await configuration.setDeveloperModeEnabled(true);
     final service = OCRService(providerClient: providerClient);
     final result = await service.extractSettingsFromImage(
       await _pngFile(),

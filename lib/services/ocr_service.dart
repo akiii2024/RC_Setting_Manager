@@ -55,6 +55,7 @@ class OCRService {
   Future<T> _withProviderClient<T>(
     Future<T> Function(AiProviderClient client) action,
   ) async {
+    await _configurationService.requireDeveloperMode();
     final injectedClient = _providerClient;
     if (injectedClient != null) return action(injectedClient);
 
@@ -139,7 +140,7 @@ class OCRService {
     required List<_OcrCatalogEntry> catalog,
   }) async {
     if (_providerClient == null &&
-        await _configurationService.selectedProvider == AiProvider.gemini) {
+        await _configurationService.usesManagedGemini) {
       final response = await _callFunction('extractSettingSheet', {
         'carId': carId,
         'carName': carName,

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 import '../models/ai_provider.dart';
+import '../providers/settings_provider.dart';
 import '../services/ai_configuration_service.dart';
 
 class AiProviderIndicator extends StatefulWidget {
@@ -27,6 +29,19 @@ class _AiProviderIndicatorState extends State<AiProviderIndicator> {
     _configurationService =
         widget.configurationService ?? AiConfigurationService();
     _settings = _configurationService.activeSettings;
+    AiConfigurationService.changes.addListener(_refresh);
+  }
+
+  void _refresh() {
+    setState(() {
+      _settings = _configurationService.activeSettings;
+    });
+  }
+
+  @override
+  void dispose() {
+    AiConfigurationService.changes.removeListener(_refresh);
+    super.dispose();
   }
 
   @override
@@ -48,6 +63,8 @@ class _AiProviderIndicatorState extends State<AiProviderIndicator> {
           return const SizedBox.shrink();
         }
         final settings = snapshot.requireData;
+        final isEnglish =
+            context.watch<SettingsProvider?>()?.isEnglish ?? false;
         final colorScheme = Theme.of(context).colorScheme;
         return Container(
           padding: EdgeInsets.symmetric(
@@ -70,9 +87,9 @@ class _AiProviderIndicatorState extends State<AiProviderIndicator> {
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 260),
                 child: Text(
-                  settings.provider == AiProvider.gemini
-                      ? 'Gemini'
-                      : '${settings.provider.displayName} / ${settings.model}',
+                  settings.usesManagedGemini
+                      ? (isEnglish ? 'Standard Gemini' : '標準Gemini')
+                      : '${settings.provider.displayName} / ${isEnglish ? 'Personal API key' : '個人APIキー'} / ${settings.model}',
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(

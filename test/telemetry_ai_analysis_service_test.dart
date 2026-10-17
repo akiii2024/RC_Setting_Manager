@@ -103,6 +103,10 @@ void main() {
       client: transport,
     );
     final service = TelemetryAiAnalysisService(providerClient: client);
+    SharedPreferences.setMockInitialValues({});
+    final configuration = AiConfigurationService();
+    await configuration.unlockDeveloperMode();
+    await configuration.setDeveloperModeEnabled(true);
 
     final result = await service.analyze(_report(), isEnglish: false);
 

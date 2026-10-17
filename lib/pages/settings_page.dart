@@ -49,6 +49,11 @@ class _SettingsPageState extends State<SettingsPage> {
   bool _isLoadingAiConsent = true;
   String? _aiProviderSummary;
   bool _isLoadingAiProvider = true;
+  bool _isDeveloperModeUnlocked = false;
+  bool _isDeveloperModeEnabled = false;
+  bool _isLoadingDeveloperMode = true;
+  bool _isDeveloperModeMutationInFlight = false;
+  int _versionTapCount = 0;
   bool _isThemeMutationInFlight = false;
   bool _isOnlineModeMutationInFlight = false;
   bool _isCloudOperationInFlight = false;
@@ -62,6 +67,7 @@ class _SettingsPageState extends State<SettingsPage> {
     _loadLocationConsentState();
     _loadAiConsentState();
     _loadAiProviderState();
+    _loadDeveloperModeState();
   }
 
   @override
@@ -221,39 +227,59 @@ class _SettingsPageState extends State<SettingsPage> {
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             ),
             const SizedBox(height: 16.0),
-            ListTile(
-              title: Text(
-                isEnglish ? 'AI Provider and API Key' : 'AIプロバイダー・APIキー',
+            if (_isDeveloperModeUnlocked) ...[
+              const SizedBox(height: 16.0),
+              SwitchListTile(
+                secondary: const Icon(Icons.developer_mode_outlined),
+                title: Text(isEnglish ? 'Developer Mode' : '開発者モード'),
+                subtitle: Text(isEnglish
+                    ? 'Enable personal AI API keys and direct requests'
+                    : '個人APIキーによるAI利用を有効にします'),
+                value: _isDeveloperModeEnabled,
+                onChanged:
+                    _isLoadingDeveloperMode || _isDeveloperModeMutationInFlight
+                        ? null
+                        : (value) => _setDeveloperModeEnabled(value, isEnglish),
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               ),
-              subtitle: Text(
-                _isLoadingAiProvider
-                    ? (isEnglish ? 'Loading...' : '読み込み中...')
-                    : (_aiProviderSummary ??
-                        (isEnglish ? 'Not configured' : '未設定')),
-              ),
-              leading: const Icon(Icons.key_outlined),
-              trailing: _isLoadingAiProvider
-                  ? const SizedBox(
-                      width: 24,
-                      height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Icon(Icons.arrow_forward_ios),
-              onTap: _isLoadingAiProvider
-                  ? null
-                  : () async {
-                      await Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => AiProviderSettingsPage(
-                            isEnglish: isEnglish,
+            ],
+            if (_isDeveloperModeEnabled) ...[
+              const SizedBox(height: 16.0),
+              ListTile(
+                title: Text(
+                  isEnglish ? 'Personal AI API settings' : '個人AI API設定',
+                ),
+                subtitle: Text(
+                  _isLoadingAiProvider
+                      ? (isEnglish ? 'Loading...' : '読み込み中...')
+                      : (_aiProviderSummary ??
+                          (isEnglish ? 'Not configured' : '未設定')),
+                ),
+                leading: const Icon(Icons.key_outlined),
+                trailing: _isLoadingAiProvider
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.arrow_forward_ios),
+                onTap: _isLoadingAiProvider
+                    ? null
+                    : () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (context) => AiProviderSettingsPage(
+                              isEnglish: isEnglish,
+                            ),
                           ),
-                        ),
-                      );
-                      await _loadAiProviderState();
-                    },
-              contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            ),
+                        );
+                        await _loadAiProviderState();
+                      },
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              ),
+            ],
             const SizedBox(height: 16.0),
             ListTile(
               title: Text(
@@ -653,12 +679,16 @@ class _SettingsPageState extends State<SettingsPage> {
     try {
       final service = AiConfigurationService();
       final settings = await service.activeSettings;
+      final isEnglish = mounted
+          ? Provider.of<SettingsProvider>(context, listen: false).isEnglish
+          : false;
       if (!mounted) return;
       setState(() {
         // APIキーの状態はセキュアストレージを扱う専用画面でだけ確認する。
         // これにより設定一覧の初期表示をOS資格情報ストアに依存させない。
-        _aiProviderSummary =
-            '${settings.provider.displayName} / ${settings.model}';
+        _aiProviderSummary = settings.usesManagedGemini
+            ? (isEnglish ? 'Standard Gemini' : '標準Gemini')
+            : '${settings.provider.displayName} / ${isEnglish ? 'Personal API key' : '個人APIキー'} / ${settings.model}';
         _isLoadingAiProvider = false;
       });
     } catch (_) {
@@ -667,6 +697,45 @@ class _SettingsPageState extends State<SettingsPage> {
         _aiProviderSummary = null;
         _isLoadingAiProvider = false;
       });
+    }
+  }
+
+  Future<void> _loadDeveloperModeState() async {
+    try {
+      final service = AiConfigurationService();
+      final unlocked = await service.isDeveloperModeUnlocked;
+      final enabled = unlocked && await service.isDeveloperModeEnabled;
+      if (!mounted) return;
+      setState(() {
+        _isDeveloperModeUnlocked = unlocked;
+        _isDeveloperModeEnabled = enabled;
+        _isLoadingDeveloperMode = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isLoadingDeveloperMode = false);
+    }
+  }
+
+  Future<void> _setDeveloperModeEnabled(bool enabled, bool isEnglish) async {
+    if (_isDeveloperModeMutationInFlight) return;
+    setState(() => _isDeveloperModeMutationInFlight = true);
+    try {
+      await AiConfigurationService().setDeveloperModeEnabled(enabled);
+      await _loadAiProviderState();
+      if (!mounted) return;
+      setState(() => _isDeveloperModeEnabled = enabled);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isEnglish
+              ? 'Developer mode could not be changed.'
+              : '開発者モードを変更できませんでした。'),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isDeveloperModeMutationInFlight = false);
     }
   }
 
@@ -1747,6 +1816,7 @@ class _SettingsPageState extends State<SettingsPage> {
     final isEnglish = settingsProvider.isEnglish;
     final versionFuture = AppMetadata.loadVersion();
 
+    _versionTapCount = 0;
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -1766,7 +1836,23 @@ class _SettingsPageState extends State<SettingsPage> {
                   children: [
                     const Text('RC Setting Manager'),
                     const SizedBox(height: 16),
-                    Text(isEnglish ? 'Version: $version' : 'バージョン: $version'),
+                    Semantics(
+                      button: true,
+                      child: InkWell(
+                        onTap: snapshot.hasData
+                            ? () => _handleVersionTap(isEnglish)
+                            : null,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(minHeight: 48),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(isEnglish
+                                ? 'Version: $version'
+                                : 'バージョン: $version'),
+                          ),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 16),
                     Text(isEnglish
                         ? 'An app for managing RC car setups, run records, and telemetry.'
@@ -1818,6 +1904,35 @@ class _SettingsPageState extends State<SettingsPage> {
           ],
         );
       },
-    );
+    ).whenComplete(() {
+      _versionTapCount = 0;
+    });
+  }
+
+  Future<void> _handleVersionTap(bool isEnglish) async {
+    if (_versionTapCount >= 7) return;
+    _versionTapCount++;
+    if (_versionTapCount != 7) return;
+    try {
+      await AiConfigurationService().unlockDeveloperMode();
+      if (!mounted) return;
+      setState(() => _isDeveloperModeUnlocked = true);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isEnglish
+              ? 'Developer mode is now available in Settings.'
+              : '開発者モードの設定が利用できるようになりました。'),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(isEnglish
+              ? 'Developer mode could not be unlocked.'
+              : '開発者モードを解放できませんでした。'),
+        ),
+      );
+    }
   }
 }

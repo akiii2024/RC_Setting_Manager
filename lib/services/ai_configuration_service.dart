@@ -82,7 +82,7 @@ class MemorySecretStore implements SecretStore {
 
 /// AIプロバイダ設定とAPIキーを、秘密度に応じて別々に管理する。
 ///
-/// プロバイダとモデル名だけを [SharedPreferences] に保存し、APIキーは
+/// 開発者モード・利用方式・プロバイダ・モデル名を [SharedPreferences] に保存し、APIキーは
 /// [SecretStore] にのみ保存する。APIキーをアプリの通常バックアップや
 /// Firestore同期へ含めないため、このサービスとSettingsProviderは分離する。
 class AiConfigurationService {
@@ -92,6 +92,12 @@ class AiConfigurationService {
   })  : _secretStore = secretStore ?? FlutterSecureSecretStore(),
         _preferences = preferences;
 
+  static const String _developerUnlockedKey = 'developer_mode_unlocked_v1';
+
+  /// 別の画面・サービスインスタンスから設定が変わった場合も表示を更新する。
+  static final ValueNotifier<int> changes = ValueNotifier(0);
+  static const String _developerEnabledKey = 'developer_mode_enabled_v1';
+  static const String _personalApiKey = 'ai_configuration_personal_api_v1';
   static const String _selectedProviderKey =
       'ai_configuration_selected_provider_v1';
   static const String _modelKeyPrefix = 'ai_configuration_model_v1_';
@@ -116,16 +122,100 @@ class AiConfigurationService {
     return normalized;
   }
 
-  /// 未設定または不明な値の場合は、既存機能との互換性のためGeminiを返す。
-  Future<AiProvider> get selectedProvider async {
+  Future<void> _ensureWritten(Future<bool> operation) async {
+    if (!await operation) throw StateError('設定を保存できませんでした。もう一度お試しください。');
+    changes.value++;
+  }
+
+  Future<void> _writeBool(
+      SharedPreferences preferences, String key, bool value) async {
+    final previous = preferences.getBool(key);
+    try {
+      await _ensureWritten(preferences.setBool(key, value));
+    } catch (_) {
+      // SharedPreferencesは書き込み失敗時も先にメモリキャッシュを更新する。
+      // 個人APIの有効化が失敗した値を、その後のリクエストが参照しないよう戻す。
+      try {
+        if (previous == null) {
+          await preferences.remove(key);
+        } else {
+          await preferences.setBool(key, previous);
+        }
+      } catch (_) {
+        // 元の保存エラーを呼び出し元へ返す。
+      }
+      rethrow;
+    }
+  }
+
+  Future<bool> get isDeveloperModeUnlocked async =>
+      (await _getPreferences()).getBool(_developerUnlockedKey) ?? false;
+
+  Future<bool> get isDeveloperModeEnabled async {
     final preferences = await _getPreferences();
-    return AiProvider.tryParse(preferences.getString(_selectedProviderKey)) ??
-        AiProvider.gemini;
+    return (preferences.getBool(_developerUnlockedKey) ?? false) &&
+        (preferences.getBool(_developerEnabledKey) ?? false);
+  }
+
+  Future<void> unlockDeveloperMode() async {
+    final preferences = await _getPreferences();
+    await _writeBool(preferences, _developerUnlockedKey, true);
+  }
+
+  Future<void> setDeveloperModeEnabled(bool enabled) async {
+    final preferences = await _getPreferences();
+    if (enabled && !await isDeveloperModeUnlocked) {
+      throw StateError('バージョンを7回タップして開発者モードを解放してください。');
+    }
+    // 再有効化しても、個人APIの利用は自動再開しない。
+    await selectManagedGemini();
+    await _writeBool(preferences, _developerEnabledKey, enabled);
+  }
+
+  Future<void> requireDeveloperMode() async {
+    if (!await isDeveloperModeEnabled) {
+      throw StateError('個人APIキーを利用するには開発者モードをオンにしてください。');
+    }
+  }
+
+  Future<void> selectManagedGemini() async {
+    final preferences = await _getPreferences();
+    await _writeBool(preferences, _personalApiKey, false);
+  }
+
+  Future<bool> get usesManagedGemini async =>
+      (await activeSettings).usesManagedGemini;
+
+  Future<AiProvider> get selectedProvider async =>
+      (await activeSettings).provider;
+
+  Future<void> selectPersonalProvider(
+      {required AiProvider provider, required String model}) async {
+    final normalized = _requiredValue(model, 'モデル名');
+    await requireDeveloperMode();
+    if (!await hasApiKey(provider)) throw StateError('APIキーを入力して保存してください。');
+    await _activatePersonalProvider(provider, normalized);
+  }
+
+  Future<void> _activatePersonalProvider(
+      AiProvider provider, String model) async {
+    await requireDeveloperMode();
+    await selectManagedGemini();
+    final preferences = await _getPreferences();
+    await _ensureWritten(preferences.setString(_modelKey(provider), model));
+    await _ensureWritten(
+        preferences.setString(_selectedProviderKey, provider.value));
+    await requireDeveloperMode();
+    await _writeBool(preferences, _personalApiKey, true);
   }
 
   Future<void> setSelectedProvider(AiProvider provider) async {
-    final preferences = await _getPreferences();
-    await preferences.setString(_selectedProviderKey, provider.value);
+    if (provider == AiProvider.gemini) {
+      await selectManagedGemini();
+    } else {
+      await selectPersonalProvider(
+          provider: provider, model: await getModel(provider));
+    }
   }
 
   Future<String> getModel(AiProvider provider) async {
@@ -139,16 +229,20 @@ class AiConfigurationService {
 
   Future<void> setModel(AiProvider provider, String model) async {
     final normalized = _requiredValue(model, 'モデル名');
+    await requireDeveloperMode();
     final preferences = await _getPreferences();
-    await preferences.setString(_modelKey(provider), normalized);
+    await _ensureWritten(
+        preferences.setString(_modelKey(provider), normalized));
   }
 
   Future<void> resetModel(AiProvider provider) async {
+    await requireDeveloperMode();
     final preferences = await _getPreferences();
     await preferences.remove(_modelKey(provider));
   }
 
   Future<String?> getApiKey(AiProvider provider) async {
+    await requireDeveloperMode();
     final storedKey = (await _secretStore.read(_apiKey(provider)))?.trim();
     if (storedKey == null || storedKey.isEmpty) {
       return null;
@@ -162,6 +256,7 @@ class AiConfigurationService {
 
   Future<void> saveApiKey(AiProvider provider, String apiKey) async {
     final normalized = _requiredValue(apiKey, 'APIキー');
+    await requireDeveloperMode();
     await _secretStore.write(_apiKey(provider), normalized);
   }
 
@@ -170,26 +265,36 @@ class AiConfigurationService {
   }
 
   Future<AiProviderSettings> get activeSettings async {
-    final provider = await selectedProvider;
+    final preferences = await _getPreferences();
+    final provider =
+        AiProvider.tryParse(preferences.getString(_selectedProviderKey));
+    if (!await isDeveloperModeEnabled ||
+        !(preferences.getBool(_personalApiKey) ?? false) ||
+        provider == null) {
+      return AiProviderSettings(
+          provider: AiProvider.gemini, model: AiProvider.gemini.defaultModel);
+    }
     return AiProviderSettings(
       provider: provider,
       model: await getModel(provider),
+      accessMode: AiAccessMode.personalApi,
     );
   }
 
-  /// Geminiはサーバー側のAPIキーを使うため、端末での設定は不要。
+  /// 標準Geminiはサーバー側のAPIキーを使うため、端末での設定は不要。
   Future<bool> get isReady async {
-    return await selectedProvider == AiProvider.gemini ||
-        await activeConfiguration != null;
+    return await usesManagedGemini || await activeConfiguration != null;
   }
 
-  /// 選択中プロバイダにAPIキーがなければ `null` を返す。
+  /// 標準Geminiでは保存された個人キーを読み出さない。
   Future<AiConfiguration?> get activeConfiguration async {
     final settings = await activeSettings;
+    if (settings.usesManagedGemini) return null;
     final apiKey = await getApiKey(settings.provider);
     if (apiKey == null) {
       return null;
     }
+    await requireDeveloperMode();
     return AiConfiguration(
       provider: settings.provider,
       model: settings.model,
@@ -200,7 +305,7 @@ class AiConfigurationService {
   Future<AiConfiguration> requireActiveConfiguration() async {
     final configuration = await activeConfiguration;
     if (configuration == null) {
-      throw StateError('選択中のAIプロバイダにAPIキーが設定されていません。');
+      throw StateError('開発者モードとAPI設定を確認し、APIキーを保存してください。');
     }
     return configuration;
   }
@@ -214,9 +319,10 @@ class AiConfigurationService {
     final normalizedModel = _requiredValue(model, 'モデル名');
     final normalizedApiKey = _requiredValue(apiKey, 'APIキー');
 
+    await requireDeveloperMode();
+    // 途中で保存に失敗した場合、個人APIの利用は開始しない。
+    await selectManagedGemini();
     await _secretStore.write(_apiKey(provider), normalizedApiKey);
-    final preferences = await _getPreferences();
-    await preferences.setString(_modelKey(provider), normalizedModel);
-    await preferences.setString(_selectedProviderKey, provider.value);
+    await _activatePersonalProvider(provider, normalizedModel);
   }
 }

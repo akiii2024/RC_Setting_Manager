@@ -6,9 +6,17 @@ import 'package:http/testing.dart';
 import 'package:rc_setting_manager/models/ai_advisor.dart';
 import 'package:rc_setting_manager/models/ai_provider.dart';
 import 'package:rc_setting_manager/services/ai_advisor_service.dart';
+import 'package:rc_setting_manager/services/ai_configuration_service.dart';
 import 'package:rc_setting_manager/services/ai_provider_client.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    final configuration = AiConfigurationService();
+    await configuration.unlockDeveloperMode();
+    await configuration.setDeveloperModeEnabled(true);
+  });
   test('keeps only safe one-step setting changes from a direct provider',
       () async {
     final output = {
