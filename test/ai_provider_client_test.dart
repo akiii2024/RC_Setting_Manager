@@ -434,6 +434,65 @@ void main() {
     expect(_header(capturedRequest, 'x-goog-api-key'), 'provider-secret-key');
   });
 
+  test('OpenCode Go supports Responses and Anthropic Messages payloads',
+      () async {
+    for (final entry in <String, String>{
+      'gpt-6-luna': '/inference/go/openai/v1/responses',
+      'claude-haiku-5-5': '/inference/go/anthropic/v1/messages',
+    }.entries) {
+      late http.Request request;
+      final client = AiProviderClient(
+        configuration: AiConfiguration(
+          provider: AiProvider.openCodeGo,
+          model: entry.key,
+          apiKey: 'key',
+        ),
+        client: MockClient((value) async {
+          request = value;
+          return http.Response(
+            entry.key.startsWith('gpt')
+                ? '{"output_text":"ok"}'
+                : '{"content":[{"type":"text","text":"ok"}]}',
+            200,
+          );
+        }),
+        isWeb: false,
+      );
+      expect(await client.generateText('hello'), 'ok');
+      expect(request.url.path, entry.value);
+    }
+  });
+
+  test('OpenCode Go MiniMax uses schema prompt without output_config',
+      () async {
+    late http.Request request;
+    final client = AiProviderClient(
+      configuration: AiConfiguration(
+        provider: AiProvider.openCodeGo,
+        model: 'minimax-m3',
+        apiKey: 'key',
+      ),
+      client: MockClient((value) async {
+        request = value;
+        return http.Response(
+            '{"content":[{"text":"{\\"answer\\":\\"ok\\"}"}]}', 200);
+      }),
+      isWeb: false,
+    );
+    expect(
+      await client.generateStructured(
+        system: 'system',
+        prompt: 'prompt',
+        schema: _schema,
+        schemaName: 'answer',
+      ),
+      {'answer': 'ok'},
+    );
+    final body = jsonDecode(request.body) as Map<String, dynamic>;
+    expect(body.containsKey('output_config'), isFalse);
+    expect(body['system'], contains('schema'));
+  });
+
   test('Gemini accepts a models/ resource-name prefix', () async {
     late http.Request capturedRequest;
     final client = MockClient((request) async {
@@ -634,5 +693,89 @@ void main() {
       ),
       throwsArgumentError,
     );
+  });
+
+  test('OpenCode Go chat completions uses Go endpoint and session header',
+      () async {
+    late http.Request request;
+    final client = AiProviderClient(
+      configuration: AiConfiguration(
+        provider: AiProvider.openCodeGo,
+        model: 'glm-5.3-flash',
+        apiKey: 'go-secret',
+        sessionId: 'session-test',
+      ),
+      client: MockClient((value) async {
+        request = value;
+        return http.Response(
+          jsonEncode({
+            'choices': [
+              {
+                'message': {'content': 'ok'}
+              }
+            ]
+          }),
+          200,
+        );
+      }),
+      isWeb: false,
+    );
+
+    expect(await client.generateText('hello'), 'ok');
+    expect(request.url.path, '/inference/go/openai/v1/chat/completions');
+    expect(_header(request, 'authorization'), 'Bearer go-secret');
+    expect(_header(request, 'x-opencode-session'), 'session-test');
+    expect(_header(request, 'user-agent'), 'RC-Setting-Manager/0.2.0');
+    expect(request.body, isNot(contains('go-secret')));
+  });
+
+  test('OpenCode Go rejects web, unknown model, and unsupported images', () {
+    expect(
+      () => AiProviderClient(
+        configuration: AiConfiguration(
+          provider: AiProvider.openCodeGo,
+          model: 'glm-5.3-flash',
+          apiKey: 'key',
+        ),
+        isWeb: true,
+      ),
+      throwsA(isA<AiProviderException>()),
+    );
+    expect(
+      () => AiProviderClient(
+        configuration: AiConfiguration(
+          provider: AiProvider.openCodeGo,
+          model: 'unknown',
+          apiKey: 'key',
+        ),
+        isWeb: false,
+      ),
+      throwsA(isA<AiProviderException>()),
+    );
+  });
+
+  test('OpenCode Go GLM-5.3 rejects images before network call', () async {
+    var calls = 0;
+    final client = AiProviderClient(
+      configuration: AiConfiguration(
+        provider: AiProvider.openCodeGo,
+        model: 'glm-5.3',
+        apiKey: 'key',
+      ),
+      client: MockClient((_) async {
+        calls += 1;
+        return http.Response('{}', 200);
+      }),
+      isWeb: false,
+    );
+    expect(
+      client.generateText(
+        'read',
+        imageBytes: Uint8List.fromList([1]),
+        mimeType: 'image/png',
+      ),
+      throwsA(isA<AiProviderException>()),
+    );
+    expect(calls, 0);
   });
 }

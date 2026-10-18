@@ -6,6 +6,7 @@ import '../models/ai_advisor.dart';
 import '../models/car.dart';
 import '../models/car_setting_definition.dart';
 import '../models/track_location.dart';
+import '../utils/ai_session_id.dart';
 import '../services/ai_configuration_service.dart';
 import '../services/ai_advisor_response_normalizer.dart';
 import '../services/ai_provider_client.dart';
@@ -23,6 +24,8 @@ class AIAdvisorService {
   final AiProviderClient? _providerClient;
   final AiProviderClientFactory _clientFactory;
   final FirebaseFunctionCaller _callFunction;
+  String _sessionId = createAiSessionId();
+  bool _structuredConversationStarted = false;
 
   Future<bool> get _usesFirebase async =>
       _providerClient == null && await _configurationService.usesManagedGemini;
@@ -143,7 +146,7 @@ class AIAdvisorService {
 
     final configuration =
         await _configurationService.requireActiveConfiguration();
-    final client = _clientFactory(configuration);
+    final client = _clientFactory(configuration.withSessionId(_sessionId));
     try {
       return await action(client);
     } finally {
@@ -240,6 +243,10 @@ For final advice, return no more than three changes. A structured change may use
     required bool isEnglish,
     required bool includeHistory,
   }) async {
+    if (messages.isEmpty && !_structuredConversationStarted) {
+      _sessionId = createAiSessionId();
+      _structuredConversationStarted = true;
+    }
     final response = await _callStructuredAdvisor(
       phase: 'chat',
       context: context,
@@ -274,7 +281,10 @@ For final advice, return no more than three changes. A structured change may use
     if (rawAdvice is! Map) {
       throw Exception('AIからの診断結果が不正です');
     }
-    return AISettingAdvice.fromJson(Map<String, dynamic>.from(rawAdvice));
+    final advice =
+        AISettingAdvice.fromJson(Map<String, dynamic>.from(rawAdvice));
+    _structuredConversationStarted = false;
+    return advice;
   }
 
   /// 会話セッションがアクティブかどうか
@@ -344,6 +354,7 @@ For final advice, return no more than three changes. A structured change may use
     TrackLocation? trackInfo,
     WeatherData? weatherInfo,
   }) async {
+    _sessionId = createAiSessionId();
     try {
       // コンテキスト情報を保存
       _contextCar = car;
@@ -445,6 +456,7 @@ For final advice, return no more than three changes. A structured change may use
 
   /// 会話のコンテキストをクリア
   void _clearConversationContext() {
+    _sessionId = createAiSessionId();
     _conversationContents.clear();
     _contextCar = null;
     _contextSettings = null;

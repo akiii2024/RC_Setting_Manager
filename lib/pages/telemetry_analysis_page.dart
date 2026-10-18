@@ -906,6 +906,7 @@ class _TelemetryAnalysisPageState extends State<TelemetryAnalysisPage> {
       'openai' => 'OpenAI',
       'anthropic' => 'Anthropic',
       'gemini' => 'Gemini',
+      'opencode_go' => 'OpenCode Go',
       _ => result.provider,
     };
     return Column(

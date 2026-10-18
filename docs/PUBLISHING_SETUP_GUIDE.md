@@ -1,6 +1,6 @@
 # 公開に必要な外部設定手順
 
-更新日: 2026-07-17
+更新日: 2026-10-18
 
 コード側のセキュリティ修正後に必要な Firebase、Google Cloud、GitHub、ストア側の作業です。App Check の切替でサービスを止めないため、原則として以下の順番で実施してください。
 
@@ -197,4 +197,4 @@ Xcode で Signing & Capabilities、Bundle ID、Team、App Attest capability、�
 - 匿名アカウントでも Firebase UID が発行されること
 - データ削除、アカウント削除、問い合わせ方法
 
-Gemini と OpenWeather の利用規約、データ保持条件、商用利用条件も公開前に確認してください。
+Gemini、OpenCode Go と OpenWeather の利用規約、データ保持条件、商用利用条件も公開前に確認してください。OpenCode Goは公式にはコーディングエージェント向けで、RC用途の受入確認・実APIキー疎通は別途確認が必要です。接続テストは小さな生成リクエストで利用枠を消費します。

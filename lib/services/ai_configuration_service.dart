@@ -3,6 +3,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/ai_provider.dart';
+import '../models/open_code_go_model.dart';
 
 /// APIキーの保存先を抽象化する最小インターフェース。
 abstract interface class SecretStore {
@@ -89,8 +90,12 @@ class AiConfigurationService {
   AiConfigurationService({
     SecretStore? secretStore,
     SharedPreferences? preferences,
+    bool? isWeb,
   })  : _secretStore = secretStore ?? FlutterSecureSecretStore(),
-        _preferences = preferences;
+        _preferences = preferences,
+        isWeb = isWeb ?? kIsWeb;
+
+  final bool isWeb;
 
   static const String _developerUnlockedKey = 'developer_mode_unlocked_v1';
 
@@ -113,6 +118,22 @@ class AiConfigurationService {
   String _modelKey(AiProvider provider) => '$_modelKeyPrefix${provider.value}';
 
   String _apiKey(AiProvider provider) => '$_apiKeyPrefix${provider.value}';
+
+  void _requireProviderSupported(AiProvider provider) {
+    if (isWeb && provider == AiProvider.openCodeGo) {
+      throw StateError(OpenCodeGoModel.webUnavailableMessage);
+    }
+  }
+
+  String _validatedModel(AiProvider provider, String model) {
+    _requireProviderSupported(provider);
+    final normalized = _requiredValue(model, 'モデル名');
+    if (provider == AiProvider.openCodeGo &&
+        OpenCodeGoModel.tryParse(normalized) == null) {
+      throw ArgumentError('未対応のOpenCode Goモデルです。対応モデルから選択してください。');
+    }
+    return normalized;
+  }
 
   String _requiredValue(String value, String label) {
     final normalized = value.trim();
@@ -191,7 +212,7 @@ class AiConfigurationService {
 
   Future<void> selectPersonalProvider(
       {required AiProvider provider, required String model}) async {
-    final normalized = _requiredValue(model, 'モデル名');
+    final normalized = _validatedModel(provider, model);
     await requireDeveloperMode();
     if (!await hasApiKey(provider)) throw StateError('APIキーを入力して保存してください。');
     await _activatePersonalProvider(provider, normalized);
@@ -199,6 +220,7 @@ class AiConfigurationService {
 
   Future<void> _activatePersonalProvider(
       AiProvider provider, String model) async {
+    _validatedModel(provider, model);
     await requireDeveloperMode();
     await selectManagedGemini();
     final preferences = await _getPreferences();
@@ -228,7 +250,7 @@ class AiConfigurationService {
   }
 
   Future<void> setModel(AiProvider provider, String model) async {
-    final normalized = _requiredValue(model, 'モデル名');
+    final normalized = _validatedModel(provider, model);
     await requireDeveloperMode();
     final preferences = await _getPreferences();
     await _ensureWritten(
@@ -236,6 +258,7 @@ class AiConfigurationService {
   }
 
   Future<void> resetModel(AiProvider provider) async {
+    _requireProviderSupported(provider);
     await requireDeveloperMode();
     final preferences = await _getPreferences();
     await preferences.remove(_modelKey(provider));
@@ -255,6 +278,7 @@ class AiConfigurationService {
   }
 
   Future<void> saveApiKey(AiProvider provider, String apiKey) async {
+    _requireProviderSupported(provider);
     final normalized = _requiredValue(apiKey, 'APIキー');
     await requireDeveloperMode();
     await _secretStore.write(_apiKey(provider), normalized);
@@ -283,13 +307,46 @@ class AiConfigurationService {
 
   /// 標準Geminiはサーバー側のAPIキーを使うため、端末での設定は不要。
   Future<bool> get isReady async {
-    return await usesManagedGemini || await activeConfiguration != null;
+    final settings = await activeSettings;
+    if (settings.usesManagedGemini) return true;
+    if (await availabilityIssue() != null) return false;
+    return await activeConfiguration != null;
+  }
+
+  /// キーを読み出さず、機能を開始する前に表示できる設定上の案内。
+  Future<String?> availabilityIssue({
+    bool requireImages = false,
+    bool isEnglish = false,
+  }) async {
+    final settings = await activeSettings;
+    if (settings.usesManagedGemini ||
+        settings.provider != AiProvider.openCodeGo) {
+      return null;
+    }
+    if (isWeb) {
+      return isEnglish
+          ? 'OpenCode Go is unavailable on web due to CORS restrictions. Use the app or select another AI provider.'
+          : OpenCodeGoModel.webUnavailableMessage;
+    }
+    final model = OpenCodeGoModel.tryParse(settings.model);
+    if (model == null) {
+      return isEnglish
+          ? 'This OpenCode Go model is unsupported. Select a supported model in AI settings.'
+          : '未対応のOpenCode Goモデルです。AI設定で対応モデルを選択してください。';
+    }
+    if (requireImages && !model.supportsImages) {
+      return isEnglish
+          ? 'This OpenCode Go model does not support images. Select an image-capable model in AI settings before using OCR.'
+          : '選択中のOpenCode Goモデルは画像に対応していません。OCRを使うにはAI設定で画像対応モデルを選択してください。';
+    }
+    return null;
   }
 
   /// 標準Geminiでは保存された個人キーを読み出さない。
   Future<AiConfiguration?> get activeConfiguration async {
     final settings = await activeSettings;
     if (settings.usesManagedGemini) return null;
+    _validatedModel(settings.provider, settings.model);
     final apiKey = await getApiKey(settings.provider);
     if (apiKey == null) {
       return null;
@@ -316,7 +373,7 @@ class AiConfigurationService {
     required String model,
     required String apiKey,
   }) async {
-    final normalizedModel = _requiredValue(model, 'モデル名');
+    final normalizedModel = _validatedModel(provider, model);
     final normalizedApiKey = _requiredValue(apiKey, 'APIキー');
 
     await requireDeveloperMode();

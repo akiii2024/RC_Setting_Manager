@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import '../models/ai_provider.dart';
 import '../models/telemetry_ai.dart';
+import '../utils/ai_session_id.dart';
 import 'ai_configuration_service.dart';
 import 'ai_provider_client.dart';
 import 'firebase_functions_service.dart';
@@ -131,7 +132,8 @@ class TelemetryAiAnalysisService {
       } else {
         final configuration =
             await _configurationService.requireActiveConfiguration();
-        final client = _clientFactory(configuration);
+        final client =
+            _clientFactory(configuration.withSessionId(createAiSessionId()));
         try {
           rawAnalysis = await client.generateStructured(
             system: _systemInstruction(isEnglish),

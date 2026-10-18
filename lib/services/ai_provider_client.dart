@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:http/http.dart' as http;
 
 import '../models/ai_provider.dart';
+import '../models/open_code_go_model.dart';
+import '../utils/ai_session_id.dart';
 
 enum AiProviderErrorKind {
   authentication,
@@ -38,7 +41,7 @@ class AiProviderException implements Exception {
   }
 }
 
-/// OpenAI・Anthropic・GeminiのREST APIを同じインターフェースで扱う。
+/// OpenAI・Anthropic・Gemini・OpenCode Goを同じインターフェースで扱う。
 ///
 /// APIキーはすべてHTTPヘッダーへ設定し、URL・本文・例外には含めない。
 class AiProviderClient {
@@ -55,6 +58,8 @@ class AiProviderClient {
     Uri? openAiBaseUri,
     Uri? anthropicBaseUri,
     Uri? geminiBaseUri,
+    Uri? openCodeGoBaseUri,
+    bool? isWeb,
   })  : provider = configuration.provider,
         model = _normalizedModel(
           configuration.provider,
@@ -72,9 +77,29 @@ class AiProviderClient {
         _anthropicBaseUri =
             anthropicBaseUri ?? Uri.parse('https://api.anthropic.com/v1'),
         _geminiBaseUri = geminiBaseUri ??
-            Uri.parse('https://generativelanguage.googleapis.com/v1beta') {
+            Uri.parse('https://generativelanguage.googleapis.com/v1beta'),
+        _openCodeGoBaseUri =
+            openCodeGoBaseUri ?? Uri.parse('https://opencode.ai/inference/go'),
+        _isWeb = isWeb ?? kIsWeb,
+        _openCodeGoSessionId = configuration.sessionId ?? createAiSessionId() {
     if (timeout <= Duration.zero) {
       throw ArgumentError('タイムアウト時間は0秒より長くしてください。');
+    }
+    if (provider == AiProvider.openCodeGo) {
+      if (_isWeb) {
+        throw AiProviderException(
+          provider: provider,
+          kind: AiProviderErrorKind.invalidRequest,
+          message: OpenCodeGoModel.webUnavailableMessage,
+        );
+      }
+      if (OpenCodeGoModel.tryParse(model) == null) {
+        throw AiProviderException(
+          provider: provider,
+          kind: AiProviderErrorKind.invalidRequest,
+          message: '未対応のOpenCode Goモデルです。AI設定で対応モデルを選択してください。',
+        );
+      }
     }
   }
 
@@ -87,6 +112,9 @@ class AiProviderClient {
   final Uri _openAiBaseUri;
   final Uri _anthropicBaseUri;
   final Uri _geminiBaseUri;
+  final Uri _openCodeGoBaseUri;
+  final bool _isWeb;
+  final String _openCodeGoSessionId;
 
   static String _requiredValue(
     String value,
@@ -142,79 +170,17 @@ class AiProviderClient {
     final normalizedMimeType = _validateImage(imageBytes, mimeType);
 
     final response = switch (provider) {
-      AiProvider.openAI => await _postJson(
-          _endpoint(_openAiBaseUri, 'responses'),
-          _headers(),
-          {
-            'model': model,
-            'instructions': normalizedSystem,
-            'input': imageBytes == null
-                ? normalizedPrompt
-                : [
-                    {
-                      'role': 'user',
-                      'content': [
-                        {
-                          'type': 'input_text',
-                          'text': normalizedPrompt,
-                        },
-                        {
-                          'type': 'input_image',
-                          'image_url': _dataUrl(
-                            imageBytes,
-                            normalizedMimeType!,
-                          ),
-                        },
-                      ],
-                    },
-                  ],
-            'max_output_tokens': maxTokens,
-            'store': false,
-            'text': {
-              'format': {
-                'type': 'json_schema',
-                'name': normalizedSchemaName,
-                'strict': true,
-                'schema': schema,
-              },
-            },
-          },
-        ),
-      AiProvider.anthropic => await _postJson(
-          _endpoint(_anthropicBaseUri, 'messages'),
-          _headers(),
-          {
-            'model': model,
-            'system': normalizedSystem,
-            'max_tokens': maxTokens,
-            'messages': [
-              {
-                'role': 'user',
-                'content': imageBytes == null
-                    ? normalizedPrompt
-                    : [
-                        {
-                          'type': 'text',
-                          'text': normalizedPrompt,
-                        },
-                        {
-                          'type': 'image',
-                          'source': {
-                            'type': 'base64',
-                            'media_type': normalizedMimeType,
-                            'data': base64Encode(imageBytes),
-                          },
-                        },
-                      ],
-              },
-            ],
-            'output_config': {
-              'format': {
-                'type': 'json_schema',
-                'schema': schema,
-              },
-            },
-          },
+      AiProvider.openAI ||
+      AiProvider.anthropic ||
+      AiProvider.openCodeGo =>
+        await _postCompatible(
+          prompt: normalizedPrompt,
+          system: normalizedSystem,
+          schema: schema,
+          schemaName: normalizedSchemaName,
+          imageBytes: imageBytes,
+          mimeType: normalizedMimeType,
+          maxTokens: maxTokens,
         ),
       AiProvider.gemini => await _postJson(
           _geminiGenerateContentUri(),
@@ -267,63 +233,14 @@ class AiProviderClient {
     _validateMaxTokens(maxTokens);
 
     final response = switch (provider) {
-      AiProvider.openAI => await _postJson(
-          _endpoint(_openAiBaseUri, 'responses'),
-          _headers(),
-          {
-            'model': model,
-            'input': imageBytes == null
-                ? normalizedPrompt
-                : [
-                    {
-                      'role': 'user',
-                      'content': [
-                        {
-                          'type': 'input_text',
-                          'text': normalizedPrompt,
-                        },
-                        {
-                          'type': 'input_image',
-                          'image_url': _dataUrl(
-                            imageBytes,
-                            normalizedMimeType!,
-                          ),
-                        },
-                      ],
-                    },
-                  ],
-            'max_output_tokens': maxTokens,
-            'store': false,
-          },
-        ),
-      AiProvider.anthropic => await _postJson(
-          _endpoint(_anthropicBaseUri, 'messages'),
-          _headers(),
-          {
-            'model': model,
-            'max_tokens': maxTokens,
-            'messages': [
-              {
-                'role': 'user',
-                'content': imageBytes == null
-                    ? normalizedPrompt
-                    : [
-                        {
-                          'type': 'text',
-                          'text': normalizedPrompt,
-                        },
-                        {
-                          'type': 'image',
-                          'source': {
-                            'type': 'base64',
-                            'media_type': normalizedMimeType,
-                            'data': base64Encode(imageBytes),
-                          },
-                        },
-                      ],
-              },
-            ],
-          },
+      AiProvider.openAI ||
+      AiProvider.anthropic ||
+      AiProvider.openCodeGo =>
+        await _postCompatible(
+          prompt: normalizedPrompt,
+          imageBytes: imageBytes,
+          mimeType: normalizedMimeType,
+          maxTokens: maxTokens,
         ),
       AiProvider.gemini => await _postJson(
           _geminiGenerateContentUri(),
@@ -354,14 +271,19 @@ class AiProviderClient {
     return _extractText(response);
   }
 
-  /// モデル取得APIを使用し、生成料金を発生させずに接続を確認する。
+  /// 少量の生成リクエストを送信して接続を確認する（OpenCode Goでは生成枠を消費します）。
   Future<bool> testConnection() async {
+    if (provider == AiProvider.openCodeGo) {
+      await _postOpenCodeGoConnection();
+      return true;
+    }
     final encodedModel = Uri.encodeComponent(model);
     final uri = switch (provider) {
       AiProvider.openAI => _endpoint(_openAiBaseUri, 'models/$encodedModel'),
       AiProvider.anthropic =>
         _endpoint(_anthropicBaseUri, 'models/$encodedModel'),
       AiProvider.gemini => _endpoint(_geminiBaseUri, 'models/$encodedModel'),
+      AiProvider.openCodeGo => _openCodeGoBaseUri,
     };
 
     await _getJson(uri, _headers());
@@ -390,6 +312,12 @@ class AiProviderClient {
           'Content-Type': 'application/json',
           'x-goog-api-key': _apiKey,
         },
+      AiProvider.openCodeGo => {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_apiKey',
+          'User-Agent': 'RC-Setting-Manager/0.2.0',
+          'x-opencode-session': _openCodeGoSessionId,
+        },
     };
   }
 
@@ -399,6 +327,207 @@ class AiProviderClient {
       _geminiBaseUri,
       'models/$encodedModel:generateContent',
     );
+  }
+
+  OpenCodeGoModel _openCodeGoModel() {
+    final parsed = OpenCodeGoModel.tryParse(model);
+    if (parsed == null) {
+      throw AiProviderException(
+        provider: provider,
+        kind: AiProviderErrorKind.invalidRequest,
+        message: 'OpenCode Goのモデル設定が不正です。',
+      );
+    }
+    return parsed;
+  }
+
+  Uri _openCodeGoUri(OpenCodeGoApiFormat format) {
+    final path = switch (format) {
+      OpenCodeGoApiFormat.chatCompletions => 'openai/v1/chat/completions',
+      OpenCodeGoApiFormat.responses => 'openai/v1/responses',
+      OpenCodeGoApiFormat.messages => 'anthropic/v1/messages',
+    };
+    return _endpoint(_openCodeGoBaseUri, path);
+  }
+
+  OpenCodeGoApiFormat get _compatibleFormat => switch (provider) {
+        AiProvider.openAI => OpenCodeGoApiFormat.responses,
+        AiProvider.anthropic => OpenCodeGoApiFormat.messages,
+        AiProvider.openCodeGo => _openCodeGoModel().apiFormat,
+        AiProvider.gemini => throw StateError('Geminiには専用の通信形式を使用してください。'),
+      };
+
+  Future<Map<String, dynamic>> _postCompatible({
+    required String prompt,
+    required int maxTokens,
+    String? system,
+    Map<String, dynamic>? schema,
+    String? schemaName,
+    Uint8List? imageBytes,
+    String? mimeType,
+  }) {
+    final format = _compatibleFormat;
+    final uri = switch (provider) {
+      AiProvider.openAI => _endpoint(_openAiBaseUri, 'responses'),
+      AiProvider.anthropic => _endpoint(_anthropicBaseUri, 'messages'),
+      AiProvider.openCodeGo => _openCodeGoUri(format),
+      AiProvider.gemini => throw StateError('Geminiには専用の通信形式を使用してください。'),
+    };
+    final promptSchema = provider == AiProvider.openCodeGo &&
+        _openCodeGoModel().structuredOutput ==
+            OpenCodeGoStructuredOutput.prompt;
+    final body = <String, dynamic>{
+      'model': model,
+      ...switch (format) {
+        OpenCodeGoApiFormat.responses => {
+            if (system != null) 'instructions': system,
+            'input': imageBytes == null
+                ? prompt
+                : [
+                    {
+                      'role': 'user',
+                      'content': [
+                        {'type': 'input_text', 'text': prompt},
+                        {
+                          'type': 'input_image',
+                          'image_url': _dataUrl(imageBytes, mimeType!),
+                        },
+                      ],
+                    },
+                  ],
+            'max_output_tokens': maxTokens,
+            'store': false,
+            if (schema != null)
+              'text': {
+                'format': {
+                  'type': 'json_schema',
+                  'name': schemaName,
+                  'strict': true,
+                  'schema': schema,
+                },
+              },
+          },
+        OpenCodeGoApiFormat.messages => {
+            if (system != null)
+              'system': schema != null && promptSchema
+                  ? '$system\nReturn only valid JSON matching this schema:\n${jsonEncode(schema)}'
+                  : system,
+            'max_tokens': maxTokens,
+            'messages': [
+              {
+                'role': 'user',
+                'content': imageBytes == null
+                    ? prompt
+                    : [
+                        {'type': 'text', 'text': prompt},
+                        {
+                          'type': 'image',
+                          'source': {
+                            'type': 'base64',
+                            'media_type': mimeType,
+                            'data': base64Encode(imageBytes),
+                          },
+                        },
+                      ],
+              },
+            ],
+            if (schema != null && !promptSchema)
+              'output_config': {
+                'format': {'type': 'json_schema', 'schema': schema},
+              },
+          },
+        OpenCodeGoApiFormat.chatCompletions => {
+            'messages': [
+              if (system != null) {'role': 'system', 'content': system},
+              {
+                'role': 'user',
+                'content': imageBytes == null
+                    ? prompt
+                    : [
+                        {'type': 'text', 'text': prompt},
+                        {
+                          'type': 'image_url',
+                          'image_url': {'url': _dataUrl(imageBytes, mimeType!)},
+                        },
+                      ],
+              },
+            ],
+            'max_tokens': maxTokens,
+            if (schema != null)
+              'response_format': {
+                'type': 'json_schema',
+                'json_schema': {
+                  'name': schemaName,
+                  'strict': true,
+                  'schema': schema,
+                },
+              },
+          },
+      },
+    };
+    return _postJson(uri, _headers(), body);
+  }
+
+  Future<void> _postOpenCodeGoConnection() async {
+    final response =
+        await _postCompatible(prompt: 'Reply with OK.', maxTokens: 128);
+    final recognized = switch (_openCodeGoModel().apiFormat) {
+      OpenCodeGoApiFormat.chatCompletions =>
+        _hasChatCompletionEnvelope(response),
+      OpenCodeGoApiFormat.responses => _hasResponsesEnvelope(response),
+      OpenCodeGoApiFormat.messages => _hasMessagesEnvelope(response),
+    };
+    if (response['error'] != null ||
+        response['status'] == 'failed' ||
+        !recognized) {
+      throw _invalidResponse('AIサービスから不正な接続確認応答が返されました。');
+    }
+  }
+
+  bool _hasChatCompletionEnvelope(Map<String, dynamic> response) {
+    final choices = response['choices'];
+    if (choices is! List || choices.isEmpty) return false;
+    return choices.any((item) {
+      if (item is! Map) return false;
+      final message = item['message'];
+      if (message is! Map) return false;
+      final content = message['content'];
+      if (content is String) return true;
+      if (content is List &&
+          content.any((part) => part is Map && part['text'] is String)) {
+        return true;
+      }
+      // 接続確認は認証の確認。推論だけで出力上限に達した正常応答も受け入れる。
+      return item['finish_reason'] == 'length' &&
+          message['reasoning_content'] is String;
+    });
+  }
+
+  bool _hasResponsesEnvelope(Map<String, dynamic> response) {
+    final output = response['output'];
+    if (output is! List || output.isEmpty) {
+      return response['output_text'] is String &&
+          (response['output_text'] as String).isNotEmpty;
+    }
+    final incomplete = response['incomplete_details'];
+    return output.any((item) =>
+        item is Map &&
+        (item['content'] is List ||
+            (item['type'] == 'reasoning' &&
+                response['status'] == 'incomplete' &&
+                incomplete is Map &&
+                incomplete['reason'] == 'max_output_tokens')));
+  }
+
+  bool _hasMessagesEnvelope(Map<String, dynamic> response) {
+    final content = response['content'];
+    if (content is! List || content.isEmpty) return false;
+    return content.any((item) =>
+        item is Map &&
+        (item['text'] is String ||
+            (item['type'] == 'thinking' &&
+                item['thinking'] is String &&
+                response['stop_reason'] == 'max_tokens')));
   }
 
   Uri _endpoint(Uri baseUri, String path) {
@@ -436,6 +565,15 @@ class AiProviderClient {
     }
     if (imageBytes.lengthInBytes > maxImageBytes) {
       throw ArgumentError('画像は8 MiB以下にしてください。');
+    }
+
+    if (provider == AiProvider.openCodeGo &&
+        !_openCodeGoModel().supportsImages) {
+      throw AiProviderException(
+        provider: provider,
+        kind: AiProviderErrorKind.invalidRequest,
+        message: '選択したOpenCode Goモデルは画像入力に対応していません。AI設定で画像対応モデルを選択してください。',
+      );
     }
 
     final normalized = mimeType?.trim().toLowerCase() ?? '';
@@ -557,10 +695,15 @@ class AiProviderClient {
   }
 
   String _extractText(Map<String, dynamic> response) {
+    if (provider == AiProvider.openCodeGo &&
+        (response['error'] != null || response['status'] == 'failed')) {
+      throw _invalidResponse('OpenCode Goが生成に失敗しました。モデル設定を確認して再試行してください。');
+    }
     final parts = switch (provider) {
       AiProvider.openAI => _openAiTextParts(response),
       AiProvider.anthropic => _anthropicTextParts(response),
       AiProvider.gemini => _geminiTextParts(response),
+      AiProvider.openCodeGo => _openCodeGoTextParts(response),
     };
     final text = parts.map((part) => part.trim()).where((part) {
       return part.isNotEmpty;
@@ -594,6 +737,36 @@ class AiProviderClient {
         final text = part['text'];
         if (text is String) {
           yield text;
+        }
+      }
+    }
+  }
+
+  Iterable<String> _openCodeGoTextParts(Map<String, dynamic> response) sync* {
+    final format = _openCodeGoModel().apiFormat;
+    if (format == OpenCodeGoApiFormat.responses) {
+      yield* _openAiTextParts(response);
+      return;
+    }
+    if (format == OpenCodeGoApiFormat.messages) {
+      yield* _anthropicTextParts(response);
+      return;
+    }
+    final choices = response['choices'];
+    if (choices is! List) return;
+    for (final choice in choices.whereType<Map>()) {
+      final message = choice['message'];
+      if (message is String) {
+        yield message;
+      } else if (message is Map) {
+        final content = message['content'];
+        if (content is String) {
+          yield content;
+        } else if (content is List) {
+          for (final part in content.whereType<Map>()) {
+            final text = part['text'];
+            if (text is String) yield text;
+          }
         }
       }
     }

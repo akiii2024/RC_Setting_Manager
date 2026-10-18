@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rc_setting_manager/models/ai_provider.dart';
+import 'package:rc_setting_manager/models/open_code_go_model.dart';
 import 'package:rc_setting_manager/services/ai_configuration_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -56,8 +57,194 @@ void main() {
     expect(AiProvider.openAI.defaultModel, 'gpt-5.6-sol');
     expect(AiProvider.anthropic.defaultModel, 'claude-sonnet-5');
     expect(AiProvider.gemini.defaultModel, 'gemini-3.8-flash');
+    expect(AiProvider.openCodeGo.value, 'opencode_go');
+    expect(AiProvider.openCodeGo.displayName, 'OpenCode Go');
+    expect(AiProvider.openCodeGo.defaultModel, 'glm-5.3-flash');
+    expect(OpenCodeGoModel.values, hasLength(6));
+    expect(
+        OpenCodeGoModel.tryParse('glm-5.3-flash'), OpenCodeGoModel.glm53Flash);
+    expect(OpenCodeGoModel.glm53.supportsImages, isFalse);
     expect(AiProvider.tryParse(' OpenAI '), AiProvider.openAI);
+    expect(AiProvider.tryParse('OPENCODE_GO'), AiProvider.openCodeGo);
     expect(AiProvider.tryParse('unknown'), isNull);
+  });
+
+  test('stores and restores OpenCode Go settings without persisting secrets',
+      () async {
+    final secrets = MemorySecretStore();
+    final service = AiConfigurationService(secretStore: secrets);
+    await _enable(service);
+
+    await service.saveConfiguration(
+      provider: AiProvider.openCodeGo,
+      model: 'glm-5.3-flash',
+      apiKey: 'go-secret',
+    );
+    final preferences = await SharedPreferences.getInstance();
+    final persisted = preferences.getKeys().map(preferences.get).toList();
+    expect(await service.selectedProvider, AiProvider.openCodeGo);
+    expect(await service.getModel(AiProvider.openCodeGo), 'glm-5.3-flash');
+    expect((await service.activeConfiguration)?.apiKey, 'go-secret');
+    expect(
+      secrets.values,
+      containsPair('rc_setting_manager_ai_api_key_v1_opencode_go', 'go-secret'),
+    );
+    expect(persisted, isNot(contains('go-secret')));
+    expect(
+      (await service.activeConfiguration).toString(),
+      isNot(contains('go-secret')),
+    );
+
+    final restored = AiConfigurationService(secretStore: secrets);
+    expect((await restored.activeSettings).provider, AiProvider.openCodeGo);
+    expect(await restored.getModel(AiProvider.openCodeGo), 'glm-5.3-flash');
+    final session =
+        (await restored.activeConfiguration)!.withSessionId('session-only');
+    expect(session.sessionId, 'session-only');
+    expect(session.toString(), isNot(contains('session-only')));
+    expect(
+      preferences.getKeys().map(preferences.get),
+      isNot(contains('session-only')),
+    );
+
+    await restored.deleteApiKey(AiProvider.openCodeGo);
+    expect(await restored.activeConfiguration, isNull);
+  });
+
+  test('rejects unsupported OpenCode Go models before saving or selecting',
+      () async {
+    final secrets = MemorySecretStore();
+    final service = AiConfigurationService(secretStore: secrets);
+    await _enable(service);
+    final preferences = await SharedPreferences.getInstance();
+    final before = preferences
+        .getKeys()
+        .map((key) => '$key=${preferences.get(key)}')
+        .toSet();
+
+    await expectLater(
+      service.setModel(AiProvider.openCodeGo, 'unknown-go-model'),
+      throwsArgumentError,
+    );
+    await expectLater(
+      service.selectPersonalProvider(
+        provider: AiProvider.openCodeGo,
+        model: 'unknown-go-model',
+      ),
+      throwsArgumentError,
+    );
+    await expectLater(
+      service.saveConfiguration(
+        provider: AiProvider.openCodeGo,
+        model: 'unknown-go-model',
+        apiKey: 'go-secret',
+      ),
+      throwsArgumentError,
+    );
+    expect(
+      preferences
+          .getKeys()
+          .map((key) => '$key=${preferences.get(key)}')
+          .toSet(),
+      before,
+    );
+    expect(secrets.values, isEmpty);
+  });
+
+  test('reports OpenCode Go image and web availability without reading keys',
+      () async {
+    final service = AiConfigurationService(
+      secretStore: MemorySecretStore(),
+    );
+    await _enable(service);
+    await service.saveConfiguration(
+      provider: AiProvider.openCodeGo,
+      model: 'glm-5.3',
+      apiKey: 'go-secret',
+    );
+    expect(await service.availabilityIssue(), isNull);
+    expect(
+      await service.availabilityIssue(requireImages: true),
+      contains('画像'),
+    );
+
+    final preferences = await SharedPreferences.getInstance();
+    final webService = AiConfigurationService(
+      preferences: preferences,
+      secretStore: _UnreadableSecretStore(),
+      isWeb: true,
+    );
+    expect((await webService.activeSettings).provider, AiProvider.openCodeGo);
+    expect(await webService.isReady, isFalse);
+    expect(await webService.availabilityIssue(), contains('CORS'));
+    await expectLater(webService.activeConfiguration, throwsStateError);
+  });
+
+  test('disabling developer mode keeps OpenCode Go in managed mode', () async {
+    final secrets = MemorySecretStore();
+    final service = AiConfigurationService(secretStore: secrets);
+    await _enable(service);
+    await service.saveConfiguration(
+      provider: AiProvider.openCodeGo,
+      model: 'glm-5.3-flash',
+      apiKey: 'go-secret',
+    );
+    await service.setDeveloperModeEnabled(false);
+    expect(await service.usesManagedGemini, isTrue);
+    expect(await service.isReady, isTrue);
+    expect(await service.activeConfiguration, isNull);
+    expect(
+      secrets.values,
+      containsPair('rc_setting_manager_ai_api_key_v1_opencode_go', 'go-secret'),
+    );
+
+    await service.setDeveloperModeEnabled(true);
+    expect(await service.usesManagedGemini, isTrue);
+    expect(await service.isReady, isTrue);
+    expect(await service.activeConfiguration, isNull);
+  });
+
+  test('rejects all OpenCode Go writes on web before side effects', () async {
+    final secrets = MemorySecretStore();
+    final service = AiConfigurationService(secretStore: secrets, isWeb: true);
+    await _enable(service);
+    final preferences = await SharedPreferences.getInstance();
+    final before = preferences
+        .getKeys()
+        .map((key) => '$key=${preferences.get(key)}')
+        .toSet();
+
+    await expectLater(
+      service.saveApiKey(AiProvider.openCodeGo, 'go-secret'),
+      throwsStateError,
+    );
+    await expectLater(
+      service.setModel(AiProvider.openCodeGo, 'glm-5.3-flash'),
+      throwsStateError,
+    );
+    await expectLater(
+      service.selectPersonalProvider(
+        provider: AiProvider.openCodeGo,
+        model: 'glm-5.3-flash',
+      ),
+      throwsStateError,
+    );
+    await expectLater(
+      service.saveConfiguration(
+        provider: AiProvider.openCodeGo,
+        model: 'glm-5.3-flash',
+        apiKey: 'go-secret',
+      ),
+      throwsStateError,
+    );
+    expect(
+      preferences
+          .getKeys()
+          .map((key) => '$key=${preferences.get(key)}')
+          .toSet(),
+      before,
+    );
+    expect(secrets.values, isEmpty);
   });
 
   test('defaults to Gemini without exposing an active configuration', () async {

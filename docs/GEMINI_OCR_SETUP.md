@@ -4,7 +4,7 @@
 
 OCRはセッティングシート画像を全文テキストへ変換せず、選択中の車種定義を使って設定候補を1回で構造化抽出します。TRF421、TRF420、TRF420Xには専用レイアウトプロファイルがあり、文字や数値に加えて、X印、黒丸、選択枠、グリッド位置を読み取ります。その他の車種には汎用プロファイルを使用します。
 
-標準GeminiではFirebase callable Function `extractSettingSheet`を使用します。ユーザーが個人設定したOpenAI、Anthropic、Geminiでは、各プロバイダーの構造化生成APIへアプリから直接画像を送ります。
+標準GeminiではFirebase callable Function `extractSettingSheet`を使用します。ユーザーが個人設定したOpenAI、Anthropic、Gemini、OpenCode Goでは、各プロバイダーの構造化生成APIへアプリから直接画像を送ります。OpenCode Goはアプリ版のみ対応し、Web版はCORS制約のため保留です。OpenCode Goの接続テストは小さな生成リクエストで利用枠を消費します。
 
 ## Firebase Functionsの設定
 

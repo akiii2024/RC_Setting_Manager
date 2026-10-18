@@ -334,8 +334,12 @@ class _CarSettingPageState extends State<CarSettingPage>
   }
 
   Future<bool> _ensureAiConfigured(bool isEnglish) async {
+    String? availabilityIssue;
     try {
-      if (await AiConfigurationService().isReady) {
+      final configuration = AiConfigurationService();
+      availabilityIssue =
+          await configuration.availabilityIssue(isEnglish: isEnglish);
+      if (availabilityIssue == null && await configuration.isReady) {
         return true;
       }
     } catch (_) {
@@ -347,11 +351,12 @@ class _CarSettingPageState extends State<CarSettingPage>
           builder: (dialogContext) => AlertDialog(
             title: Text(isEnglish ? 'AI setup required' : 'AI設定が必要です'),
             content: Text(
-              isEnglish
-                  ? 'Select standard Gemini or set an OpenAI, Anthropic, or Gemini API key before '
-                      'starting AI setup advice.'
-                  : 'AIセッティング相談を始める前に、標準のGeminiを選択するか、OpenAI・Anthropic・Geminiの'
-                      'いずれかのAPIキーを設定してください。',
+              availabilityIssue ??
+                  (isEnglish
+                      ? 'Select standard Gemini or set an OpenAI, Anthropic, Gemini, or OpenCode Go API key before '
+                          'starting AI setup advice.'
+                      : 'AIセッティング相談を始める前に、標準のGeminiを選択するか、OpenAI・Anthropic・Gemini・OpenCode Goの'
+                          'いずれかのAPIキーを設定してください。'),
             ),
             actions: [
               TextButton(

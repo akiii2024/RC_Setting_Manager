@@ -11,6 +11,7 @@ import '../models/car.dart';
 import '../models/ocr.dart';
 import '../providers/settings_provider.dart';
 import '../services/ai_configuration_service.dart';
+import '../services/ai_provider_client.dart';
 import '../services/api_consent_service.dart';
 import '../services/ocr_service.dart';
 import '../utils/app_logger.dart';
@@ -69,6 +70,13 @@ class _OCRImportPageState extends State<OCRImportPage> {
       return;
     }
     if (!await _ensureAiConfigured() || !mounted) return;
+    try {
+      await service.requireImageInputSupport();
+    } on OcrExtractionException catch (error) {
+      if (mounted) _showMessage(error.message);
+      return;
+    }
+    if (!mounted) return;
 
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
@@ -146,6 +154,8 @@ class _OCRImportPageState extends State<OCRImportPage> {
       }
     } on OcrExtractionException catch (error) {
       if (mounted) _showMessage(error.message);
+    } on AiProviderException catch (error) {
+      if (mounted) _showMessage(error.message);
     } catch (error, stackTrace) {
       debugLog('Structured OCR failed: $error');
       debugLog('Stack trace: $stackTrace');
@@ -156,22 +166,27 @@ class _OCRImportPageState extends State<OCRImportPage> {
   }
 
   Future<bool> _ensureAiConfigured() async {
+    final isEnglish =
+        Provider.of<SettingsProvider>(context, listen: false).isEnglish;
+    String? availabilityIssue;
     try {
-      if (await AiConfigurationService().isReady) return true;
+      final configuration = AiConfigurationService();
+      availabilityIssue = await configuration.availabilityIssue(
+          requireImages: true, isEnglish: isEnglish);
+      if (availabilityIssue == null && await configuration.isReady) return true;
     } catch (_) {
       // The same setup guidance is shown when secure storage is unavailable.
     }
     if (!mounted) return false;
-    final isEnglish =
-        Provider.of<SettingsProvider>(context, listen: false).isEnglish;
     final openSettings = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
             title: Text(isEnglish ? 'AI setup required' : 'AI設定が必要です'),
             content: Text(
-              isEnglish
-                  ? 'Select standard Gemini or configure an OpenAI, Anthropic, or Gemini API key before using image OCR.'
-                  : '画像OCRを使う前に、標準Geminiを選択するか、OpenAI・Anthropic・GeminiのAPIキーを設定してください。',
+              availabilityIssue ??
+                  (isEnglish
+                      ? 'Select standard Gemini or configure an OpenAI, Anthropic, Gemini, or OpenCode Go API key with an image-capable model before using image OCR.'
+                      : '画像OCRを使う前に、標準Geminiを選択するか、OpenAI・Anthropic・Gemini・OpenCode GoのAPIキーと画像対応モデルを設定してください。'),
             ),
             actions: [
               TextButton(
@@ -195,7 +210,10 @@ class _OCRImportPageState extends State<OCRImportPage> {
     if (!mounted) return false;
     setState(() => _providerIndicatorKey = UniqueKey());
     try {
-      return await AiConfigurationService().isReady;
+      final configuration = AiConfigurationService();
+      return await configuration.availabilityIssue(requireImages: true) ==
+              null &&
+          await configuration.isReady;
     } catch (_) {
       return false;
     }

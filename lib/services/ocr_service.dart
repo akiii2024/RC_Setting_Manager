@@ -7,6 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import '../models/ai_provider.dart';
 import '../models/car_setting_definition.dart';
 import '../models/ocr.dart';
+import '../models/open_code_go_model.dart';
+import '../utils/ai_session_id.dart';
 import '../utils/setting_number_input.dart';
 import '../utils/app_logger.dart';
 import 'ai_configuration_service.dart';
@@ -54,6 +56,7 @@ class OCRService {
 
   Future<T> _withProviderClient<T>(
     Future<T> Function(AiProviderClient client) action,
+    String sessionId,
   ) async {
     await _configurationService.requireDeveloperMode();
     final injectedClient = _providerClient;
@@ -61,7 +64,7 @@ class OCRService {
 
     final configuration =
         await _configurationService.requireActiveConfiguration();
-    final client = _clientFactory(configuration);
+    final client = _clientFactory(configuration.withSessionId(sessionId));
     try {
       return await action(client);
     } finally {
@@ -75,6 +78,8 @@ class OCRService {
     required String carName,
     required List<SettingItem> settingDefinitions,
   }) async {
+    await requireImageInputSupport();
+    final sessionId = createAiSessionId();
     final imageBytes = await _readImageBytes(imageFile);
     final mimeType = _imageMimeType(imageBytes);
     final catalog = _buildCatalog(settingDefinitions);
@@ -96,6 +101,7 @@ class OCRService {
     for (var attempt = 0; attempt < 2; attempt++) {
       try {
         response = await _generateStructuredWithAi(
+          sessionId: sessionId,
           system: _systemInstruction,
           prompt: prompt,
           schema: schema,
@@ -129,6 +135,7 @@ class OCRService {
   }
 
   Future<Map<String, dynamic>> _generateStructuredWithAi({
+    required String sessionId,
     required String system,
     required String prompt,
     required Map<String, dynamic> schema,
@@ -169,7 +176,30 @@ class OCRService {
         mimeType: mimeType,
         maxTokens: AiProviderClient.maxOutputTokens,
       ),
+      sessionId,
     );
+  }
+
+  /// 画像取得・送信前に、画像非対応の設定をユーザーへ案内する。
+  Future<void> requireImageInputSupport() async {
+    final injected = _providerClient;
+    if (injected != null) {
+      if (injected.provider != AiProvider.openCodeGo) return;
+      if (isWebPlatform) {
+        throw const OcrExtractionException(
+            OpenCodeGoModel.webUnavailableMessage);
+      }
+      final model = OpenCodeGoModel.tryParse(injected.model);
+      if (model == null || !model.supportsImages) {
+        throw const OcrExtractionException(
+          'OCRを使うにはAI設定で画像対応のOpenCode Goモデルを選択してください。',
+        );
+      }
+      return;
+    }
+    final issue =
+        await _configurationService.availabilityIssue(requireImages: true);
+    if (issue != null) throw OcrExtractionException(issue);
   }
 
   bool _isProtocolFailure(Object error) {

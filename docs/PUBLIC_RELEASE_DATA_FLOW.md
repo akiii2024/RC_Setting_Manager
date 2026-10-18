@@ -1,6 +1,6 @@
 # 公開前整備のコード調査記録
 
-確認日：2026-10-06。対象：最新GitHub main（`7e64ac2`）上に公開前整備を適用した実装。自動下書き保存とバージョン`0.1.0+2`を含めて確認した。サーバーの配布状態・Console設定や第三者サービスでの保持期間は、このコード調査だけでは確定できません。
+確認日：2026-10-18。対象：最新GitHub main（`7e64ac2`）上に公開前整備を適用した実装。自動下書き保存とバージョン`0.1.0+2`を含めて確認した。サーバーの配布状態・Console設定や第三者サービスでの保持期間は、このコード調査だけでは確定できません。
 
 ## 公開版のモード
 
@@ -21,9 +21,9 @@
 | テーマ・チュートリアル・同意・AIプロバイダーとモデル | SharedPreferences | 値自体の自動送信は確認されない | `providers/theme_provider.dart`、`repositories/tutorial_preferences_repository.dart`、`services/api_consent_service.dart`、`services/ai_configuration_service.dart` |
 | コース | 同梱JSON、カスタムコースはSharedPreferences `custom_tracks` | 最寄り候補の距離計算は端末内 | `services/track_location_service.dart`、`data/track_locations.json` |
 | 位置・天気 | geolocatorの単発取得。照会座標・時刻・天気はSharedPreferences `weather_cache_current_v1` | `getCurrentWeather` → OpenWeatherへ座標送信 | `services/location_service.dart`、`services/weather_service.dart`、`functions/index.js` |
-| 画像・OCR | image_pickerでカメラ／画像選択。処理中メモリ、採用値は設定として保存 | 標準Geminiは`extractSettingSheet`経由。OpenAI／Anthropicは直接API。画像、車種・項目カタログ等を送信 | `services/ocr_service.dart`、`pages/ocr_import_page.dart`、`services/ai_provider_client.dart` |
-| AI相談 | 会話はサービスインスタンス内メモリ。採用して保存した提案は設定データ | 標準Geminiは`generateSettingAdvice`、会話形式の`generateGeminiContent`経由。OpenAI／Anthropicは直接API。車種・設定・関連走行メモ・コース・天気・入力メッセージ等 | `services/ai_advisor_service.dart`、`services/ai_advisor_context_builder.dart` |
-| 個人APIキー | ネイティブはflutter_secure_storage、Webはstatic Mapでタブ内メモリ。通常バックアップ・設定同期から分離 | 使用するプロバイダーへの認証情報。Functionsへ個人キーを転送しない | `services/ai_configuration_service.dart`、`services/ai_provider_client.dart` |
+| 画像・OCR | image_pickerでカメラ／画像選択。処理中メモリ、採用値は設定として保存 | 標準Geminiは`extractSettingSheet`経由。個人APIは選択先へ直接通信。OpenCode Goのみアプリ版に限定し、Web版はCORS制約のため保留。画像、車種・項目カタログ等を送信 | `services/ocr_service.dart`、`pages/ocr_import_page.dart`、`services/ai_provider_client.dart` |
+| AI相談 | 会話はサービスインスタンス内メモリ。採用して保存した提案は設定データ | 標準Geminiは`generateSettingAdvice`、会話形式の`generateGeminiContent`経由。個人APIは選択先へ直接通信。OpenCode Goのみアプリ版に限定。車種・設定・関連走行メモ・コース・天気・入力メッセージ等 | `services/ai_advisor_service.dart`、`services/ai_advisor_context_builder.dart` |
+| 個人APIキー | ネイティブはflutter_secure_storage、Webは既存対応プロバイダーのみstatic Mapでタブ内メモリ。通常バックアップ・設定同期から分離。OpenCode Goのキー・セッションIDも保存・同期しない | 使用するプロバイダーへの認証情報。Functionsへ個人キーを転送しない。OpenCode Go通信にはアプリ識別User-Agentと会話単位のランダムセッションヘッダーを付け、端末・個人識別子は送信しない | `services/ai_configuration_service.dart`、`services/ai_provider_client.dart` |
 | テレメトリー・任意動画・同期ジョブ | Hive `telemetry_sessions_v1`、`telemetry_videos_v1`、`telemetry_sync_jobs_v1`。CSV解析・コース推定は端末内 | 現在Storage同期は無効。実装上の同期は動画を除いた最大20 MiBのanalysis.stg | `services/telemetry_repository.dart`、`services/telemetry_analysis_service.dart`、`services/telemetry_sync_service.dart` |
 | テレメトリーAI分析 | ローカル特徴量と間引いた代表波形を作成、結果をセッションへ保存 | `generateTelemetryAnalysis`または個人キーのAPI。元CSV・動画を送信しない | `services/telemetry_feature_service.dart`、`services/telemetry_ai_analysis_service.dart`、`pages/telemetry_analysis_page.dart` |
 | XML／.stg／コースJSON | 選択ファイルの読み込み・書き出し。XMLはテレメトリー付属情報のみ。.stgは添付動画も含む | OS・ブラウザの共有先をユーザーが選ぶ場合、共有先へ渡る | `services/xml_service.dart`、`services/xml_data_codec.dart`、`services/file_service.dart`、`services/telemetry_file_service.dart`、`services/telemetry_session_codec.dart` |
@@ -34,12 +34,13 @@
 - Functions側のFirestore：`_function_rate_limits`にUIDに基づく識別子・利用数・期間・`expiresAt`を保存。TTLの有効化はConsole側の設定であり、コードから削除実行を保証できない。
 - Functionsの運用ログ：処理時間、モデル、phase、エラー状態など。画像や会話を専用コレクションへ永続保存するコードは確認されない。サービス側のログ保持期間は未確認。
 - 現在無効：Email/Password認証、ユーザー用Firestoreのデータ同期、Firebase Storageテレメトリー同期。実装・ルールは残している。
-- GeminiのAI相談／構造化OCRは選択プロバイダーがGeminiならFunctions経由。テレメトリーAIはGeminiの個人キーが保存されている場合に直接APIを使う。現行設定UIはGemini個人キーの入力・削除を表示しないため、旧キーが残る場合の経路としてPrivacy Policyに記載。
+- 標準GeminiのAI相談／構造化OCRはFunctions経由。個人Geminiを含む個人APIは選択先へ直接通信する。テレメトリーAIも個人API選択時は直接通信する。
+- OpenCode Goはアプリ版から直接APIへ接続し、Web版はCORS制約のため保留。Firebase Functionsによる中継は行わない。
 - Firebase Analytics／Crashlyticsの依存・初期化は確認されない。google_fontsのフォントは同梱アセットも確認。
 
 ## 削除・互換性の注意
 
-保存設定・走行記録には個別削除がある。テレメトリー画面の関連解除はHiveのセッション・動画を削除する。走行記録の削除だけではテレメトリー本体の削除を保証しない。APIキー削除は現行UIではOpenAI／Anthropicが対象。全SharedPreferences・旧キー・Hive・キャッシュを一括消去するアプリ内導線はないため、ブラウザのサイトデータ／OSのアプリデータ消去を案内する。資格情報ストアや書き出し済みファイル、送信済み情報は別途削除・失効が必要な場合がある。
+保存設定・走行記録には個別削除がある。テレメトリー画面の関連解除はHiveのセッション・動画を削除する。走行記録の削除だけではテレメトリー本体の削除を保証しない。APIキー削除は現行UIではOpenAI／Anthropic／OpenCode Goが対象。全SharedPreferences・旧キー・Hive・キャッシュを一括消去するアプリ内導線はないため、ブラウザのサイトデータ／OSのアプリデータ消去を案内する。資格情報ストアや書き出し済みファイル、送信済み情報は別途削除・失効が必要な場合がある。
 
 データ形式、migration、ルール、API通信、デモモードの動作は変更しない。
 

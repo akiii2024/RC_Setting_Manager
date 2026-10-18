@@ -13,6 +13,11 @@ enum AiProvider {
     value: 'gemini',
     displayName: 'Gemini',
     defaultModel: 'gemini-3.8-flash',
+  ),
+  openCodeGo(
+    value: 'opencode_go',
+    displayName: 'OpenCode Go',
+    defaultModel: 'glm-5.3-flash',
   );
 
   const AiProvider({
@@ -98,9 +103,20 @@ class AiConfiguration extends AiProviderSettings {
     required super.provider,
     required super.model,
     required this.apiKey,
+    this.sessionId,
   }) : super(accessMode: AiAccessMode.personalApi);
 
   final String apiKey;
+
+  /// 会話・処理内だけで共有するランダムID。保存・同期しない。
+  final String? sessionId;
+
+  AiConfiguration withSessionId(String sessionId) => AiConfiguration(
+        provider: provider,
+        model: model,
+        apiKey: apiKey,
+        sessionId: sessionId,
+      );
 
   @override
   String toString() {

@@ -72,7 +72,11 @@ void main() {
       await configuration.unlockDeveloperMode();
       await configuration.setDeveloperModeEnabled(true);
       await configuration.saveConfiguration(
-          provider: provider, model: 'personal-model', apiKey: 'test-key');
+          provider: provider,
+          model: provider == AiProvider.openCodeGo
+              ? provider.defaultModel
+              : 'personal-model',
+          apiKey: 'test-key');
       final restored = AiConfigurationService(secretStore: MemorySecretStore());
       expect(await restored.isDeveloperModeEnabled, isTrue);
       expect((await restored.activeSettings).provider, provider);
@@ -176,7 +180,10 @@ void main() {
       expect(directCalls, 3);
       expect(managedCalls, 6);
       await configuration.selectPersonalProvider(
-          provider: provider, model: 'personal-model');
+          provider: provider,
+          model: provider == AiProvider.openCodeGo
+              ? provider.defaultModel
+              : 'personal-model');
       await configuration.deleteApiKey(provider);
       for (final operation in operations) {
         await expectLater(operation(), throwsStateError);

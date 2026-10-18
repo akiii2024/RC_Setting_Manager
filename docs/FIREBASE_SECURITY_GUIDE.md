@@ -1,12 +1,12 @@
 # Firebase セキュリティ設定ガイド
 
-更新日: 2026-07-17
+更新日: 2026-10-18
 
 ## 秘密情報の扱い
 
 - Firebase クライアント SDK の API キーはアプリ識別情報であり、生成済みの `firebase_options.dart` に含まれます。データ保護は API キーの秘匿ではなく、Authentication、App Check、Firestore Rules、API キー制限で行います。
 - アプリ運営者の Gemini / OpenWeather API キーは Firebase Functions の Secret Manager だけに保存します。Flutter の `--dart-define`、asset、`.env`、GitHub Actions の Web ビルドへ渡してはいけません。
-- ユーザーが設定する OpenAI / Anthropic / Gemini API キーは、モバイル・デスクトップでは OS の資格情報ストアに保存します。Web では永続保存せず、ページを閉じるまでのメモリにだけ保持します。
+- ユーザーが設定する OpenAI / Anthropic / Gemini / OpenCode Go API キーは、モバイル・デスクトップでは OS の資格情報ストアに保存します。Web では既存対応プロバイダーのキーを永続保存せず、ページを閉じるまでのメモリにだけ保持します。OpenCode GoのWeb接続はCORS制約のため保留です。OpenCode GoのキーとセッションIDはバックアップや設定同期へ含めません。
 - `google-services.json`、`GoogleService-Info.plist`、署名鍵、`key.properties` は現在のリポジトリ方針では Git 管理外です。
 
 Functions の Secret は Firebase CLI で登録します。

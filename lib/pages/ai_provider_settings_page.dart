@@ -1,7 +1,7 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../models/ai_provider.dart';
+import '../models/open_code_go_model.dart';
 import '../services/ai_configuration_service.dart';
 import '../services/ai_provider_client.dart';
 
@@ -41,6 +41,12 @@ class _AiProviderSettingsPageState extends State<AiProviderSettingsPage> {
 
   bool get _isEnglish => widget.isEnglish;
   bool get _usesFirebase => _usesManagedGemini;
+  bool get _isOpenCodeGo => _selectedProvider == AiProvider.openCodeGo;
+  bool get _isOpenCodeGoBlockedOnWeb =>
+      _isOpenCodeGo && _configurationService.isWeb;
+
+  OpenCodeGoModel? get _selectedGoModel =>
+      OpenCodeGoModel.tryParse(_modelController.text);
 
   @override
   void initState() {
@@ -122,10 +128,22 @@ class _AiProviderSettingsPageState extends State<AiProviderSettingsPage> {
   }
 
   Future<bool> _save() async {
+    if (_isOpenCodeGoBlockedOnWeb) {
+      _showMessage(_isEnglish
+          ? 'OpenCode Go is unavailable on the web.'
+          : 'OpenCode GoはWeb版では利用できません。');
+      return false;
+    }
     final model = _modelController.text.trim();
     final enteredApiKey = _apiKeyController.text.trim();
     if (model.isEmpty) {
       _showMessage(_isEnglish ? 'Enter a model name.' : 'モデル名を入力してください。');
+      return false;
+    }
+    if (_isOpenCodeGo && _selectedGoModel == null) {
+      _showMessage(_isEnglish
+          ? 'Select a supported OpenCode Go model.'
+          : '対応しているOpenCode Goモデルを選択してください。');
       return false;
     }
     if (!_usesManagedGemini && !_hasStoredKey && enteredApiKey.isEmpty) {
@@ -176,10 +194,22 @@ class _AiProviderSettingsPageState extends State<AiProviderSettingsPage> {
   }
 
   Future<void> _testConnection() async {
+    if (_isOpenCodeGoBlockedOnWeb) {
+      _showMessage(_isEnglish
+          ? 'OpenCode Go is unavailable on the web.'
+          : 'OpenCode GoはWeb版では利用できません。');
+      return;
+    }
     final model = _modelController.text.trim();
     final enteredApiKey = _apiKeyController.text.trim();
     if (model.isEmpty) {
       _showMessage(_isEnglish ? 'Enter a model name.' : 'モデル名を入力してください。');
+      return;
+    }
+    if (_isOpenCodeGo && _selectedGoModel == null) {
+      _showMessage(_isEnglish
+          ? 'Select a supported OpenCode Go model.'
+          : '対応しているOpenCode Goモデルを選択してください。');
       return;
     }
 
@@ -342,8 +372,8 @@ class _AiProviderSettingsPageState extends State<AiProviderSettingsPage> {
                   children: [
                     Text(
                       _isEnglish
-                          ? 'Gemini is ready to use by default. You can also use your own OpenAI, Anthropic, or Gemini API key.'
-                          : '標準のGeminiはAPIキーの入力なしで利用できます。OpenAI・Anthropic・Geminiはご自身のAPIキーでも利用できます。',
+                          ? 'Gemini is ready to use by default. You can also use your own OpenAI, Anthropic, Gemini, or OpenCode Go API key.'
+                          : '標準のGeminiはAPIキーの入力なしで利用できます。OpenAI・Anthropic・Gemini・OpenCode Goはご自身のAPIキーでも利用できます。',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
                     const SizedBox(height: 16),
@@ -399,36 +429,25 @@ class _AiProviderSettingsPageState extends State<AiProviderSettingsPage> {
                               ChoiceChip(
                                 label: Text(provider.displayName),
                                 selected: _selectedProvider == provider,
-                                onSelected: _isSaving || _isLoading
+                                onSelected: _isSaving ||
+                                        _isLoading ||
+                                        (provider == AiProvider.openCodeGo &&
+                                            _configurationService.isWeb)
                                     ? null
                                     : (_) => _loadProvider(provider),
                               ),
                           ],
                         ),
+                        if (_configurationService.isWeb) ...[
+                          const SizedBox(height: 12),
+                          _buildOpenCodeGoWebNotice(context),
+                        ],
                         const SizedBox(height: 16),
-                        TextField(
-                          controller: _modelController,
-                          enabled: !_isSaving,
-                          decoration: InputDecoration(
-                            labelText: _isEnglish ? 'Model' : 'モデル',
-                            helperText: _isEnglish
-                                ? 'Default: ${_selectedProvider.defaultModel}'
-                                : '既定値: ${_selectedProvider.defaultModel}',
-                            suffixIcon: IconButton(
-                              tooltip:
-                                  _isEnglish ? 'Restore default' : '既定値に戻す',
-                              onPressed: _isSaving
-                                  ? null
-                                  : () => _modelController.text =
-                                      _selectedProvider.defaultModel,
-                              icon: const Icon(Icons.restart_alt),
-                            ),
-                          ),
-                        ),
+                        _buildModelField(context),
                         const SizedBox(height: 16),
                         TextField(
                           controller: _apiKeyController,
-                          enabled: !_isSaving,
+                          enabled: !_isSaving && !_isOpenCodeGoBlockedOnWeb,
                           obscureText: _obscureApiKey,
                           autocorrect: false,
                           enableSuggestions: false,
@@ -493,14 +512,18 @@ class _AiProviderSettingsPageState extends State<AiProviderSettingsPage> {
                       ],
                       const SizedBox(height: 24),
                       FilledButton.icon(
-                        onPressed: _isSaving ? null : () => _save(),
+                        onPressed: _isSaving || _isOpenCodeGoBlockedOnWeb
+                            ? null
+                            : () => _save(),
                         icon: const Icon(Icons.save_outlined),
                         label: Text(_isEnglish ? 'Save and use' : '保存して使用'),
                       ),
                       const SizedBox(height: 12),
                       if (!_usesManagedGemini)
                         OutlinedButton.icon(
-                          onPressed: _isSaving ? null : _testConnection,
+                          onPressed: _isSaving || _isOpenCodeGoBlockedOnWeb
+                              ? null
+                              : _testConnection,
                           icon: _isSaving
                               ? const SizedBox(
                                   width: 18,
@@ -511,6 +534,17 @@ class _AiProviderSettingsPageState extends State<AiProviderSettingsPage> {
                               : const Icon(Icons.cable_outlined),
                           label: Text(_isEnglish ? 'Test connection' : '接続テスト'),
                         ),
+                      if (_isOpenCodeGo) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          _isEnglish
+                              ? 'OpenCode Go connection tests consume your usage quota.'
+                              : 'OpenCode Goの接続テストは利用枠を消費します。',
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 8),
+                        _buildOpenCodeGoModelNotice(context),
+                      ],
                     ],
                   ],
                 ),
@@ -521,7 +555,7 @@ class _AiProviderSettingsPageState extends State<AiProviderSettingsPage> {
 
   Widget _buildSecurityNotice(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    final text = kIsWeb
+    final text = _configurationService.isWeb
         ? (_isEnglish
             ? 'Web warning: the key is kept only in this tab\'s memory and '
                 'is erased on reload, but code running on this site can use '
@@ -544,7 +578,9 @@ class _AiProviderSettingsPageState extends State<AiProviderSettingsPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            kIsWeb ? Icons.warning_amber_rounded : Icons.security_outlined,
+            _configurationService.isWeb
+                ? Icons.warning_amber_rounded
+                : Icons.security_outlined,
             color: colorScheme.onSecondaryContainer,
           ),
           const SizedBox(width: 12),
@@ -558,6 +594,121 @@ class _AiProviderSettingsPageState extends State<AiProviderSettingsPage> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildModelField(BuildContext context) {
+    final enabled = !_isSaving && !_isOpenCodeGoBlockedOnWeb;
+    if (!_isOpenCodeGo) {
+      return TextField(
+        controller: _modelController,
+        enabled: enabled,
+        decoration: InputDecoration(
+          labelText: _isEnglish ? 'Model' : 'モデル',
+          helperText: _isEnglish
+              ? 'Default: ${_selectedProvider.defaultModel}'
+              : '既定値: ${_selectedProvider.defaultModel}',
+          suffixIcon: IconButton(
+            tooltip: _isEnglish ? 'Restore default' : '既定値に戻す',
+            onPressed: enabled
+                ? () => setState(
+                      () => _modelController.text =
+                          _selectedProvider.defaultModel,
+                    )
+                : null,
+            icon: const Icon(Icons.restart_alt),
+          ),
+        ),
+      );
+    }
+
+    final selected = _selectedGoModel;
+    return DropdownButtonFormField<String>(
+      initialValue: selected?.id,
+      isExpanded: true,
+      decoration: InputDecoration(
+        labelText: _isEnglish ? 'OpenCode Go model' : 'OpenCode Goモデル',
+        helperMaxLines: 3,
+        helperText: selected == null
+            ? (_isEnglish
+                ? 'Select a supported model to replace the saved model.'
+                : '保存済みモデルが未対応です。対応モデルを選び直してください。')
+            : (_isEnglish
+                ? 'Choose from the supported OpenCode Go models.'
+                : '対応しているOpenCode Goモデルから選択してください。'),
+      ),
+      items: [
+        for (final model in OpenCodeGoModel.values)
+          DropdownMenuItem<String>(
+            value: model.id,
+            child: Text(model.displayName),
+          ),
+      ],
+      onChanged: enabled
+          ? (value) {
+              if (value == null) return;
+              setState(() => _modelController.text = value);
+            }
+          : null,
+    );
+  }
+
+  Widget _buildOpenCodeGoWebNotice(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colors.tertiaryContainer,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.public_off, color: colors.onTertiaryContainer),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              _isEnglish
+                  ? 'OpenCode Go is temporarily unavailable on the web because browser CORS support is not available. Switch to another provider to save settings.'
+                  : 'OpenCode GoはブラウザのCORS対応がないため、Web版では現在利用できません。設定を保存するには別のプロバイダーへ切り替えてください。',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: colors.onTertiaryContainer,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOpenCodeGoModelNotice(BuildContext context) {
+    final model = _selectedGoModel;
+    final supportsImages = model?.supportsImages ?? false;
+    final colors = Theme.of(context).colorScheme;
+    final text = model == null
+        ? (_isEnglish
+            ? 'Select a supported model before saving.'
+            : '保存前に対応モデルを選択してください。')
+        : model == OpenCodeGoModel.glm53
+            ? (_isEnglish
+                ? '${model.displayName}: text input only. Choose an image-capable model before starting OCR. OpenCode Go is intended for coding workflows; RC use has not been verified.'
+                : '${model.displayName}：テキスト入力のみです。OCRを開始する前に画像対応モデルを選択してください。OpenCode Goはコーディング向けで、RC用途での動作は未確認です。')
+            : (_isEnglish
+                ? '${model.displayName}: ${supportsImages ? 'supports image input' : 'text input only'}. OpenCode Go is intended for coding workflows; RC use has not been verified.'
+                : '${model.displayName}：${supportsImages ? '画像入力に対応' : 'テキスト入力のみ'}。OpenCode Goはコーディング向けで、RC用途での動作は未確認です。');
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          supportsImages ? Icons.image_outlined : Icons.info_outline,
+          size: 18,
+          color: colors.onSurfaceVariant,
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(text, style: Theme.of(context).textTheme.bodySmall),
+        ),
+      ],
     );
   }
 }
