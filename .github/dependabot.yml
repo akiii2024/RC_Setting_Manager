@@ -39,6 +39,16 @@ updates:
       # 読めなくなる破壊的変更。移行処理を実装するまで 11 系は取り込まない。
       - dependency-name: flutter_secure_storage
         versions: [">=11.0.0 <12.0.0"]
+      # Windows 実装の win32 6.x 移行が必要なクラスタ。share_plus 13 / file_picker 12+ /
+      # geolocator 14.1+ は win32 ^6 を要求し、flutter_secure_storage 9(win32 ^5 依存)と
+      # 同じ解決に共存できない(実際に pub の解決が失敗する)。
+      # flutter_secure_storage 11 への移行とセットでまとめて行う。
+      - dependency-name: share_plus
+        versions: [">=13.0.0 <14.0.0"]
+      - dependency-name: file_picker
+        versions: [">=12.0.0 <14.0.0"]
+      - dependency-name: geolocator
+        versions: [">=14.1.0 <15.0.0"]
 
   - package-ecosystem: npm
     directory: "/functions"
