@@ -80,10 +80,17 @@ jobs:
       - name: Rename artifact
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            # タグリリース時は従来どおり tag 名を使う(例: v0.3.1 -> RC_Setting_Manager-v0.3.1.apk)
+            VERSION="${GITHUB_REF_NAME}"
+          else
+            # 手動 dry run 時は ref にスラッシュが入りうるため pubspec のバージョンを使う
+            VERSION="$(grep '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)"
+            VERSION="dryrun-$VERSION"
+          fi
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-release.apk \
-             "dist/RC_Setting_Manager-v${VERSION}.apk"
+             "dist/RC_Setting_Manager-${VERSION}.apk"
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
