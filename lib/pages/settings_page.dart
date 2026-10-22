@@ -126,7 +126,7 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
-          children: [
+          children: <Widget>[
             SwitchListTile(
               secondary: const Icon(Icons.dark_mode_outlined),
               title: Text(isEnglish ? 'Dark Mode' : 'ダークモード'),
@@ -635,7 +635,13 @@ class _SettingsPageState extends State<SettingsPage> {
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             ),
-          ],
+          ].map((child) {
+            if (child is ListTile || child is SwitchListTile) {
+              // 背景とインクも項目と同じスクロール・伸縮の描画範囲に置く。
+              return Material(type: MaterialType.transparency, child: child);
+            }
+            return child;
+          }).toList(),
         ),
       ),
     );
