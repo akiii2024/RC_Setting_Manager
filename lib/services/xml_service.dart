@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:xml/xml.dart';
@@ -137,7 +138,12 @@ class XmlService {
                 setting.settings.forEach((key, value) {
                   builder.element('setting', nest: () {
                     builder.attribute('key', key);
-                    builder.text(value.toString());
+                    if (value is Map || value is List) {
+                      builder.attribute('type', 'json');
+                      builder.text(jsonEncode(value));
+                    } else {
+                      builder.text(value.toString());
+                    }
                   });
                 });
               });
@@ -478,7 +484,14 @@ class XmlService {
               for (final setting in settingsElement.findElements('setting')) {
                 final key = setting.getAttribute('key') ?? '';
                 final value = setting.innerText;
-                settings[key] = XmlDataCodec.parseSavedSettingValue(value);
+                if (setting.getAttribute('type') == 'json') {
+                  // JSON型は明示的に型付けされた値だけ復元する。JSON風の
+                  // 文字列を従来形式から誤って変換しないため、属性なしは
+                  // これまで通りのscalar変換を使う。
+                  settings[key] = jsonDecode(value);
+                } else {
+                  settings[key] = XmlDataCodec.parseSavedSettingValue(value);
+                }
               }
             }
 

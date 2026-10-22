@@ -8,6 +8,8 @@ import '../services/xml_service.dart';
 import 'simple_import_page.dart';
 import 'statistics_page.dart';
 import 'telemetry_analysis_page.dart';
+import 'super_gt_page.dart';
+import '../widgets/final_drive_ratio_calculator.dart';
 import '../utils/app_logger.dart';
 
 class ToolsPage extends StatelessWidget {
@@ -130,6 +132,17 @@ class ToolsPage extends StatelessWidget {
             ),
             const SizedBox(height: 24),
             _SectionHeader(title: isEnglish ? 'Calculation Tools' : '計算ツール'),
+            _ToolCard(
+              title: isEnglish ? 'SUPER GT Regulations' : 'SUPER GT レギュレーション',
+              description: isEnglish
+                  ? 'Save measurements, check rules, and predict tire RPM'
+                  : '実測値の保存・規則チェック・ギヤ変更後の回転数予測',
+              icon: Icons.fact_check_outlined,
+              color: colorScheme.primary,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(builder: (_) => const SuperGtPage()),
+              ),
+            ),
             _ToolCard(
               title: isEnglish ? 'Gear Ratio Calculator' : 'ギヤ比計算',
               description: isEnglish
@@ -367,109 +380,24 @@ class ToolsPage extends StatelessWidget {
   }
 
   void _showGearRatioCalculator(BuildContext context) {
-    final spurController = TextEditingController();
-    final pinionController = TextEditingController();
-    double gearRatio = 0.0;
-    final settingsProvider =
-        Provider.of<SettingsProvider>(context, listen: false);
-    final isEnglish = settingsProvider.isEnglish;
-    final theme = Theme.of(context);
-
-    showDialog(
+    final isEnglish = context.read<SettingsProvider>().isEnglish;
+    showDialog<void>(
       context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              title: Text(isEnglish ? 'Gear Ratio Calculator' : 'ギヤレシオ計算機'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextField(
-                    controller: spurController,
-                    decoration: InputDecoration(
-                      labelText: isEnglish ? 'Spur Gear (teeth)' : 'スパーギヤ (歯数)',
-                      prefixIcon: const Icon(Icons.settings_rounded),
-                      filled: true,
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: pinionController,
-                    decoration: InputDecoration(
-                      labelText:
-                          isEnglish ? 'Pinion Gear (teeth)' : 'ピニオンギヤ (歯数)',
-                      prefixIcon: const Icon(Icons.settings_rounded),
-                      filled: true,
-                    ),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        final spur = int.tryParse(spurController.text);
-                        final pinion = int.tryParse(pinionController.text);
-
-                        if (spur != null && pinion != null && pinion > 0) {
-                          setState(() {
-                            gearRatio = spur / pinion;
-                          });
-                        }
-                      },
-                      icon: const Icon(Icons.calculate_rounded),
-                      label: Text(isEnglish ? 'Calculate' : '計算'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  if (gearRatio > 0)
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.speed_rounded,
-                            color: theme.colorScheme.primary,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${isEnglish ? 'Gear Ratio' : 'ギヤレシオ'}: ${gearRatio.toStringAsFixed(2)}',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: theme.colorScheme.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: Text(isEnglish ? 'Close' : '閉じる'),
-                ),
-              ],
-            );
-          },
-        );
-      },
+      builder: (context) => AlertDialog(
+        title: Text(isEnglish ? 'Final Drive Ratio' : '最終減速比計算'),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: FinalDriveRatioCalculator(isEnglish: isEnglish),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(isEnglish ? 'Close' : '閉じる'),
+          ),
+        ],
+      ),
     );
   }
 

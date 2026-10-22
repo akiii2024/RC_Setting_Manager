@@ -21,6 +21,7 @@ import '../models/track_location.dart';
 import '../services/track_location_service.dart';
 import './ocr_import_page.dart';
 import './ai_setting_advisor_page.dart';
+import 'super_gt_page.dart';
 import './ai_provider_settings_page.dart';
 import '../services/ai_advisor_service.dart';
 import '../services/ai_configuration_service.dart';
@@ -726,6 +727,23 @@ class _CarSettingPageState extends State<CarSettingPage>
               ? (isEnglish ? 'Edit Setting' : 'セッティング編集')
               : (isEnglish ? 'New Setting' : '新規セッティング')),
           actions: [
+            IconButton(
+              icon: const Icon(Icons.fact_check_outlined),
+              tooltip: 'SUPER GT レギュレーション',
+              onPressed: _isSavingSetting || _invalidNumberInputs.isNotEmpty
+                  ? null
+                  : () => Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) => SuperGtPage(
+                            car: widget.originalCar,
+                            initialSettings:
+                                Map<String, dynamic>.from(settings),
+                            parentSettingId: _activeSavedSettingId,
+                            settingName: _settingNameController.text,
+                          ),
+                        ),
+                      ),
+            ),
             IconButton(
               icon: const Icon(Icons.psychology),
               onPressed: _isAIAnalyzing ? null : _getAIAdvice,

@@ -181,6 +181,84 @@ void main() {
     expect(result.savedSettings.first.parentSettingId, 'base-1');
   });
 
+  test('exports and imports nested JSON setting values', () async {
+    final car = Car(
+      id: 'tamiya/trf421',
+      name: 'TRF421',
+      imageUrl: '',
+      manufacturer: manufacturer,
+      category: 'touring',
+    );
+    final nestedValue = <String, dynamic>{
+      'measurement': <String, dynamic>{
+        'tireRpm': 12345,
+        'motorRpm': 45678.5,
+        'isValid': true,
+        'note': null,
+      },
+      'samples': [
+        1,
+        false,
+        'sample',
+        <String, dynamic>{'value': 2}
+      ],
+    };
+
+    final xml = await XmlService.exportToXml(
+      savedSettings: [
+        SavedSetting(
+          id: 'setting-1',
+          name: 'Super GT',
+          createdAt: DateTime(2026, 6, 19, 12, 0),
+          car: car,
+          settings: {
+            'superGtMeasurement': nestedValue,
+            'scalar': 1.5,
+            'jsonLookingString': '{"keep":"as string"}',
+          },
+        ),
+      ],
+      cars: [car],
+      visibilitySettings: const {},
+      isEnglish: true,
+    );
+
+    expect(xml, contains('type="json"'));
+    final result = await XmlService.importFromXml(xml);
+    final settings = result.savedSettings.single.settings;
+    expect(settings['superGtMeasurement'], nestedValue);
+    expect(settings['scalar'], 1.5);
+    expect(settings['jsonLookingString'], '{"keep":"as string"}');
+  });
+
+  test('rejects malformed explicitly typed JSON setting values', () async {
+    const malformedXml = '''
+<RCCarSettingsData>
+  <savedSettings>
+    <savedSetting>
+      <id>setting-1</id>
+      <name>Malformed</name>
+      <createdAt>2026-06-19T12:00:00.000</createdAt>
+      <car>
+        <id>tamiya/trf421</id>
+        <name>TRF421</name>
+        <manufacturer>Tamiya</manufacturer>
+        <category>touring</category>
+      </car>
+      <settings>
+        <setting key="superGtMeasurement" type="json">{broken</setting>
+      </settings>
+    </savedSetting>
+  </savedSettings>
+</RCCarSettingsData>
+''';
+
+    expect(
+      XmlService.importFromXml(malformedXml),
+      throwsA(isA<Exception>()),
+    );
+  });
+
   test('imports legacy xml without garage fields', () async {
     const legacyXml = '''
 <?xml version="1.0" encoding="UTF-8"?>
