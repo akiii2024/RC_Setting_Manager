@@ -74,6 +74,9 @@ jobs:
       - name: Check supplemental license notices
         run: node tool/sync_third_party_licenses.mjs --check
 
+      - name: Test supplemental license synchronization
+        run: node --test tool/sync_third_party_licenses_test.mjs
+
       - name: Collect Android native licenses
         working-directory: android
         run: ./gradlew :app:collectNativeLicenses --init-script ../tool/native_licenses.gradle --console=plain

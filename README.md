@@ -114,6 +114,8 @@ Functions のリージョンは既定で `asia-northeast1` です。変更する
 
 依存を更新した際は `flutter pub get` 後に `node tool/sync_third_party_licenses.mjs` で追加文書を同期し、差分を確認してください。Android/iOSのSDK通知の再生成・公開前確認は [ライセンス収集手順](docs/NATIVE_LICENSES.md)を参照してください。
 
+追加文書はCRLFをLFへ統一して保存・照合します。`assets/licenses/sources.json` のSHA-256もLFでの本文に対応し、改行以外の本文や依存バージョンの変更は `--check` で検出します。
+
 ## システム要件
 
 ### 対応デバイス・OS

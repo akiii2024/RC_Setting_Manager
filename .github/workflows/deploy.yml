@@ -55,7 +55,7 @@ jobs:
       run: node tool/sync_third_party_licenses.mjs --check
 
     - name: Test license collection helpers
-      run: node --test tool/native_licenses_ios_test.mjs
+      run: node --test tool/native_licenses_ios_test.mjs tool/sync_third_party_licenses_test.mjs
 
     - name: Run tests
       run: flutter test
