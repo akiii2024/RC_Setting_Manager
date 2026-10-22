@@ -380,7 +380,9 @@ class ToolsPage extends StatelessWidget {
   }
 
   void _showGearRatioCalculator(BuildContext context) {
-    final isEnglish = context.read<SettingsProvider>().isEnglish;
+    final provider = context.read<SettingsProvider>();
+    final isEnglish = provider.isEnglish;
+    final car = provider.garageCars.firstOrNull ?? provider.cars.firstOrNull;
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -388,7 +390,11 @@ class ToolsPage extends StatelessWidget {
         content: SizedBox(
           width: 420,
           child: SingleChildScrollView(
-            child: FinalDriveRatioCalculator(isEnglish: isEnglish),
+            child: FinalDriveRatioCalculator(
+              isEnglish: isEnglish,
+              carId: car?.id,
+              cars: provider.cars,
+            ),
           ),
         ),
         actions: [

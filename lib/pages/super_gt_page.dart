@@ -349,6 +349,7 @@ class _SuperGtPageState extends State<SuperGtPage> {
         children: [
           FinalDriveRatioCalculator(
             key: ValueKey('calculator-$_carId-$_sourceSettingId'),
+            carId: _selectedCar(context.read<SettingsProvider>())?.id,
             spurTeeth: _baseSettings['spurGear'],
             pinionTeeth: _baseSettings['pinionGear'],
             onCalculated: (ratio) {

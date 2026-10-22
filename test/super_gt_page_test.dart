@@ -167,6 +167,13 @@ void main() {
     await tester.ensureVisible(expansion);
     await tester.tap(expansion);
     await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextFormField>(find.widgetWithText(TextFormField, '内部減速比'))
+          .controller!
+          .text,
+      '1.85',
+    );
     for (final entry
         in {'スパーギヤ（歯数）': '100', 'ピニオンギヤ（歯数）': '40', '内部減速比': '2.2'}.entries) {
       final field = find.widgetWithText(TextFormField, entry.key);
