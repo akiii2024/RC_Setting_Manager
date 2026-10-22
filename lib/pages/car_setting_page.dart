@@ -28,6 +28,7 @@ import '../services/api_consent_service.dart';
 import '../widgets/ai_provider_indicator.dart';
 import '../utils/settings_operation_feedback.dart';
 import '../utils/setting_number_input.dart';
+import '../widgets/open_weather_attribution.dart';
 
 part 'car_setting_page_draft.dart';
 part 'car_setting_page_ui_helpers.dart';

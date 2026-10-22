@@ -558,6 +558,7 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
                   ),
                 ],
               ),
+              const OpenWeatherAttribution(),
             ],
           ),
         ),

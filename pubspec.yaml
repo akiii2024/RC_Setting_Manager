@@ -53,6 +53,8 @@ flutter:
     - assets/launcher_icon/ios_icon.png
     - assets/fonts/OFL.txt
     - assets/google_fonts/
+    - assets/licenses/
+    - assets/attribution/openweather.png
     - lib/data/track_locations.json
 
   fonts:

@@ -1,0 +1,18 @@
+[
+  {
+    "package": "image",
+    "version": "4.12.0",
+    "file": "LICENSE-other.md",
+    "source": "https://pub.dev/packages/image/versions/4.12.0",
+    "asset": "assets/licenses/image-LICENSE-other.md",
+    "sha256": "dea0e9e446e57c0987d241d5471e47e7b66796fb286706ec993c3fa6696cb08e"
+  },
+  {
+    "package": "archive",
+    "version": "4.5.2",
+    "file": "LICENSE-other.md",
+    "source": "https://pub.dev/packages/archive/versions/4.5.2",
+    "asset": "assets/licenses/archive-LICENSE-other.md",
+    "sha256": "ebe5a199af245d7e3e761673fbf3db341427060407e50713861ab24bb2cb1552"
+  }
+]

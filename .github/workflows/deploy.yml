@@ -51,6 +51,12 @@ jobs:
     - name: Install dependencies
       run: flutter pub get
 
+    - name: Check supplemental license notices
+      run: node tool/sync_third_party_licenses.mjs --check
+
+    - name: Test license collection helpers
+      run: node --test tool/native_licenses_ios_test.mjs
+
     - name: Run tests
       run: flutter test
 

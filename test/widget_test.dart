@@ -17,6 +17,7 @@ import 'package:rc_setting_manager/providers/app_mode_provider.dart';
 import 'package:rc_setting_manager/providers/settings_provider.dart';
 import 'package:rc_setting_manager/services/api_consent_service.dart';
 import 'package:rc_setting_manager/services/weather_service.dart';
+import 'package:rc_setting_manager/widgets/open_weather_attribution.dart';
 
 Future<void> _pumpUntilInitialized(
   WidgetTester tester,
@@ -276,14 +277,21 @@ void main() {
     expect(find.text('58'), findsOneWidget);
     expect(find.text('Sunny'), findsAtLeastNWidgets(1));
     expect(find.textContaining('24.6 C / 58%'), findsOneWidget);
+    expect(find.byType(OpenWeatherAttribution), findsOneWidget);
 
     await tester.ensureVisible(find.text('Very good'));
     await tester.pump();
     await tester.tap(find.text('Very good'));
     await tester.enterText(
         find.bySemanticsLabel('Track Condition Note'), 'dusty');
-    await tester.drag(find.byType(ListView), const Offset(0, -500));
-    await tester.pump();
+    await tester.scrollUntilVisible(
+      find.bySemanticsLabel('Best Lap'),
+      200,
+      scrollable: find
+          .descendant(
+              of: find.byType(ListView), matching: find.byType(Scrollable))
+          .first,
+    );
     await tester.enterText(find.bySemanticsLabel('Best Lap'), '13.52');
     await tester.tap(find.text('Save Run Log'));
     await tester.pump();
@@ -389,12 +397,19 @@ void main() {
 
     await _pumpUntilInitialized(tester, provider);
     await tester.pump();
+    expect(find.byType(OpenWeatherAttribution), findsNothing);
     await tester.enterText(find.bySemanticsLabel('Course Name'), 'Alpha');
     await tester.pump();
     await tester.tap(find.text('Test Course Alpha'));
     await tester.pump();
-    await tester.drag(find.byType(ListView), const Offset(0, -500));
-    await tester.pump();
+    await tester.scrollUntilVisible(
+      find.bySemanticsLabel('Best Lap'),
+      200,
+      scrollable: find
+          .descendant(
+              of: find.byType(ListView), matching: find.byType(Scrollable))
+          .first,
+    );
     await tester.enterText(find.bySemanticsLabel('Best Lap'), '13.52');
     await tester.tap(find.text('Save Run Log'));
     await tester.pump();
@@ -428,8 +443,14 @@ void main() {
     await tester.pump();
     await tester.enterText(find.bySemanticsLabel('Course Name'), 'Parking Lot');
     await tester.pump();
-    await tester.drag(find.byType(ListView), const Offset(0, -500));
-    await tester.pump();
+    await tester.scrollUntilVisible(
+      find.bySemanticsLabel('Best Lap'),
+      200,
+      scrollable: find
+          .descendant(
+              of: find.byType(ListView), matching: find.byType(Scrollable))
+          .first,
+    );
     await tester.enterText(find.bySemanticsLabel('Best Lap'), '13.52');
     await tester.tap(find.text('Save Run Log'));
     await tester.pump();
@@ -467,8 +488,14 @@ void main() {
 
     expect(find.text('Nearest Course'), findsOneWidget);
 
-    await tester.drag(find.byType(ListView), const Offset(0, -500));
-    await tester.pump();
+    await tester.scrollUntilVisible(
+      find.bySemanticsLabel('Best Lap'),
+      200,
+      scrollable: find
+          .descendant(
+              of: find.byType(ListView), matching: find.byType(Scrollable))
+          .first,
+    );
     await tester.enterText(find.bySemanticsLabel('Best Lap'), '13.52');
     await tester.tap(find.text('Save Run Log'));
     await tester.pump();

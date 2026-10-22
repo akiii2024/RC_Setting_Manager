@@ -1817,6 +1817,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   void _showAboutDialog(BuildContext context) {
+    final parentContext = context;
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
     final isEnglish = settingsProvider.isEnglish;
@@ -1890,6 +1891,26 @@ class _SettingsPageState extends State<SettingsPage> {
                       isEnglish: isEnglish,
                       url:
                           'https://github.com/akiii2024/RC_Setting_Manager/issues',
+                    ),
+                    const SizedBox(height: 8),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: TextButton.icon(
+                        onPressed: () async {
+                          Navigator.of(context).pop();
+                          await Future<void>.delayed(Duration.zero);
+                          if (!parentContext.mounted) return;
+                          showLicensePage(
+                            context: parentContext,
+                            applicationName: 'RC Setting Manager',
+                            applicationVersion: version,
+                          );
+                        },
+                        icon: const Icon(Icons.description_outlined),
+                        label: Text(isEnglish
+                            ? 'Open source licenses'
+                            : 'オープンソースライセンス'),
+                      ),
                     ),
                   ],
                 ),

@@ -9,6 +9,7 @@ mixin _CarSettingPaperEditor on State<CarSettingPage> {
   TextEditingController get _settingNameController;
   TextEditingController get _trackNameController;
   TrackLocation? get _currentTrack;
+  WeatherData? get _currentWeather;
   bool get _isLocationLoading;
   bool get _isTrf420x;
 
@@ -294,6 +295,7 @@ mixin _CarSettingPaperEditor on State<CarSettingPage> {
           if (weatherRow.isNotEmpty) ...[
             const SizedBox(height: 16),
             _buildResponsiveFieldWrap(weatherRow, minItemWidth: 180),
+            if (_currentWeather != null) const OpenWeatherAttribution(),
           ],
         ],
       ),

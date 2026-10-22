@@ -108,6 +108,12 @@ firebase deploy --only functions
 
 Functions のリージョンは既定で `asia-northeast1` です。変更する場合は Flutter ビルド時に `--dart-define=FIREBASE_FUNCTIONS_REGION=your-region` を指定してください。
 
+## ライセンス・提供元表示
+
+利用しているOSSとフォントのライセンスは「設定 → アプリについて → オープンソースライセンス」から確認できます。天気データはOpenWeather提供で、表示付近に公式ロゴとリンクを掲載します。
+
+依存を更新した際は `flutter pub get` 後に `node tool/sync_third_party_licenses.mjs` で追加文書を同期し、差分を確認してください。Android/iOSのSDK通知の再生成・公開前確認は [ライセンス収集手順](docs/NATIVE_LICENSES.md)を参照してください。
+
 ## システム要件
 
 ### 対応デバイス・OS

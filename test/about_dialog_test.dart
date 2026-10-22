@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:rc_setting_manager/app/app_theme.dart';
 import 'package:rc_setting_manager/pages/settings_page.dart';
@@ -44,6 +45,12 @@ Future<void> _openAbout(
       ],
       child: MaterialApp(
         theme: isDark ? AppTheme.dark() : AppTheme.light(),
+        locale: isEnglish ? const Locale('en', 'US') : const Locale('ja', 'JP'),
+        supportedLocales: const [
+          Locale('ja', 'JP'),
+          Locale('en', 'US'),
+        ],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         builder: (context, child) => MediaQuery(
           data: MediaQuery.of(context)
               .copyWith(textScaler: const TextScaler.linear(2)),
@@ -156,6 +163,22 @@ void main() {
     expect(find.text('URLをコピーしました。ブラウザに貼り付けて開いてください。'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+
+  for (final isEnglish in [false, true]) {
+    testWidgets('About opens the license page: English=$isEnglish',
+        (tester) async {
+      await _openAbout(tester, isEnglish: isEnglish);
+      final licenseLabel =
+          find.text(isEnglish ? 'Open source licenses' : 'オープンソースライセンス');
+      expect(licenseLabel, findsOneWidget);
+      await tester.ensureVisible(licenseLabel);
+      await tester.tap(licenseLabel);
+      await tester.pumpAndSettle();
+      expect(find.text(isEnglish ? 'Licenses' : 'ライセンス'), findsOneWidget);
+      expect(find.text('RC Setting Manager'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets(
       'version unlocks developer mode after seven taps and resets on close',

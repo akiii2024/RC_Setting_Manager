@@ -17,6 +17,7 @@ import '../services/track_location_service.dart';
 import '../services/weather_service.dart';
 import '../utils/run_log_formatters.dart';
 import '../utils/settings_operation_feedback.dart';
+import '../widgets/open_weather_attribution.dart';
 import 'car_setting_page.dart';
 
 part 'quick_run_log_widgets.dart';
@@ -805,46 +806,52 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
           '${weather.cityName.trim().isEmpty ? '' : ' (${weather.cityName})'}';
     }
 
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: borderColor),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          children: [
-            leading,
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: theme.textTheme.labelLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DecoratedBox(
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: borderColor),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            child: Row(
+              children: [
+                leading,
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        message,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    message,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                IconButton(
+                  onPressed: _isWeatherLoading ? null : _refreshWeather,
+                  icon: const Icon(Icons.refresh),
+                  tooltip: _t(isEnglish, 'Update weather', '天気情報を更新'),
+                ),
+              ],
             ),
-            IconButton(
-              onPressed: _isWeatherLoading ? null : _refreshWeather,
-              icon: const Icon(Icons.refresh),
-              tooltip: _t(isEnglish, 'Update weather', '天気情報を更新'),
-            ),
-          ],
+          ),
         ),
-      ),
+        if (weather != null) const OpenWeatherAttribution(),
+      ],
     );
   }
 
