@@ -15,13 +15,17 @@ import 'package:rc_setting_manager/services/auth_service.dart';
 Widget _withAppDependencies({
   required AppModeProvider mode,
   required SettingsProvider settings,
+  ThemeProvider? themeProvider,
   Widget child = const MyApp(),
 }) {
   return MultiProvider(
     providers: [
       ChangeNotifierProvider<AppModeProvider>.value(value: mode),
       ChangeNotifierProvider<SettingsProvider>.value(value: settings),
-      ChangeNotifierProvider(create: (_) => ThemeProvider()),
+      if (themeProvider case final provider?)
+        ChangeNotifierProvider<ThemeProvider>.value(value: provider)
+      else
+        ChangeNotifierProvider(create: (_) => ThemeProvider()),
       Provider<AuthService?>.value(value: null),
     ],
     child: child,
@@ -70,6 +74,77 @@ void main() {
     expect(materialApp.routes, contains('/settings'));
     expect(materialApp.routes, contains('/tutorial'));
     expect(find.byType(HomePage), findsOneWidget);
+  });
+
+  testWidgets('端末同期は端末のBrightness変更に追従する', (tester) async {
+    SharedPreferences.setMockInitialValues({
+      'language_settings': true,
+      'online_mode': false,
+      'tutorial_completed_v1': true,
+      SharedPreferencesThemePreferencesRepository.themeModeKey:
+          ThemeMode.system.name,
+    });
+    tester.binding.platformDispatcher.platformBrightnessTestValue =
+        Brightness.light;
+    final mode =
+        AppModeProvider(preferredOnline: false, isFirebaseReady: false);
+    final settings = SettingsProvider(appModeProvider: mode);
+    final themeProvider = await ThemeProvider.create();
+    await tester.pumpWidget(_withAppDependencies(
+      mode: mode,
+      settings: settings,
+      themeProvider: themeProvider,
+    ));
+    await _pumpUntilInitialized(tester, settings);
+    await tester.pumpAndSettle();
+    expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
+        ThemeMode.system);
+    expect(Theme.of(tester.element(find.byType(HomePage))).brightness,
+        Brightness.light);
+
+    tester.binding.platformDispatcher.platformBrightnessTestValue =
+        Brightness.dark;
+    await tester.pumpAndSettle();
+    expect(Theme.of(tester.element(find.byType(HomePage))).brightness,
+        Brightness.dark);
+    tester.binding.platformDispatcher.clearPlatformBrightnessTestValue();
+  });
+
+  testWidgets('固定オン・オフは端末Brightness変更に追従しない', (tester) async {
+    for (final modeValue in <ThemeMode>[ThemeMode.dark, ThemeMode.light]) {
+      SharedPreferences.setMockInitialValues({
+        'language_settings': true,
+        'online_mode': false,
+        'tutorial_completed_v1': true,
+        SharedPreferencesThemePreferencesRepository.themeModeKey:
+            modeValue.name,
+      });
+      tester.binding.platformDispatcher.platformBrightnessTestValue =
+          Brightness.light;
+      final mode =
+          AppModeProvider(preferredOnline: false, isFirebaseReady: false);
+      final settings = SettingsProvider(appModeProvider: mode);
+      final themeProvider = await ThemeProvider.create();
+      await tester.pumpWidget(_withAppDependencies(
+        mode: mode,
+        settings: settings,
+        themeProvider: themeProvider,
+      ));
+      await _pumpUntilInitialized(tester, settings);
+      await tester.pumpAndSettle();
+      expect(tester.widget<MaterialApp>(find.byType(MaterialApp)).themeMode,
+          modeValue);
+      tester.binding.platformDispatcher.platformBrightnessTestValue =
+          Brightness.dark;
+      await tester.pumpAndSettle();
+      expect(Theme.of(tester.element(find.byType(HomePage))).brightness,
+          modeValue == ThemeMode.dark ? Brightness.dark : Brightness.light);
+      await tester.pumpWidget(const SizedBox.shrink());
+      mode.dispose();
+      settings.dispose();
+      themeProvider.dispose();
+    }
+    tester.binding.platformDispatcher.clearPlatformBrightnessTestValue();
   });
 
   testWidgets('online preference offers recovery while Firebase is unavailable',

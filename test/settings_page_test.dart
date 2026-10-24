@@ -260,4 +260,69 @@ void main() {
       });
     }
   }
+
+  testWidgets('ダークモード3択は狭い幅と文字拡大でも表示できる', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(360, 800));
+    tester.binding.platformDispatcher.textScaleFactorTestValue = 1.5;
+    for (final brightness in Brightness.values) {
+      SharedPreferences.setMockInitialValues({});
+      await _pumpSettingsPage(tester, brightness: brightness);
+
+      await tester.tap(find.text('ダークモード'));
+      await tester.pumpAndSettle();
+      final dialog = find.byType(AlertDialog);
+      Finder option(String label) => find.descendant(
+            of: dialog,
+            matching: find.text(label),
+          );
+      expect(option('オン'), findsOneWidget);
+      expect(option('オフ'), findsOneWidget);
+      expect(option('端末の設定と同期'), findsOneWidget);
+      expect(option('キャンセル'), findsOneWidget);
+
+      await tester.tap(option('オン'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+      final preferences = await SharedPreferences.getInstance();
+      expect(
+        preferences.getString(
+          SharedPreferencesThemePreferencesRepository.themeModeKey,
+        ),
+        ThemeMode.dark.name,
+      );
+
+      for (final choice in <MapEntry<String, ThemeMode>>[
+        const MapEntry('オフ', ThemeMode.light),
+        const MapEntry('端末の設定と同期', ThemeMode.system),
+      ]) {
+        await tester.tap(find.text('ダークモード'));
+        await tester.pumpAndSettle();
+        final nextDialog = find.byType(AlertDialog);
+        await tester.tap(find.descendant(
+          of: nextDialog,
+          matching: find.text(choice.key),
+        ));
+        await tester.pumpAndSettle();
+        expect(
+          preferences.getString(
+            SharedPreferencesThemePreferencesRepository.themeModeKey,
+          ),
+          choice.value.name,
+        );
+      }
+
+      await tester.tap(find.text('ダークモード'));
+      await tester.pumpAndSettle();
+      final cancelDialog = find.byType(AlertDialog);
+      await tester.tap(find.descendant(
+        of: cancelDialog,
+        matching: find.text('キャンセル'),
+      ));
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+    }
+
+    tester.binding.platformDispatcher.clearTextScaleFactorTestValue();
+    await tester.binding.setSurfaceSize(null);
+  });
 }

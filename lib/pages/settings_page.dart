@@ -127,30 +127,15 @@ class _SettingsPageState extends State<SettingsPage> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 40),
           children: <Widget>[
-            SwitchListTile(
-              secondary: const Icon(Icons.dark_mode_outlined),
+            ListTile(
+              leading: const Icon(Icons.dark_mode_outlined),
               title: Text(isEnglish ? 'Dark Mode' : 'ダークモード'),
-              subtitle: Text(
-                  isEnglish ? 'Switch to dark appearance' : 'アプリの外観を暗くします'),
-              value: themeProvider.isDarkMode,
-              onChanged: _isThemeMutationInFlight
+              subtitle:
+                  Text(_themeModeLabel(themeProvider.themeMode, isEnglish)),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: _isThemeMutationInFlight
                   ? null
-                  : (bool value) async {
-                      setState(() => _isThemeMutationInFlight = true);
-                      try {
-                        final result = await themeProvider.setDarkMode(value);
-                        if (!context.mounted) return;
-                        handleSettingsOperationResult(
-                          context,
-                          result,
-                          isEnglish: isEnglish,
-                        );
-                      } finally {
-                        if (mounted) {
-                          setState(() => _isThemeMutationInFlight = false);
-                        }
-                      }
-                    },
+                  : () => _showThemeModeDialog(context),
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             ),
@@ -1557,6 +1542,88 @@ class _SettingsPageState extends State<SettingsPage> {
         setDialogState(() {});
       }
     }
+  }
+
+  String _themeModeLabel(ThemeMode mode, bool isEnglish) => switch (mode) {
+        ThemeMode.dark => isEnglish ? 'On' : 'オン',
+        ThemeMode.light => isEnglish ? 'Off' : 'オフ',
+        ThemeMode.system => isEnglish ? 'Use device settings' : '端末の設定と同期',
+      };
+
+  Future<void> _showThemeModeDialog(BuildContext context) async {
+    final themeProvider = context.read<ThemeProvider>();
+    final isEnglish = context.read<SettingsProvider>().isEnglish;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (dialogContext, setDialogState) {
+          Future<void> selectMode(ThemeMode? mode) async {
+            if (mode == null || _isThemeMutationInFlight) return;
+            if (mode == themeProvider.themeMode) {
+              Navigator.of(dialogContext).pop();
+              return;
+            }
+
+            setState(() => _isThemeMutationInFlight = true);
+            setDialogState(() {});
+            try {
+              final result = await themeProvider.setThemeMode(mode);
+              if (!dialogContext.mounted) return;
+              final succeeded = handleSettingsOperationResult(
+                dialogContext,
+                result,
+                isEnglish: isEnglish,
+              );
+              if (succeeded) Navigator.of(dialogContext).pop();
+            } finally {
+              if (mounted) {
+                setState(() => _isThemeMutationInFlight = false);
+              }
+              if (dialogContext.mounted) setDialogState(() {});
+            }
+          }
+
+          return PopScope(
+            canPop: !_isThemeMutationInFlight,
+            child: AlertDialog(
+              title: Text(isEnglish ? 'Dark Mode' : 'ダークモード'),
+              content: SingleChildScrollView(
+                child: RadioGroup<ThemeMode>(
+                  groupValue: themeProvider.themeMode,
+                  onChanged: selectMode,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final mode in const [
+                        ThemeMode.dark,
+                        ThemeMode.light,
+                        ThemeMode.system,
+                      ])
+                        RadioListTile<ThemeMode>(
+                          title: Text(_themeModeLabel(mode, isEnglish)),
+                          value: mode,
+                          enabled: !_isThemeMutationInFlight,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: _isThemeMutationInFlight
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
   }
 
   void _showEditorLayoutDialog(BuildContext context) {
