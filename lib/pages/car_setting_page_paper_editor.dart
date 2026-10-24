@@ -1116,9 +1116,13 @@ mixin _CarSettingPaperEditor on State<CarSettingPage> {
                       ),
                       const SizedBox(height: 16),
                     ],
-                    _buildPaperFieldGrid(
-                      categorySettings,
-                      showFavorite: showFavorite,
+                    Theme(
+                      data:
+                          AppTheme.withOutlinedInputs(Theme.of(dialogContext)),
+                      child: _buildPaperFieldGrid(
+                        categorySettings,
+                        showFavorite: showFavorite,
+                      ),
                     ),
                   ],
                 ),

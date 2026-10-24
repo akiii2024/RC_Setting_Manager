@@ -6,12 +6,14 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:rc_setting_manager/services/setting_draft_service.dart';
+import 'package:rc_setting_manager/app/app_theme.dart';
 import 'package:rc_setting_manager/models/car.dart';
 import 'package:rc_setting_manager/models/manufacturer.dart';
 import 'package:rc_setting_manager/models/saved_setting.dart';
 import 'package:rc_setting_manager/pages/car_setting_page.dart';
 import 'package:rc_setting_manager/providers/app_mode_provider.dart';
 import 'package:rc_setting_manager/providers/settings_provider.dart';
+import 'package:rc_setting_manager/widgets/signed_angle_input_field.dart';
 
 final _manufacturer = Manufacturer(
   id: 'tamiya',
@@ -110,7 +112,119 @@ TextField _angleInput(WidgetTester tester, String key) {
   );
 }
 
+double _contrastRatio(Color first, Color second) {
+  final firstLuminance = first.computeLuminance();
+  final secondLuminance = second.computeLuminance();
+  final lighter =
+      firstLuminance > secondLuminance ? firstLuminance : secondLuminance;
+  final darker =
+      firstLuminance < secondLuminance ? firstLuminance : secondLuminance;
+  return (lighter + 0.05) / (darker + 0.05);
+}
+
 void main() {
+  for (final brightness in Brightness.values) {
+    for (final section in {
+      'Front': const Size(500, 1000),
+      'Front Damper': const Size(1200, 1000),
+    }.entries) {
+      testWidgets('paper dialog outlines ${section.key} inputs ($brightness)',
+          (tester) async {
+        final theme =
+            brightness == Brightness.light ? AppTheme.light() : AppTheme.dark();
+        await tester.binding.setSurfaceSize(section.value);
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        final car = _car(id: 'tamiya/trf420x', name: 'TRF420X');
+        final provider = await _pumpEditor(
+          tester,
+          car: car,
+          paperEditor: true,
+          theme: theme,
+        );
+        await tester.pumpAndSettle();
+
+        final pageHeader = find.byWidgetPredicate(
+          (widget) =>
+              widget is InputDecorator &&
+              widget.decoration.labelText == 'Setting Name',
+        );
+        expect(pageHeader, findsOneWidget);
+        final pageHeaderDecoration =
+            tester.widget<InputDecorator>(pageHeader).decoration;
+        expect(
+          (pageHeaderDecoration.enabledBorder! as OutlineInputBorder)
+              .borderSide,
+          (theme.inputDecorationTheme.enabledBorder! as OutlineInputBorder)
+              .borderSide,
+        );
+
+        final frontSection = find.text(section.key).first;
+        await tester.ensureVisible(frontSection);
+        await tester.tap(frontSection);
+        await tester.pumpAndSettle();
+
+        final dialog = find.byType(Dialog);
+        final inputs = find.descendant(
+          of: dialog,
+          matching: find.byType(InputDecorator),
+        );
+        expect(inputs, findsWidgets);
+
+        for (final input in tester.widgetList<InputDecorator>(inputs)) {
+          final border = input.decoration.enabledBorder! as OutlineInputBorder;
+          expect(border.borderRadius, BorderRadius.circular(18));
+          expect(border.borderSide.width, 1);
+          expect(border.borderSide.style, BorderStyle.solid);
+          expect(border.borderSide.color, theme.colorScheme.outline);
+          expect(
+            _contrastRatio(
+              border.borderSide.color,
+              input.decoration.fillColor!,
+            ),
+            greaterThanOrEqualTo(3),
+          );
+        }
+
+        expect(
+          find.descendant(
+              of: dialog,
+              matching: find.byWidgetPredicate(
+                (widget) => widget is DropdownButtonFormField<String>,
+              )),
+          findsWidgets,
+        );
+        if (section.key == 'Front') {
+          expect(
+            find.descendant(
+                of: dialog, matching: find.byType(SignedAngleInputField)),
+            findsWidgets,
+          );
+          final angle = find.byKey(const Key('frontCamberAngle'));
+          await tester.ensureVisible(angle);
+          await tester.tap(angle);
+          await tester.pumpAndSettle();
+          final angleDecoration = find.descendant(
+            of: angle,
+            matching: find.byType(InputDecorator),
+          );
+          final focusedInput = tester.widget<InputDecorator>(angleDecoration);
+          expect(focusedInput.isFocused, isTrue);
+          expect(focusedInput.decoration.focusedBorder!.borderSide,
+              BorderSide(color: theme.colorScheme.primary, width: 2));
+          await tester.enterText(angle, '+');
+          await tester.pumpAndSettle();
+          final invalidInput = tester.widget<InputDecorator>(angleDecoration);
+          expect(invalidInput.decoration.errorText, 'Enter a valid number');
+          expect(invalidInput.decoration.focusedErrorBorder!.borderSide,
+              BorderSide(color: theme.colorScheme.error, width: 2));
+        }
+        expect(provider.usePaperStyleEditor, isTrue);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
+
   for (final restore in [true, false]) {
     testWidgets('draft dialog ${restore ? 'restores' : 'discards'} edits',
         (tester) async {

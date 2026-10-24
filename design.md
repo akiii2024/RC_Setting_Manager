@@ -107,6 +107,7 @@ Material 3 のセマンティックカラーを使います。色は「見た目
 
 - カード: `24` radius、`surfaceContainerLow`、薄い `outlineVariant`、原則 elevation `0`。
 - 入力欄: `18` radius、`surfaceContainerHigh`。ダークテーマの通常時は `outline` の `1` dp 枠で境界を明示し、ライトテーマの通常時は枠なし。フォーカス時のみ primary の `2` dp 枠。
+- 紙UIのセクション編集ダイアログでは、入力欄とダイアログ背景が同じSurfaceになるため、ライト／ダークともに `outline` の `1` dp 枠を通常時から表示する。`AppTheme.withOutlinedInputs` を編集領域へ適用し、フォーカス・エラー表示は標準テーマを維持する。
 - リスト項目: `20` radius、最小高 `64`。
 - ダイアログ: `28` radius。
 - Bottom Sheet: 上辺 `32` radius。

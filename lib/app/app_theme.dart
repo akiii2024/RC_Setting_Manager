@@ -5,6 +5,20 @@ abstract final class AppTheme {
   static const _japaneseFontFamily = 'NotoSansJP';
   static const _japaneseFontFallback = <String>[_japaneseFontFamily];
 
+  static ThemeData withOutlinedInputs(ThemeData theme) {
+    // ダイアログでは入力欄と背景が同じSurfaceになるため枠で区別する。
+    final border = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(18),
+      borderSide: BorderSide(color: theme.colorScheme.outline),
+    );
+    return theme.copyWith(
+      inputDecorationTheme: theme.inputDecorationTheme.copyWith(
+        border: border,
+        enabledBorder: border,
+      ),
+    );
+  }
+
   static TextStyle _withJapaneseFallback(TextStyle style) {
     final fontWeight = style.fontWeight ?? FontWeight.w400;
 
