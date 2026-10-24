@@ -72,7 +72,7 @@ updates:
         patterns: ["*"]
         update-types: [minor, patch]
     ignore:
-      # firebase-admin 14 requires Node.js 22+, while Functions runs on Node.js 20.
+      # firebase-admin 14+ requires Node.js 22+; Functions runs on Node.js 24.
       - dependency-name: firebase-admin
         versions: [">=14.0.0 <15.0.0"]
 

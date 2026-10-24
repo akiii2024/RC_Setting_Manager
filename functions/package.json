@@ -3,7 +3,7 @@
   "description": "Cloud Functions for RC Setting Manager",
   "main": "index.js",
   "engines": {
-    "node": "20"
+    "node": "24"
   },
   "scripts": {
     "lint": "eslint .",
