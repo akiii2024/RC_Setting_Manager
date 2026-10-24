@@ -77,6 +77,12 @@ jobs:
       - name: Test supplemental license synchronization
         run: node --test tool/sync_third_party_licenses_test.mjs
 
+      # クリーンなチェックアウトには android/gradlew が無い(.gitignore 済み・
+      # flutter build が初回に生成する)。ライセンス収集はビルドより前に gradlew を
+      # 呼ぶため、config-only で wrapper だけ先に生成しておく。
+      - name: Prepare Gradle wrapper
+        run: flutter build apk --release --config-only
+
       - name: Collect Android native licenses
         working-directory: android
         run: ./gradlew :app:collectNativeLicenses --init-script ../tool/native_licenses.gradle --console=plain
