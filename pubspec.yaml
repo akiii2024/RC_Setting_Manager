@@ -23,7 +23,7 @@ dependencies:
   google_fonts: ^6.1.0
   firebase_core: ^4.14.0
   firebase_auth: ^6.7.0
-  cloud_firestore: ^6.10.0
+  cloud_firestore: ^6.10.2
   xml: ^7.1.0
   path_provider: ^2.1.6
   geolocator: 14.0.2
