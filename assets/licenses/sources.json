@@ -9,10 +9,10 @@
   },
   {
     "package": "archive",
-    "version": "4.5.2",
+    "version": "4.6.0",
     "file": "LICENSE-other.md",
-    "source": "https://pub.dev/packages/archive/versions/4.5.2",
+    "source": "https://pub.dev/packages/archive/versions/4.6.0",
     "asset": "assets/licenses/archive-LICENSE-other.md",
-    "sha256": "7bac7133a2ee8826bc17519d05bd6e128f462843e1a466ed2295cf2cf46c2194"
+    "sha256": "e508dc768958446e88c693a20889d4a079268bf634589b5999e3776d88fd9817"
   }
 ]
