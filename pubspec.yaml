@@ -29,13 +29,13 @@ dependencies:
   geolocator: 14.0.2
   permission_handler: ^12.0.1
   image_picker: ^1.2.4
-  image: ^4.10.1
+  image: ^4.13.1
   cloud_functions: ^6.5.0
   firebase_app_check: ^0.4.8
   firebase_storage: ^13.0.6
   file_picker: ^11.0.3
   video_player: ^2.14.1
-  archive: ^4.3.0
+  archive: ^4.7.1
   hive_ce_flutter: ^2.3.4
 
 dev_dependencies:
