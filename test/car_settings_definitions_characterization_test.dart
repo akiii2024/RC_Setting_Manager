@@ -33,6 +33,11 @@ Map<String, Object> _definitionShape(CarSettingDefinition definition) {
     if (setting.key == 'date') {
       json['defaultValue'] = '<current-date>';
     }
+    // 表示用の文言はフィンガープリントに含めない（英語ラベル追加のたびに
+    // 期待値が変わり、複数車種のPRが必ず競合するため）。文言自体は
+    // test/setting_label_test.dart で検証する。
+    json.remove('label');
+    json.remove('labelEn');
     return json;
   }).toList(growable: false);
   final options = [
@@ -184,7 +189,7 @@ void main() {
         'categories': 'ac31c2e7',
         'options': '3c11f54c',
         'composites': '769dd45f',
-        'fullShape': '2fa6c55f',
+        'fullShape': 'e354c0da',
       },
       'tamiya/trf420': {
         'count': 99,
@@ -192,7 +197,7 @@ void main() {
         'categories': 'e8eb5d01',
         'options': '9ca9378b',
         'composites': '2a570281',
-        'fullShape': 'd4224dd2',
+        'fullShape': 'dac5b680',
       },
       'tamiya/trf420x': {
         'count': 94,
@@ -200,7 +205,7 @@ void main() {
         'categories': '616648bb',
         'options': 'eb8442e1',
         'composites': '2a570281',
-        'fullShape': '6bf7ad22',
+        'fullShape': '7c4bf247',
       },
       'tamiya/trf421x': {
         'count': 100,
@@ -208,7 +213,7 @@ void main() {
         'categories': 'f4593996',
         'options': 'a96eeec0',
         'composites': '769dd45f',
-        'fullShape': '95f0be35',
+        'fullShape': 'ec8e6c21',
       },
       'yokomo/bd11': {
         'count': 75,
@@ -216,7 +221,7 @@ void main() {
         'categories': '394e6391',
         'options': 'a366082c',
         'composites': '5c2b6309',
-        'fullShape': '717a5077',
+        'fullShape': 'e216de85',
       },
       'yokomo/bd12': {
         'count': 77,
@@ -224,7 +229,7 @@ void main() {
         'categories': 'd9ce3b24',
         'options': '6b73060e',
         'composites': '4ad23d91',
-        'fullShape': 'dfdedfa0',
+        'fullShape': '64a3886e',
       },
       'yokomo/ms1_0': {
         'count': 74,
@@ -232,7 +237,7 @@ void main() {
         'categories': '9278acf3',
         'options': '6cc854c8',
         'composites': '39675f6d',
-        'fullShape': '404b9f0d',
+        'fullShape': '7a197a8a',
       },
       'yokomo/ms2_0': {
         'count': 75,
@@ -240,7 +245,7 @@ void main() {
         'categories': '907e0516',
         'options': '04e11613',
         'composites': '39675f6d',
-        'fullShape': 'f04b3561',
+        'fullShape': '4bb764f7',
       },
     });
   });

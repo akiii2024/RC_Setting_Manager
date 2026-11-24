@@ -40,7 +40,8 @@ void main() {
         'tamiya/trf420' ||
         'tamiya/trf420x' ||
         'tamiya/trf421' ||
-        'tamiya/trf421x' => 1.85,
+        'tamiya/trf421x' =>
+          1.85,
         'yokomo/bd11' || 'yokomo/bd12' || 'yokomo/ms1_0' => 1.9,
         'yokomo/ms2_0' => 2.0,
         'infinity/if14_2' => 1.81,
