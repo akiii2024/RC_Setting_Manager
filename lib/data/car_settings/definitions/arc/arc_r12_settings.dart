@@ -399,9 +399,8 @@ List<SettingItem> _damperSettings(String end, String label) {
       key: '${end}DamperTower',
       category: damper,
       label: '$label ダンパーステー',
-      options: isFront
-          ? const ['R128002', 'R128012']
-          : const ['R128001', 'R128011'],
+      options:
+          isFront ? const ['R128002', 'R128012'] : const ['R128001', 'R128011'],
     ),
     // 範囲の記載がないシムとリバウンドは x4_24_settings.dart に準拠。
     numberSetting(

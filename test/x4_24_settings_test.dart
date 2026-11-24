@@ -26,7 +26,12 @@ void main() {
       settings.map((setting) => setting.key).toSet(),
       hasLength(settings.length),
     );
-    expect(settings.take(basicSettings.length), orderedEquals(basicSettings));
+    expect(
+      settings.take(basicSettings.length).map(
+            (setting) => setting.toJson()..remove('labelEn'),
+          ),
+      basicSettings.map((setting) => setting.toJson()).toList(),
+    );
 
     final specificSettings = settings.skip(basicSettings.length);
     expect(

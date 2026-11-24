@@ -969,6 +969,12 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
         final theme = Theme.of(context);
         final colorScheme = theme.colorScheme;
         final selectedCar = _selectedCar;
+        final settingItems = {
+          for (final item
+              in carSettingsDefinitions[selectedCar?.id]?.availableSettings ??
+                  const <SettingItem>[])
+            item.key: item,
+        };
         final carSettings = selectedCar == null
             ? const <SavedSetting>[]
             : provider.getSavedSettingsForCar(selectedCar.id);
@@ -1308,10 +1314,17 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
                                 )
                               else
                                 ..._changes.map(
-                                  (change) => _ChangeTile(
-                                    change: change,
-                                    onRemove: () => _removeChange(change),
-                                  ),
+                                  (change) {
+                                    final item =
+                                        settingItems[change.settingKey];
+                                    return _ChangeTile(
+                                      change: change,
+                                      label: item == null
+                                          ? change.settingLabel
+                                          : provider.settingLabel(item),
+                                      onRemove: () => _removeChange(change),
+                                    );
+                                  },
                                 ),
                             ],
                           ),

@@ -307,6 +307,12 @@ class _OCRImportPageState extends State<OCRImportPage> {
   }
 
   Widget _buildResult(OcrExtractionResult result) {
+    final provider = context.watch<SettingsProvider>();
+    final definition = carSettingsDefinitions[widget.car.id];
+    final labelsByKey = <String, String>{
+      for (final item in definition?.availableSettings ?? [])
+        item.key: provider.settingLabel(item),
+    };
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     return Column(
@@ -354,6 +360,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
         else
           OcrCandidateReviewList(
             result: result,
+            labelsByKey: labelsByKey,
             selectedKeys: _selectedKeys,
             onSelectionChanged: (key, selected) {
               setState(() {
@@ -462,11 +469,13 @@ class OcrCandidateReviewList extends StatelessWidget {
   const OcrCandidateReviewList({
     super.key,
     required this.result,
+    this.labelsByKey = const {},
     required this.selectedKeys,
     required this.onSelectionChanged,
   });
 
   final OcrExtractionResult result;
+  final Map<String, String> labelsByKey;
   final Set<String> selectedKeys;
   final void Function(String key, bool selected) onSelectionChanged;
 
@@ -509,7 +518,7 @@ class OcrCandidateReviewList extends StatelessWidget {
           ? (checked) => onSelectionChanged(candidate.key, checked == true)
           : null,
       controlAffinity: ListTileControlAffinity.leading,
-      title: Text(candidate.label),
+      title: Text(labelsByKey[candidate.key] ?? candidate.label),
       subtitle: Text(
         detail,
         style: theme.textTheme.bodySmall?.copyWith(

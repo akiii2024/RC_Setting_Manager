@@ -1196,7 +1196,8 @@ mixin _CarSettingPaperEditor on State<CarSettingPage> {
         continue;
       }
       final previewValue = _buildSettingPreviewValue(setting);
-      final previewItem = MapEntry(setting.label, previewValue);
+      final previewItem = MapEntry(
+          context.read<SettingsProvider>().settingLabel(setting), previewValue);
       if (previewValue == '-') {
         emptyItems.add(previewItem);
       } else {

@@ -98,10 +98,12 @@ class _SectionCard extends StatelessWidget {
 
 class _ChangeTile extends StatelessWidget {
   final RunSettingChange change;
+  final String label;
   final VoidCallback onRemove;
 
   const _ChangeTile({
     required this.change,
+    required this.label,
     required this.onRemove,
   });
 
@@ -118,7 +120,7 @@ class _ChangeTile extends StatelessWidget {
         ),
         child: ListTile(
           dense: true,
-          title: Text(change.settingLabel),
+          title: Text(label),
           subtitle: Text(
             '${change.beforeValue ?? '-'} -> ${change.afterValue ?? '-'}',
           ),
@@ -255,6 +257,7 @@ class _RunChangeDialogState extends State<_RunChangeDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<SettingsProvider>();
     final setting = _selectedSetting;
     final beforeValue = setting == null ? null : widget.baseValues[setting.key];
 
@@ -267,6 +270,7 @@ class _RunChangeDialogState extends State<_RunChangeDialog> {
           children: [
             DropdownButtonFormField<String>(
               key: ValueKey('setting-${setting?.key ?? ''}'),
+              isExpanded: true,
               initialValue: setting?.key,
               decoration: InputDecoration(
                 labelText: _t(widget.isEnglish, 'Setting', '項目'),
@@ -275,7 +279,7 @@ class _RunChangeDialogState extends State<_RunChangeDialog> {
                   .map(
                     (item) => DropdownMenuItem<String>(
                       value: item.key,
-                      child: Text(item.label),
+                      child: Text(provider.settingLabel(item)),
                     ),
                   )
                   .toList(),

@@ -20,47 +20,49 @@ final mtc3Settings = buildCarSettingDefinition(
 );
 
 List<SettingItem> _endSettings(String end, String label) => [
-  // 入力範囲の記載がないため、車高・キャンバーは
-  // X4'24 の同種項目の範囲と刻みを使用。
-  numberSetting(
-    key: '${end}RideHeight',
-    category: end,
-    label: '$label 車高',
-    unit: 'mm',
-    min: 3,
-    max: 10,
-    step: 0.1,
-    defaultValue: '5',
-  ),
-  numberSetting(
-    key: '${end}Camber',
-    category: end,
-    label: '$label キャンバー角',
-    unit: 'degr.',
-    min: -10,
-    max: 10,
-    step: 0.5,
-    defaultValue: '-2',
-  ),
-  // シートのダウンストップ記入値（23.6 / 22.4 mm）は
-  // X4'24 の範囲（-3〜10 mm）外のため、単位付きの自由記入。
-  textSetting(
-    key: '${end}Droop',
-    category: end,
-    label: '$label ダウンストップ',
-    unit: 'mm',
-  ),
-  // アップトラベルとキャスターは同じ測定方式で比較できる
-  // 入力範囲を確認できないため自由記入。
-  textSetting(key: '${end}UpTravel', category: end, label: '$label アップトラベル'),
-  textSetting(
-    key: '${end}CasterAngle',
-    category: end,
-    label: '$label キャスター角',
-    unit: 'degr.',
-  ),
-  textSetting(key: '${end}UpperArm', category: end, label: '$label アッパーアーム'),
-];
+      // 入力範囲の記載がないため、車高・キャンバーは
+      // X4'24 の同種項目の範囲と刻みを使用。
+      numberSetting(
+        key: '${end}RideHeight',
+        category: end,
+        label: '$label 車高',
+        unit: 'mm',
+        min: 3,
+        max: 10,
+        step: 0.1,
+        defaultValue: '5',
+      ),
+      numberSetting(
+        key: '${end}Camber',
+        category: end,
+        label: '$label キャンバー角',
+        unit: 'degr.',
+        min: -10,
+        max: 10,
+        step: 0.5,
+        defaultValue: '-2',
+      ),
+      // シートのダウンストップ記入値（23.6 / 22.4 mm）は
+      // X4'24 の範囲（-3〜10 mm）外のため、単位付きの自由記入。
+      textSetting(
+        key: '${end}Droop',
+        category: end,
+        label: '$label ダウンストップ',
+        unit: 'mm',
+      ),
+      // アップトラベルとキャスターは同じ測定方式で比較できる
+      // 入力範囲を確認できないため自由記入。
+      textSetting(
+          key: '${end}UpTravel', category: end, label: '$label アップトラベル'),
+      textSetting(
+        key: '${end}CasterAngle',
+        category: end,
+        label: '$label キャスター角',
+        unit: 'degr.',
+      ),
+      textSetting(
+          key: '${end}UpperArm', category: end, label: '$label アッパーアーム'),
+    ];
 
 List<SettingItem> _damperSettings(String end, String label) {
   final category = '${end}Damper';

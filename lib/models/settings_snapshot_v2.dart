@@ -1,3 +1,4 @@
+import '../domain/settings/setting_label_mode.dart';
 import 'car.dart';
 import 'owned_part.dart';
 import 'run_log.dart';
@@ -15,6 +16,7 @@ class SettingsSnapshotV2 {
     required List<OwnedPart> ownedParts,
     required Map<String, VisibilitySettings> visibilitySettings,
     required this.isEnglish,
+    this.settingLabelMode = SettingLabelMode.auto,
     required this.usePaperStyleEditor,
   })  : cars = List<Car>.unmodifiable(cars),
         savedSettings = List<SavedSetting>.unmodifiable(savedSettings),
@@ -31,6 +33,7 @@ class SettingsSnapshotV2 {
   final List<OwnedPart> ownedParts;
   final Map<String, VisibilitySettings> visibilitySettings;
   final bool isEnglish;
+  final SettingLabelMode settingLabelMode;
   final bool usePaperStyleEditor;
 
   factory SettingsSnapshotV2.fromJson(Object? json) {
@@ -95,6 +98,9 @@ class SettingsSnapshotV2 {
       ownedParts: ownedParts,
       visibilitySettings: visibilitySettings,
       isEnglish: _decodeBool(json, 'isEnglish'),
+      settingLabelMode:
+          SettingLabelMode.fromStoredValue(json['settingLabelMode']) ??
+              SettingLabelMode.auto,
       usePaperStyleEditor: _decodeBool(json, 'usePaperStyleEditor'),
     );
   }
@@ -114,6 +120,7 @@ class SettingsSnapshotV2 {
         (carId, settings) => MapEntry(carId, settings.toJson()),
       ),
       'isEnglish': isEnglish,
+      'settingLabelMode': settingLabelMode.name,
       'usePaperStyleEditor': usePaperStyleEditor,
     };
   }
@@ -125,6 +132,7 @@ class SettingsSnapshotV2 {
     List<OwnedPart>? ownedParts,
     Map<String, VisibilitySettings>? visibilitySettings,
     bool? isEnglish,
+    SettingLabelMode? settingLabelMode,
     bool? usePaperStyleEditor,
   }) {
     return SettingsSnapshotV2(
@@ -134,6 +142,7 @@ class SettingsSnapshotV2 {
       ownedParts: ownedParts ?? this.ownedParts,
       visibilitySettings: visibilitySettings ?? this.visibilitySettings,
       isEnglish: isEnglish ?? this.isEnglish,
+      settingLabelMode: settingLabelMode ?? this.settingLabelMode,
       usePaperStyleEditor: usePaperStyleEditor ?? this.usePaperStyleEditor,
     );
   }

@@ -2,6 +2,7 @@ import 'package:rc_setting_manager/utils/app_logger.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+import '../domain/settings/setting_label_mode.dart';
 import '../models/car.dart';
 import '../models/owned_part.dart';
 import '../models/run_log.dart';
@@ -359,34 +360,39 @@ class FirestoreService {
     }
   }
 
-  Future<void> saveLanguageSettings(bool isEnglish) async {
+  Future<void> saveLanguageSettings(
+    bool isEnglish, {
+    required SettingLabelMode settingLabelMode,
+  }) async {
     if (userCollection == null) {
       throw Exception('User is not signed in.');
     }
 
     try {
-      await userCollection!
-          .doc('language_settings')
-          .set({'isEnglish': isEnglish});
+      await userCollection!.doc('language_settings').set({
+        'isEnglish': isEnglish,
+        'settingLabelMode': settingLabelMode.name,
+      }, SetOptions(merge: true));
     } catch (e) {
       debugLog('Error saving language settings: $e');
       rethrow;
     }
   }
 
-  Future<bool> getLanguageSettings() async {
+  Future<({bool isEnglish, SettingLabelMode? settingLabelMode})>
+      getLanguageSettings() async {
     if (userCollection == null) {
       throw StateError('User is not signed in.');
     }
 
     try {
       final snapshot = await userCollection!.doc('language_settings').get();
-      if (!snapshot.exists) {
-        return false;
-      }
-
-      final data = snapshot.data() as Map<String, dynamic>;
-      return data['isEnglish'] as bool? ?? false;
+      final data = snapshot.data() as Map<String, dynamic>?;
+      return (
+        isEnglish: data?['isEnglish'] as bool? ?? false,
+        settingLabelMode:
+            SettingLabelMode.fromStoredValue(data?['settingLabelMode']),
+      );
     } catch (e) {
       debugLog('Error loading language settings: $e');
       rethrow;
@@ -400,6 +406,7 @@ class FirestoreService {
     required List<OwnedPart> ownedParts,
     required Map<String, VisibilitySettings> visibilitySettings,
     required bool isEnglish,
+    required SettingLabelMode settingLabelMode,
   }) async {
     final collection = userCollection;
     if (collection == null) {
@@ -461,7 +468,8 @@ class FirestoreService {
       upserts.add(
         (batch) => batch.set(
           collection.doc('language_settings'),
-          {'isEnglish': isEnglish},
+          {'isEnglish': isEnglish, 'settingLabelMode': settingLabelMode.name},
+          SetOptions(merge: true),
         ),
       );
 

@@ -16,21 +16,25 @@ final List<SettingItem> trf420SpecificSettings = [
   _numberSetting(
     key: 'frontFSusMountSpacer',
     label: 'フロント Fサスマウントスペーサー',
+    labelEn: 'Front Suspension Mount F Spacer',
     category: 'front',
   ),
   _numberSetting(
     key: 'frontRSusMountSpacer',
     label: 'フロント Rサスマウントスペーサー',
+    labelEn: 'Front Suspension Mount R Spacer',
     category: 'front',
   ),
   _numberSetting(
     key: 'rearFSusMountSpacer',
     label: 'リア Fサスマウントスペーサー',
+    labelEn: 'Rear Suspension Mount F Spacer',
     category: 'rear',
   ),
   _numberSetting(
     key: 'rearRSusMountSpacer',
     label: 'リア Rサスマウントスペーサー',
+    labelEn: 'Rear Suspension Mount R Spacer',
     category: 'rear',
   ),
 
@@ -38,16 +42,19 @@ final List<SettingItem> trf420SpecificSettings = [
   _numberSetting(
     key: 'rearUpperArmSpacerMount',
     label: 'リア アッパーアームスペーサー（マウント）',
+    labelEn: 'Rear Upper Arm Spacer (Mount)',
     category: 'rear',
   ),
   _numberSetting(
     key: 'rearUpperArmSpacerIn',
     label: 'リア アッパーアームスペーサー（内）',
+    labelEn: 'Rear Upper Arm Spacer (Inner)',
     category: 'rear',
   ),
   _numberSetting(
     key: 'rearUpperArmSpacerOut',
     label: 'リア アッパーアームスペーサー（外）',
+    labelEn: 'Rear Upper Arm Spacer (Outer)',
     category: 'rear',
   ),
   SettingItem(
@@ -55,6 +62,7 @@ final List<SettingItem> trf420SpecificSettings = [
     type: 'select',
     category: 'rearDamper',
     label: 'リア ダンパーポジション（ステー）',
+    labelEn: 'Rear Damper Position (Stay)',
     constraints: {'selectGuide': 'insideOutside'},
     options: const ['1', '2', '3'],
     defaultValue: '2',
@@ -64,6 +72,7 @@ final List<SettingItem> trf420SpecificSettings = [
     type: 'select',
     category: 'rearDamper',
     label: 'リア ダンパーポジション（アーム）',
+    labelEn: 'Rear Damper Position (Arm)',
     constraints: {'selectGuide': 'insideOutside'},
     options: const ['1', '2', '3', '4'],
     defaultValue: '2',
@@ -73,6 +82,7 @@ final List<SettingItem> trf420SpecificSettings = [
     type: 'number',
     category: 'top',
     label: 'フロント トー角',
+    labelEn: 'Front Toe Angle',
     unit: '°',
     constraints: {'min': -5, 'max': 5, 'step': 0.1},
     defaultValue: '-1',
@@ -82,6 +92,7 @@ final List<SettingItem> trf420SpecificSettings = [
     type: 'number',
     category: 'top',
     label: 'リア トー角',
+    labelEn: 'Rear Toe Angle',
     unit: '°',
     constraints: {'min': -5, 'max': 5, 'step': 0.1},
     defaultValue: '3',
@@ -89,10 +100,12 @@ final List<SettingItem> trf420SpecificSettings = [
   _numberSetting(
     key: 'frontUprightSpacer',
     label: 'フロント アップライトスペーサー',
+    labelEn: 'Front Upright Spacer',
   ),
   _numberSetting(
     key: 'rearUprightSpacer',
     label: 'リア アップライトスペーサー',
+    labelEn: 'Rear Upright Spacer',
   ),
 
   // 420シートのバッテリー位置は前後方向の距離（mm）。
@@ -101,6 +114,7 @@ final List<SettingItem> trf420SpecificSettings = [
     type: 'number',
     category: 'top',
     label: 'バッテリー位置',
+    labelEn: 'Battery Position',
     unit: 'mm',
     constraints: {'min': -50, 'max': 50, 'step': 0.5},
     defaultValue: '0',
@@ -110,12 +124,14 @@ final List<SettingItem> trf420SpecificSettings = [
   _numberSetting(
     key: 'ballastWeightD',
     label: 'バランスウェイト D',
+    labelEn: 'Ballast Weight D',
     unit: 'g',
     max: 100,
   ),
   _numberSetting(
     key: 'ballastWeightE',
     label: 'バランスウェイト E',
+    labelEn: 'Ballast Weight E',
     unit: 'g',
     max: 100,
   ),
@@ -157,6 +173,7 @@ SettingItem _copySetting(SettingItem setting) {
     unit: setting.unit,
     category: setting.category,
     label: setting.label,
+    labelEn: setting.labelEn,
     options: options == null ? null : List<String>.from(options),
     defaultValue: setting.defaultValue,
     isAutoFilled: setting.isAutoFilled,
@@ -166,6 +183,7 @@ SettingItem _copySetting(SettingItem setting) {
 SettingItem _numberSetting({
   required String key,
   required String label,
+  required String labelEn,
   String category = 'top',
   String unit = 'mm',
   double max = 10,
@@ -175,6 +193,7 @@ SettingItem _numberSetting({
     type: 'number',
     category: category,
     label: label,
+    labelEn: labelEn,
     unit: unit,
     constraints: {'min': 0, 'max': max, 'step': 0.5},
     defaultValue: '0',

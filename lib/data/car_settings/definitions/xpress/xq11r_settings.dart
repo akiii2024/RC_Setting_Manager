@@ -6,67 +6,67 @@ import '../common/car_definition_builder.dart';
 import '../common/setting_item_helpers.dart';
 
 List<SettingItem> _endSettings(String end, String label) => [
-  // OCR では範囲・刻みを確認できないため、X4'24 の同種項目を踏襲。
-  numberSetting(
-    key: '${end}RideHeight',
-    category: end,
-    label: '$label 車高',
-    unit: 'mm',
-    min: 3,
-    max: 10,
-    step: 0.1,
-    defaultValue: '5',
-  ),
-  numberSetting(
-    key: '${end}Camber',
-    category: end,
-    label: '$label キャンバー角',
-    unit: 'degr.',
-    min: -10,
-    max: 10,
-    step: 0.5,
-    defaultValue: '-2',
-  ),
-  numberSetting(
-    key: '${end}ToeAngle',
-    category: end,
-    label: '$label トー角',
-    unit: 'degr.',
-    min: -5,
-    max: 5,
-    step: 0.1,
-    defaultValue: end == 'front' ? '-1' : '3',
-  ),
-  numberSetting(
-    key: '${end}Droop',
-    category: end,
-    label: '$label ダウンストップ',
-    unit: 'mm',
-    min: -3,
-    max: 10,
-    step: 1,
-  ),
-  selectSetting(
-    key: '${end}DiffPositionHeight',
-    category: end,
-    label: '$label デフ位置',
-    options: const ['High Diff', 'Low Diff'],
-  ),
-  textSetting(
-    key: '${end}Diff',
-    category: end,
-    label: '$label デフオイル',
-    unit: 'cSt',
-  ),
-  // デフ重量の範囲・刻みは X4'24 のウエイト項目を踏襲。
-  numberSetting(
-    key: '${end}DiffWeight',
-    category: end,
-    label: '$label デフ重量',
-    unit: 'g',
-    max: 100,
-  ),
-];
+      // OCR では範囲・刻みを確認できないため、X4'24 の同種項目を踏襲。
+      numberSetting(
+        key: '${end}RideHeight',
+        category: end,
+        label: '$label 車高',
+        unit: 'mm',
+        min: 3,
+        max: 10,
+        step: 0.1,
+        defaultValue: '5',
+      ),
+      numberSetting(
+        key: '${end}Camber',
+        category: end,
+        label: '$label キャンバー角',
+        unit: 'degr.',
+        min: -10,
+        max: 10,
+        step: 0.5,
+        defaultValue: '-2',
+      ),
+      numberSetting(
+        key: '${end}ToeAngle',
+        category: end,
+        label: '$label トー角',
+        unit: 'degr.',
+        min: -5,
+        max: 5,
+        step: 0.1,
+        defaultValue: end == 'front' ? '-1' : '3',
+      ),
+      numberSetting(
+        key: '${end}Droop',
+        category: end,
+        label: '$label ダウンストップ',
+        unit: 'mm',
+        min: -3,
+        max: 10,
+        step: 1,
+      ),
+      selectSetting(
+        key: '${end}DiffPositionHeight',
+        category: end,
+        label: '$label デフ位置',
+        options: const ['High Diff', 'Low Diff'],
+      ),
+      textSetting(
+        key: '${end}Diff',
+        category: end,
+        label: '$label デフオイル',
+        unit: 'cSt',
+      ),
+      // デフ重量の範囲・刻みは X4'24 のウエイト項目を踏襲。
+      numberSetting(
+        key: '${end}DiffWeight',
+        category: end,
+        label: '$label デフ重量',
+        unit: 'g',
+        max: 100,
+      ),
+    ];
 
 List<SettingItem> _damperSettings(String end, String label) {
   final category = '${end}Damper';

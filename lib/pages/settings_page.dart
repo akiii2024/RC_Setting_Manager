@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+
+import '../domain/settings/setting_label_mode.dart';
 import '../providers/theme_provider.dart';
 import '../providers/settings_provider.dart';
 import '../providers/app_mode_provider.dart';
@@ -179,6 +181,18 @@ class _SettingsPageState extends State<SettingsPage> {
                   const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             ),
             const SizedBox(height: 16.0),
+            ListTile(
+              leading: const Icon(Icons.translate_rounded),
+              title: Text(isEnglish ? 'Setting labels' : '項目名の表記'),
+              subtitle: Text(_settingLabelModeText(
+                settingsProvider.settingLabelMode,
+                isEnglish,
+              )),
+              trailing: const Icon(Icons.arrow_forward_ios),
+              onTap: () => _showSettingLabelModeDialog(context),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            ),
             ListTile(
               leading: const Icon(Icons.language_rounded),
               title: Text(isEnglish ? 'Language' : '言語'),
@@ -1453,8 +1467,10 @@ class _SettingsPageState extends State<SettingsPage> {
               const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           childrenPadding: const EdgeInsets.only(left: 16.0, right: 16.0),
           children: settings.map((key) {
-            final label = definitionByKey[key]?.label ??
-                VisibilitySettingsPresenter.settingLabel(key, isEnglish);
+            final item = definitionByKey[key];
+            final label = item == null
+                ? VisibilitySettingsPresenter.settingLabel(key, isEnglish)
+                : settingsProvider.settingLabel(item);
             final isVisible =
                 visibilitySettings.settingsVisibility[key] ?? true;
 
@@ -1542,6 +1558,41 @@ class _SettingsPageState extends State<SettingsPage> {
         setDialogState(() {});
       }
     }
+  }
+
+  String _settingLabelModeText(SettingLabelMode mode, bool isEnglish) =>
+      switch (mode) {
+        SettingLabelMode.auto => isEnglish ? 'Auto' : '自動',
+        SettingLabelMode.japanese => isEnglish ? 'Japanese' : '日本語',
+        SettingLabelMode.english =>
+          isEnglish ? 'English (original)' : '英語（原表記）',
+      };
+
+  Future<void> _showSettingLabelModeDialog(BuildContext context) async {
+    final provider = context.read<SettingsProvider>();
+    final isEnglish = provider.isEnglish;
+    final mode = await showDialog<SettingLabelMode>(
+      context: context,
+      builder: (dialogContext) => SimpleDialog(
+        title: Text(isEnglish ? 'Setting labels' : '項目名の表記'),
+        children: [
+          for (final option in SettingLabelMode.values)
+            ListTile(
+              onTap: () => Navigator.of(dialogContext).pop(option),
+              title: Text(_settingLabelModeText(option, isEnglish)),
+              selected: option == provider.settingLabelMode,
+              trailing: option == provider.settingLabelMode
+                  ? const Icon(Icons.check)
+                  : null,
+            ),
+        ],
+      ),
+    );
+
+    if (!context.mounted || mode == null) return;
+    final result = await provider.setSettingLabelMode(mode);
+    if (!context.mounted) return;
+    handleSettingsOperationResult(context, result, isEnglish: isEnglish);
   }
 
   String _themeModeLabel(ThemeMode mode, bool isEnglish) => switch (mode) {

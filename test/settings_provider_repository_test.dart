@@ -11,6 +11,7 @@ import 'package:rc_setting_manager/models/saved_setting.dart';
 import 'package:rc_setting_manager/models/settings_operation_result.dart';
 import 'package:rc_setting_manager/models/settings_snapshot_v2.dart';
 import 'package:rc_setting_manager/models/visibility_settings.dart';
+import 'package:rc_setting_manager/domain/settings/setting_label_mode.dart';
 import 'package:rc_setting_manager/domain/settings/settings_id_generator.dart';
 import 'package:rc_setting_manager/providers/app_mode_provider.dart';
 import 'package:rc_setting_manager/providers/settings_provider.dart';
@@ -1304,6 +1305,27 @@ void main() {
       expect(localRepository.saveCount, 1);
     });
 
+    test('項目名の表記を言語設定と一緒に同期する', () async {
+      final cloudRepository = _RecordingSettingsCloudRepository();
+      final provider = await _createProvider(
+        localRepository: _MemorySettingsLocalRepository(
+          snapshot: _buildSnapshot(),
+        ),
+        online: true,
+        cloudRepository: cloudRepository,
+      );
+
+      expect(await provider.setSettingLabelMode(SettingLabelMode.english),
+          isA<SettingsOperationSuccess<bool>>());
+      expect(cloudRepository.saveLanguageCount, 1);
+      expect(cloudRepository.cloudSettingLabelMode, SettingLabelMode.english);
+
+      expect(await provider.toggleLanguage(),
+          isA<SettingsOperationSuccess<bool>>());
+      expect(cloudRepository.saveLanguageCount, 2);
+      expect(cloudRepository.cloudSettingLabelMode, SettingLabelMode.english);
+    });
+
     test('cloud load commits all local stores once and notifies once',
         () async {
       final localRepository = _MemorySettingsLocalRepository(
@@ -1337,6 +1359,7 @@ void main() {
           ),
         },
         cloudIsEnglish: true,
+        cloudSettingLabelMode: SettingLabelMode.japanese,
       );
       final provider = await _createProvider(
         localRepository: localRepository,
@@ -1358,6 +1381,7 @@ void main() {
         ['newer-run', 'older-run'],
       );
       expect(provider.isEnglish, isTrue);
+      expect(provider.settingLabelMode, SettingLabelMode.japanese);
       expect(provider.ownedParts.single.id, 'cloud-part');
       expect(localRepository.saveCount, 1);
       expect(cloudRepository.saveCarsAndVisibilityBatchCount, 1);
@@ -1443,6 +1467,7 @@ class _RecordingSettingsCloudRepository implements SettingsCloudRepository {
     this.cloudOwnedParts = const [],
     this.cloudVisibilitySettings = const {},
     this.cloudIsEnglish = false,
+    this.cloudSettingLabelMode,
     this.saveSettingGates = const [],
     this.syncAllDataGates = const [],
     this.getSavedSettingsGates = const [],
@@ -1456,6 +1481,7 @@ class _RecordingSettingsCloudRepository implements SettingsCloudRepository {
   final List<OwnedPart> cloudOwnedParts;
   final Map<String, VisibilitySettings> cloudVisibilitySettings;
   final bool cloudIsEnglish;
+  SettingLabelMode? cloudSettingLabelMode;
   final List<Completer<void>?> saveSettingGates;
   final List<Completer<void>?> syncAllDataGates;
   final List<Completer<void>?> getSavedSettingsGates;
@@ -1618,16 +1644,21 @@ class _RecordingSettingsCloudRepository implements SettingsCloudRepository {
   }
 
   @override
-  Future<void> saveLanguageSettings(bool isEnglish) async {
+  Future<void> saveLanguageSettings(
+    bool isEnglish, {
+    required SettingLabelMode settingLabelMode,
+  }) async {
     saveLanguageCount++;
     _failIfRequested('saveLanguageSettings');
+    cloudSettingLabelMode = settingLabelMode;
   }
 
   @override
-  Future<bool> getLanguageSettings() async {
+  Future<({bool isEnglish, SettingLabelMode? settingLabelMode})>
+      getLanguageSettings() async {
     cloudReads.add('$currentUserId:getLanguageSettings');
     _failIfRequested('getLanguageSettings');
-    return cloudIsEnglish;
+    return (isEnglish: cloudIsEnglish, settingLabelMode: cloudSettingLabelMode);
   }
 
   @override
@@ -1638,6 +1669,7 @@ class _RecordingSettingsCloudRepository implements SettingsCloudRepository {
     required List<OwnedPart> ownedParts,
     required Map<String, VisibilitySettings> visibilitySettings,
     required bool isEnglish,
+    required SettingLabelMode settingLabelMode,
   }) async {
     final callIndex = syncCount;
     syncCount++;

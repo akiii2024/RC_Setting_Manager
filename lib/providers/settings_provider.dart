@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import '../models/saved_setting.dart';
 import '../models/run_log.dart';
 import '../models/car.dart';
+import '../models/car_setting_definition.dart';
 import '../models/manufacturer.dart';
 import '../models/owned_part.dart';
 import '../models/visibility_settings.dart';
@@ -13,11 +14,13 @@ import '../models/settings_snapshot_v2.dart';
 import '../domain/parts/owned_part_store.dart';
 import '../domain/settings/car_store.dart';
 import '../domain/settings/display_settings_store.dart';
+import '../domain/settings/setting_label_mode.dart';
 import '../domain/settings/run_log_store.dart';
 import '../domain/settings/saved_setting_store.dart';
 import '../domain/settings/settings_id_generator.dart';
 import '../repositories/settings_cloud_repository.dart';
 import '../repositories/settings_local_repository.dart';
+import '../utils/setting_label.dart';
 import 'app_mode_provider.dart';
 
 class SettingsProvider extends ChangeNotifier {
@@ -64,6 +67,9 @@ class SettingsProvider extends ChangeNotifier {
   Map<String, VisibilitySettings> get visibilitySettings =>
       Map.unmodifiable(_visibilitySettings);
   bool get isEnglish => _isEnglish;
+  SettingLabelMode get settingLabelMode =>
+      _displaySettingsStore.settingLabelMode;
+
   List<Car> get cars => List.unmodifiable(_cars);
   List<Car> get garageCars => List.unmodifiable(_carStore.garageCars);
   bool get usePaperStyleEditor => _usePaperStyleEditor;
@@ -604,7 +610,10 @@ class SettingsProvider extends ChangeNotifier {
           late List<OwnedPart> cloudOwnedParts;
           late List<Car> cloudCars;
           late Map<String, VisibilitySettings> cloudVisibility;
-          late bool cloudIsEnglish;
+          late ({
+            bool isEnglish,
+            SettingLabelMode? settingLabelMode
+          }) cloudLanguage;
           var acceptsCloudReadResult = true;
 
           Future<T> readCloudValue<T>(
@@ -644,7 +653,7 @@ class SettingsProvider extends ChangeNotifier {
               'visibility settings',
               target.repository.getVisibilitySettings,
             );
-            cloudIsEnglish = await readCloudValue(
+            cloudLanguage = await readCloudValue(
               'language settings',
               target.repository.getLanguageSettings,
             );
@@ -679,7 +688,10 @@ class SettingsProvider extends ChangeNotifier {
                 _cars,
                 _carStore.availableSettings,
               );
-              _displaySettingsStore.setLanguage(cloudIsEnglish);
+              _displaySettingsStore.setLanguage(cloudLanguage.isEnglish);
+              if (cloudLanguage.settingLabelMode case final mode?) {
+                _displaySettingsStore.setSettingLabelMode(mode);
+              }
             },
             sync: (repository, snapshot) =>
                 repository.saveCarsAndVisibilityAtomically(
@@ -977,12 +989,32 @@ class SettingsProvider extends ChangeNotifier {
     );
   }
 
+  String settingLabel(SettingItem item) =>
+      resolveSettingLabel(item, isEnglish: isEnglish, mode: settingLabelMode);
+
   // 言語設定変更時にFirebaseにも保存
   Future<SettingsOperationResult<bool>> toggleLanguage() {
     return _commitMutation<bool>(
       operation: 'toggleLanguage',
       mutate: _displaySettingsStore.toggleLanguage,
-      sync: (cloud, snapshot) => cloud.saveLanguageSettings(snapshot.isEnglish),
+      sync: (cloud, snapshot) => cloud.saveLanguageSettings(
+        snapshot.isEnglish,
+        settingLabelMode: snapshot.settingLabelMode,
+      ),
+    );
+  }
+
+  Future<SettingsOperationResult<bool>> setSettingLabelMode(
+    SettingLabelMode value,
+  ) {
+    return _commitMutation<bool>(
+      operation: 'setSettingLabelMode',
+      mutate: () => _displaySettingsStore.setSettingLabelMode(value),
+      didChange: (changed) => changed,
+      sync: (cloud, snapshot) => cloud.saveLanguageSettings(
+        snapshot.isEnglish,
+        settingLabelMode: snapshot.settingLabelMode,
+      ),
     );
   }
 
@@ -1111,6 +1143,7 @@ class SettingsProvider extends ChangeNotifier {
       visibilitySettings:
           Map<String, VisibilitySettings>.of(_visibilitySettings),
       isEnglish: _isEnglish,
+      settingLabelMode: settingLabelMode,
       usePaperStyleEditor: _usePaperStyleEditor,
     );
   }
@@ -1136,6 +1169,7 @@ class SettingsProvider extends ChangeNotifier {
       Map<String, VisibilitySettings>.of(snapshot.visibilitySettings),
     );
     _displaySettingsStore.setLanguage(snapshot.isEnglish);
+    _displaySettingsStore.setSettingLabelMode(snapshot.settingLabelMode);
     _displaySettingsStore.setPaperStyleEditor(snapshot.usePaperStyleEditor);
   }
 
@@ -1409,6 +1443,7 @@ class SettingsProvider extends ChangeNotifier {
       ownedParts: snapshot.ownedParts,
       visibilitySettings: snapshot.visibilitySettings,
       isEnglish: snapshot.isEnglish,
+      settingLabelMode: snapshot.settingLabelMode,
     );
   }
 

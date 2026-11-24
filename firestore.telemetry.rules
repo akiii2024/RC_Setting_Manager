@@ -20,7 +20,9 @@ service cloud.firestore {
           documentId == 'visibility_settings' && data.keys().size() <= 100
         ) || (
           documentId == 'language_settings' &&
-          data.keys().hasOnly(['isEnglish']) && data.isEnglish is bool
+          data.keys().hasOnly(['isEnglish', 'settingLabelMode']) &&
+          data.isEnglish is bool &&
+          data.get('settingLabelMode', 'auto') in ['auto', 'japanese', 'english']
         );
     }
 

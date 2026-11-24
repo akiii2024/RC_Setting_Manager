@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../data/car_settings_definitions.dart';
 import '../data/run_feel_tags.dart';
 import '../models/run_log.dart';
 import '../models/run_log_statistics.dart';
@@ -410,6 +411,24 @@ class StatisticsPage extends StatelessWidget {
     bool isEnglish,
     DateTime now,
   ) {
+    final provider = context.read<SettingsProvider>();
+    final labelsByKey = <String, Set<String?>>{};
+    for (final run in provider.runLogs.where((run) => run.bestLapMillis > 0)) {
+      final items = carSettingsDefinitions[run.car.id]?.availableSettings;
+      for (final change in run.changes) {
+        final item =
+            items?.where((item) => item.key == change.settingKey).firstOrNull;
+        labelsByKey.putIfAbsent(change.settingKey, () => {}).add(
+              item == null ? null : provider.settingLabel(item),
+            );
+      }
+    }
+
+    final resolvedLabels = {
+      for (final entry in labelsByKey.entries)
+        if (entry.value.length == 1) entry.key: entry.value.single,
+    };
+
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -451,6 +470,9 @@ class StatisticsPage extends StatelessWidget {
                 _ChangePerformanceTile(
                   rank: index + 1,
                   stat: statistics.changePerformance[index],
+                  label: resolvedLabels[
+                          statistics.changePerformance[index].settingKey] ??
+                      statistics.changePerformance[index].settingLabel,
                   isEnglish: isEnglish,
                   now: now,
                 ),

@@ -336,7 +336,7 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
           children: [
             Expanded(
               child: Text(
-                setting.label,
+                settingsProvider.settingLabel(setting),
                 style: const TextStyle(fontSize: 13),
               ),
             ),
@@ -686,26 +686,27 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
   Widget _buildSettingLabel(SettingItem setting) {
     final settingsProvider =
         Provider.of<SettingsProvider>(context, listen: false);
+    final label = settingsProvider.settingLabel(setting);
     final guideText = _trf420xTopPositionGuideText(
       setting.key,
       isEnglish: settingsProvider.isEnglish,
     );
 
     if (guideText == null) {
-      return Text(setting.label);
+      return Text(label);
     }
 
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Flexible(child: Text(setting.label)),
+        Flexible(child: Text(label)),
         const SizedBox(width: 4),
         IconButton(
           icon: const Icon(Icons.help_outline, size: 18),
           onPressed: () {
             _showTrf420xTopPositionGuide(
-              title: setting.label,
+              title: label,
               message: guideText,
               isEnglish: settingsProvider.isEnglish,
             );
@@ -826,8 +827,9 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
     required String diameterKey,
     required String noteKey,
   }) {
-    final isEnglish =
-        Provider.of<SettingsProvider>(context, listen: false).isEnglish;
+    final provider = context.read<SettingsProvider>();
+    final isEnglish = provider.isEnglish;
+    final label = provider.settingLabel(setting);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -835,7 +837,7 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: Text(setting.label)),
+            Expanded(child: Text(label)),
             const SizedBox(width: 8),
             SizedBox(
               width: 128,
@@ -878,8 +880,9 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
     required String oilKey,
     required String weightKey,
   }) {
-    final isEnglish =
-        Provider.of<SettingsProvider>(context, listen: false).isEnglish;
+    final provider = context.read<SettingsProvider>();
+    final isEnglish = provider.isEnglish;
+    final label = provider.settingLabel(setting);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -931,7 +934,7 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(setting.label),
+                  Text(label),
                   const SizedBox(height: 8),
                   oilTypeField,
                   const SizedBox(height: 8),
@@ -947,7 +950,7 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
               children: [
                 Padding(
                   padding: const EdgeInsets.only(top: 16),
-                  child: Text(setting.label),
+                  child: Text(label),
                 ),
                 const SizedBox(width: 8),
                 Expanded(flex: 3, child: oilTypeField),

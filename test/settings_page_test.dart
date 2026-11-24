@@ -76,6 +76,8 @@ Future<void> _dragToOverscroll(
   final scrollable = tester.state<ScrollableState>(find.byType(Scrollable));
   final position = scrollable.position;
   if (fromBottom) {
+    await tester.scrollUntilVisible(find.text('アプリについて'), 200);
+    await tester.pumpAndSettle();
     position.jumpTo(position.maxScrollExtent);
     await tester.pump();
   }
@@ -124,6 +126,31 @@ void main() {
       'language_settings': false,
     });
     ApiConsentService.resetPendingRequestsForTesting();
+  });
+
+  testWidgets('設定画面で項目名の表記を選び直せる', (tester) async {
+    await _pumpSettingsPage(tester, brightness: Brightness.dark);
+    final setting = find.text('項目名の表記');
+    await tester.scrollUntilVisible(setting, 120);
+    await tester.ensureVisible(setting);
+    await tester.tap(setting);
+    await tester.pumpAndSettle();
+
+    final dialog = find.byType(SimpleDialog);
+    expect(
+        find.descendant(of: dialog, matching: find.text('自動')), findsOneWidget);
+    expect(find.descendant(of: dialog, matching: find.text('日本語')),
+        findsOneWidget);
+    await tester.tap(find.descendant(
+      of: dialog,
+      matching: find.text('英語（原表記）'),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(dialog, findsNothing);
+    final row = find.ancestor(of: setting, matching: find.byType(ListTile));
+    expect(find.descendant(of: row, matching: find.text('英語（原表記）')),
+        findsOneWidget);
   });
 
   testWidgets('suppressed location prompt can be restored from settings',
