@@ -379,35 +379,31 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
     // Web環境の場合は機能制限を表示
     if (kIsWeb) {
       return Scaffold(
-        appBar: AppBar(
-          title: Text(isEnglish ? 'Import Data' : 'データのインポート'),
-        ),
-        body: const Center(
+        appBar: AppBar(title: Text(isEnglish ? 'Import Data' : 'データのインポート')),
+        body: Center(
           child: Padding(
-            padding: EdgeInsets.all(32.0),
+            padding: const EdgeInsets.all(32.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.web,
-                  size: 64,
-                  color: Colors.grey,
-                ),
-                SizedBox(height: 16),
+                const Icon(Icons.web, size: 64, color: Colors.grey),
+                const SizedBox(height: 16),
                 Text(
-                  'ファイルインポート機能はWeb版では利用できません',
-                  style: TextStyle(
+                  isEnglish
+                      ? 'File import is unavailable on the web.'
+                      : 'ファイルインポート機能はWeb版では利用できません',
+                  style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                   textAlign: TextAlign.center,
                 ),
-                SizedBox(height: 8),
+                const SizedBox(height: 8),
                 Text(
-                  'この機能を使用するには、AndroidまたはiOSアプリをご利用ください。',
-                  style: TextStyle(
-                    color: Colors.grey,
-                  ),
+                  isEnglish
+                      ? 'Use the Android or iOS app to import files.'
+                      : 'この機能を使用するには、AndroidまたはiOSアプリをご利用ください。',
+                  style: const TextStyle(color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -662,7 +658,7 @@ class _SimpleImportPageState extends State<SimpleImportPage> {
                                 Text(isEnglish ? 'Language Settings' : '言語設定'),
                             subtitle: Text(
                               _previewData!.metadata.language != null
-                                  ? '${isEnglish ? "Language" : "言語"}: ${_previewData!.metadata.language == "en" ? "English" : "日本語"}'
+                                  ? '${isEnglish ? "Language" : "言語"}: ${_previewData!.metadata.language == "en" ? "English" : (isEnglish ? "Japanese" : "日本語")}'
                                   : (isEnglish
                                       ? 'No language data'
                                       : '言語データなし'),
