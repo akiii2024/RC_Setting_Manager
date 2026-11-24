@@ -70,6 +70,7 @@ void main() {
       'yokomo/bd12',
       'yokomo/ms1_0',
       'yokomo/ms2_0',
+      'schumacher/mi9',
     ]);
     for (final entry in carSettingsDefinitions.entries) {
       expect(entry.value.carId, entry.key);
@@ -113,9 +114,11 @@ void main() {
             reason: entry.key);
         expect(defaults['$end${isTamiya ? 'CamberAngle' : 'Camber'}'], '-2',
             reason: entry.key);
-        expect(defaults['$end${isTamiya ? 'DamperPistonHole' : 'PistonHole'}'],
-            '4',
-            reason: entry.key);
+        final isMi9 = entry.key == 'schumacher/mi9';
+        final pistonKey = isMi9
+            ? '${end}DamperPiston'
+            : '$end${isTamiya ? 'DamperPistonHole' : 'PistonHole'}';
+        expect(defaults[pistonKey], isMi9 ? '' : '4', reason: entry.key);
         // 自由記述のオイル銘柄/粘度は利用者が指定する。
         expect(defaults['$end${isTamiya ? 'DamperOil' : 'ShockOil'}'], '',
             reason: entry.key);
@@ -208,6 +211,14 @@ void main() {
         'options': '04e11613',
         'composites': '39675f6d',
         'fullShape': 'f04b3561',
+      },
+      'schumacher/mi9': {
+        'count': 142,
+        'keys': '7e57a016',
+        'categories': '647ed36c',
+        'options': '8d749b07',
+        'composites': '741638a5',
+        'fullShape': 'd77666c6',
       },
     });
   });

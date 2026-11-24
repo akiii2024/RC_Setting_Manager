@@ -18,6 +18,12 @@ abstract final class BuiltInCarCatalog {
       logoPath: 'assets/images/yokomo.png',
     );
 
+    final schumacher = Manufacturer(
+      id: 'schumacher',
+      name: 'Schumacher',
+      logoPath: 'assets/images/schumacher.png',
+    );
+
     return [
       Car(
         id: 'tamiya/trf421',
@@ -73,6 +79,13 @@ abstract final class BuiltInCarCatalog {
         name: 'MS2.0',
         imageUrl: 'assets/images/ms2_0.jpg',
         manufacturer: yokomo,
+        category: 'ツーリングカー',
+      ),
+      Car(
+        id: 'schumacher/mi9',
+        name: 'Mi9',
+        imageUrl: 'assets/images/mi9.jpg',
+        manufacturer: schumacher,
         category: 'ツーリングカー',
       ),
     ];

@@ -16,6 +16,7 @@ void main() {
       'yokomo/bd12',
       'yokomo/ms1_0',
       'yokomo/ms2_0',
+      'schumacher/mi9',
     ]);
 
     final customized = catalog.first.copyWith(isInGarage: true);

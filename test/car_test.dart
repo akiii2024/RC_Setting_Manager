@@ -229,6 +229,7 @@ void main() {
         'yokomo/bd11',
         'yokomo/ms1_0',
         'yokomo/ms2_0',
+        'schumacher/mi9',
       };
 
       for (final carId in expectedCarIds) {
