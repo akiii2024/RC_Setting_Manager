@@ -544,6 +544,7 @@ void main() {
         'yokomo/bd12',
         'yokomo/ms1_0',
         'yokomo/ms2_0',
+        'arc/arc_r12',
       }),
     );
     expect(provider.getCarById('tamiya/trf421')?.isInGarage, isTrue);

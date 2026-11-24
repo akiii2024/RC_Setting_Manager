@@ -18,6 +18,12 @@ abstract final class BuiltInCarCatalog {
       logoPath: 'assets/images/yokomo.png',
     );
 
+    final arc = Manufacturer(
+      id: 'arc',
+      name: 'ARC',
+      logoPath: 'assets/images/arc.png',
+    );
+
     return [
       Car(
         id: 'tamiya/trf421',
@@ -73,6 +79,13 @@ abstract final class BuiltInCarCatalog {
         name: 'MS2.0',
         imageUrl: 'assets/images/ms2_0.jpg',
         manufacturer: yokomo,
+        category: 'ツーリングカー',
+      ),
+      Car(
+        id: 'arc/arc_r12',
+        name: 'R12',
+        imageUrl: 'assets/images/arc_r12.jpg',
+        manufacturer: arc,
         category: 'ツーリングカー',
       ),
     ];

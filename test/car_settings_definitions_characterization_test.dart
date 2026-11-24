@@ -70,6 +70,7 @@ void main() {
       'yokomo/bd12',
       'yokomo/ms1_0',
       'yokomo/ms2_0',
+      'arc/arc_r12',
     ]);
     for (final entry in carSettingsDefinitions.entries) {
       expect(entry.value.carId, entry.key);
@@ -106,21 +107,28 @@ void main() {
         for (final setting in entry.value.availableSettings)
           setting.key: setting.defaultValue,
       };
-      final isTamiya = entry.key.startsWith('tamiya/');
+      final usesDamperKeys =
+          entry.key.startsWith('tamiya/') || entry.key == 'arc/arc_r12';
+      final isArcR12 = entry.key == 'arc/arc_r12';
       for (final end in ['front', 'rear']) {
         expect(
-            defaults['$end${isTamiya ? 'GroundClearance' : 'RideHeight'}'], '5',
+          defaults['$end${usesDamperKeys ? 'GroundClearance' : 'RideHeight'}'],
+          isArcR12 && end == 'rear' ? '5.5' : '5',
+          reason: entry.key,
+        );
+        expect(
+            defaults['$end${usesDamperKeys ? 'CamberAngle' : 'Camber'}'], '-2',
             reason: entry.key);
-        expect(defaults['$end${isTamiya ? 'CamberAngle' : 'Camber'}'], '-2',
-            reason: entry.key);
-        expect(defaults['$end${isTamiya ? 'DamperPistonHole' : 'PistonHole'}'],
-            '4',
+        expect(
+            defaults[
+                '$end${usesDamperKeys ? 'DamperPistonHole' : 'PistonHole'}'],
+            isArcR12 ? '' : '4',
             reason: entry.key);
         // 自由記述のオイル銘柄/粘度は利用者が指定する。
-        expect(defaults['$end${isTamiya ? 'DamperOil' : 'ShockOil'}'], '',
+        expect(defaults['$end${usesDamperKeys ? 'DamperOil' : 'ShockOil'}'], '',
             reason: entry.key);
       }
-      expect(defaults['motor'], '', reason: entry.key);
+      expect(defaults['motor'], isArcR12 ? isNull : isEmpty, reason: entry.key);
       expect(defaults['spurGear'], '116', reason: entry.key);
       expect(defaults['pinionGear'], '30', reason: entry.key);
     }
@@ -208,6 +216,14 @@ void main() {
         'options': '04e11613',
         'composites': '39675f6d',
         'fullShape': 'f04b3561',
+      },
+      'arc/arc_r12': {
+        'count': 111,
+        'keys': 'fe445e9b',
+        'categories': '27b75c7c',
+        'options': '7d185338',
+        'composites': '741638a5',
+        'fullShape': '07532025',
       },
     });
   });
