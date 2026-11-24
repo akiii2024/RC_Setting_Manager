@@ -27,13 +27,14 @@ Future<void> _pump(WidgetTester tester,
 }
 
 void main() {
-  test('登録済み車種の標準内部減速比と未知車種を区別する', () {
+  test('車種ごとに登録された標準内部減速比を返す', () {
     for (final car in BuiltInCarCatalog.create()) {
-      final expected = car.id.startsWith('tamiya/')
-          ? 1.85
-          : car.id == 'yokomo/ms2_0'
-              ? 2.0
-              : 1.9;
+      final expected = switch (car.id) {
+        'awesomatix/a800r' => null,
+        'yokomo/ms2_0' => 2.0,
+        final id when id.startsWith('tamiya/') => 1.85,
+        _ => 1.9,
+      };
       expect(CarDriveRatios.forCarId(car.id), expected, reason: car.id);
     }
     expect(CarDriveRatios.forCarId('custom/car'), isNull);

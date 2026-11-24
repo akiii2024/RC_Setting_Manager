@@ -70,6 +70,7 @@ void main() {
       'yokomo/bd12',
       'yokomo/ms1_0',
       'yokomo/ms2_0',
+      'awesomatix/a800r',
     ]);
     for (final entry in carSettingsDefinitions.entries) {
       expect(entry.value.carId, entry.key);
@@ -106,6 +107,7 @@ void main() {
         for (final setting in entry.value.availableSettings)
           setting.key: setting.defaultValue,
       };
+      final pistonHoles = entry.key == 'awesomatix/a800r' ? '2' : '4';
       final isTamiya = entry.key.startsWith('tamiya/');
       for (final end in ['front', 'rear']) {
         expect(
@@ -114,7 +116,7 @@ void main() {
         expect(defaults['$end${isTamiya ? 'CamberAngle' : 'Camber'}'], '-2',
             reason: entry.key);
         expect(defaults['$end${isTamiya ? 'DamperPistonHole' : 'PistonHole'}'],
-            '4',
+            pistonHoles,
             reason: entry.key);
         // 自由記述のオイル銘柄/粘度は利用者が指定する。
         expect(defaults['$end${isTamiya ? 'DamperOil' : 'ShockOil'}'], '',
@@ -208,6 +210,14 @@ void main() {
         'options': '04e11613',
         'composites': '39675f6d',
         'fullShape': 'f04b3561',
+      },
+      'awesomatix/a800r': {
+        'count': 111,
+        'keys': 'a69744b3',
+        'categories': '7d79dd7f',
+        'options': 'e8d80051',
+        'composites': '741638a5',
+        'fullShape': '045f0e7b',
       },
     });
   });

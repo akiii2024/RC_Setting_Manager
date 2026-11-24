@@ -1,0 +1,528 @@
+import '../../../../models/car_setting_definition.dart';
+import '../../common/basic_settings.dart';
+import '../common/car_definition_builder.dart';
+import '../common/setting_item_helpers.dart';
+
+final a800rSettings = buildCarSettingDefinition(
+  carId: 'awesomatix/a800r',
+  basicSettings: basicSettings,
+  specificSettings: [
+    ..._endSettings('front', 'フロント'),
+    ..._endSettings('rear', 'リヤ'),
+    ..._chassisSettings,
+    ..._otherSettings,
+  ],
+  isHumanVerified: false,
+);
+
+List<SettingItem> _endSettings(String end, String label) {
+  final isFront = end == 'front';
+  final damper = '${end}Damper';
+  return [
+    // 抽出テキストの図に単位だけが印字された欄は、対象部位を特定できないため省略。
+    // シートに範囲の記載がない角度・車高・ダウンストップ・スタビ径・シム類は
+    // x4_24_settings.dart の同種項目の範囲と刻みを使用。
+    numberSetting(
+      key: '${end}Camber',
+      category: end,
+      label: '$label キャンバー角',
+      unit: 'degr.',
+      min: -10,
+      max: 10,
+      step: 0.5,
+      defaultValue: '-2',
+    ),
+    numberSetting(
+      key: '${end}ToeAngle',
+      category: end,
+      label: '$label トー角',
+      unit: 'degr.',
+      min: -5,
+      max: 5,
+      step: 0.1,
+      defaultValue: isFront ? '-1' : '3',
+    ),
+    numberSetting(
+      key: '${end}RideHeight',
+      category: end,
+      label: '$label 車高',
+      unit: 'mm',
+      min: 3,
+      max: 10,
+      step: 0.1,
+      defaultValue: '5',
+    ),
+    numberSetting(
+      key: '${end}Droop',
+      category: end,
+      label: '$label ダウンストップ',
+      unit: 'mm',
+      min: -3,
+      max: 10,
+      step: 1,
+    ),
+    numberSetting(
+      key: '${end}Stabilizer',
+      category: end,
+      label: '$label スタビライザー径',
+      unit: 'mm',
+      min: 1.0,
+      max: 3.0,
+      step: 0.1,
+      defaultValue: '1.2',
+    ),
+    numberSetting(
+      key: '${end}LowerArmExtension',
+      category: end,
+      label: '$label ロワアーム延長',
+      unit: 'mm',
+      max: 10,
+      step: 0.5,
+    ),
+    numberSetting(
+      key: '${end}WheelSpacer',
+      category: end,
+      label: '$label ホイールスペーサー',
+      unit: 'mm',
+      max: 10,
+      step: 0.5,
+    ),
+    numberSetting(
+      key: '${end}DiffShim',
+      category: end,
+      label: '$label デフシム',
+      unit: 'mm',
+      max: 10,
+      step: 0.5,
+    ),
+    // キャスター角は自由記入欄。X4 2024 は選択式のため数値制約を流用しない。
+    textSetting(
+      key: '${end}CasterAngle',
+      category: end,
+      label: '$label キャスター角',
+      unit: 'degr.',
+    ),
+    selectSetting(
+      key: '${end}ArbStiffener',
+      category: end,
+      label: '$label スタビライザースティフナー',
+      options: const ['1/4', '1/2', '3/4', '1'],
+    ),
+    textSetting(
+      key: '${end}SteeringArm',
+      category: end,
+      label: '$label ステアリングアーム',
+      options: isFront ? const ['AM14LS'] : const ['AM23-R'],
+    ),
+    if (isFront)
+      selectSetting(
+        key: 'frontDrive',
+        category: end,
+        label: 'フロント ドライブ',
+        options: const ['SPOOL', 'DIFF'],
+      )
+    else
+      textSetting(
+        key: 'rearDrive',
+        category: end,
+        label: 'リヤ ドライブ',
+      ),
+    selectSetting(
+      key: '${end}DrivePosition',
+      category: end,
+      label: '$label ドライブ位置',
+      options: const ['UP', 'DOWN'],
+    ),
+    textSetting(
+      key: '${end}Diff',
+      category: end,
+      label: '$label デフオイル',
+      unit: 'cSt',
+    ),
+    selectSetting(
+      key: '${end}DamperType',
+      category: damper,
+      label: '$label ダンパー',
+      options: const ['D3'],
+    ),
+    selectSetting(
+      key: '${end}PistonHole',
+      category: damper,
+      label: '$label ローター穴数',
+      options: const ['2'],
+    ),
+    selectSetting(
+      key: '${end}DamperSpring',
+      category: damper,
+      label: '$label スプリング',
+      options: const ['STD', 'S'],
+    ),
+    selectSetting(
+      key: '${end}DamperSrsRhs',
+      category: damper,
+      label: '$label SRS/RHS 配置',
+      options: const ['I', 'II'],
+    ),
+    selectSetting(
+      key: '${end}DamperPss',
+      category: damper,
+      label: '$label PSS 設定',
+      options: const ['25%', '15%'],
+    ),
+    selectSetting(
+      key: '${end}DamperDamping',
+      category: damper,
+      label: '$label 減衰特性',
+      options: const ['LINEAR', 'PROGRESSIVE'],
+    ),
+    selectSetting(
+      key: '${end}DamperC45',
+      category: damper,
+      label: '$label C45',
+      options: const ['YES', 'NO'],
+    ),
+    selectSetting(
+      key: '${end}DamperSecondSpring',
+      category: damper,
+      label: '$label セカンドスプリング',
+      options: const ['SPR-P1'],
+    ),
+    textSetting(
+      key: '${end}ShockOil',
+      category: damper,
+      label: '$label ダンパーオイル',
+      unit: 'cSt',
+    ),
+  ];
+}
+
+final _chassisSettings = <SettingItem>[
+  // シートに範囲の記載がないシム・オフセットとバラストは
+  // x4_24_settings.dart の同種項目の範囲と刻みを使用。
+  numberSetting(
+    key: 'ackermannShim',
+    category: 'top',
+    label: 'アッカーマンシム',
+    unit: 'mm',
+    max: 10,
+    step: 0.5,
+  ),
+  numberSetting(
+    key: 'motorLateralShift',
+    category: 'top',
+    label: 'モーター横方向オフセット',
+    unit: 'mm',
+    max: 10,
+    step: 0.5,
+  ),
+  selectSetting(
+    key: 'lowerDeckMaterial',
+    category: 'top',
+    label: 'ロワデッキ',
+    options: const ['C01B-RA', 'C01B-RC'],
+  ),
+  gridSetting(
+    key: 'motorMountScrewPositions',
+    category: 'top',
+    label: 'モーターマウントのスクリュー位置（1～5）',
+    rows: 1,
+    cols: 5,
+    multiple: true,
+  ),
+  textSetting(
+    key: 'bw27Screws',
+    category: 'top',
+    label: 'BW27 スクリュー',
+  ),
+  gridSetting(
+    key: 'bumperTopPlateCut',
+    category: 'top',
+    label: 'バンパートッププレートのカット位置',
+    rows: 1,
+    cols: 1,
+  ),
+  gridSetting(
+    key: 'frontTopDeckCuts',
+    category: 'top',
+    label: 'フロント トップデッキのカット位置（A～C）',
+    rows: 1,
+    cols: 3,
+    multiple: true,
+  ),
+  gridSetting(
+    key: 'rearTopDeckCuts',
+    category: 'top',
+    label: 'リヤ トップデッキのカット位置（D～F）',
+    rows: 1,
+    cols: 3,
+    multiple: true,
+  ),
+  gridSetting(
+    key: 'singleTopDeck',
+    category: 'top',
+    label: 'シングルトップデッキ C27MMX',
+    rows: 1,
+    cols: 1,
+  ),
+  selectSetting(
+    key: 'frontTopDeck',
+    category: 'top',
+    label: 'フロント トップデッキ',
+    options: const ['C127S', 'C127'],
+  ),
+  gridSetting(
+    key: 'frontBW22',
+    category: 'top',
+    label: 'フロント BW22',
+    rows: 1,
+    cols: 1,
+  ),
+  gridSetting(
+    key: 'frontBW52',
+    category: 'top',
+    label: 'フロント BW52',
+    rows: 1,
+    cols: 1,
+  ),
+  gridSetting(
+    key: 'frontC26',
+    category: 'top',
+    label: 'フロント C26',
+    rows: 1,
+    cols: 1,
+  ),
+  selectSetting(
+    key: 'rearTopDeck',
+    category: 'top',
+    label: 'リヤ トップデッキ',
+    options: const ['C127S', 'C127'],
+  ),
+  gridSetting(
+    key: 'rearBW22',
+    category: 'top',
+    label: 'リヤ BW22',
+    rows: 1,
+    cols: 1,
+  ),
+  gridSetting(
+    key: 'rearBW52',
+    category: 'top',
+    label: 'リヤ BW52',
+    rows: 1,
+    cols: 1,
+  ),
+  gridSetting(
+    key: 'rearC26',
+    category: 'top',
+    label: 'リヤ C26',
+    rows: 1,
+    cols: 1,
+  ),
+  for (final (position, label) in const [
+    ('CenterTop', '中央上段'),
+    ('LeftTop', '左上段'),
+    ('RightTop', '右上段'),
+    ('LeftMiddle', '左中段'),
+    ('RightMiddle', '右中段'),
+    ('LeftBottom', '左下段'),
+    ('RightBottom', '右下段'),
+    ('CenterBottom', '中央下段'),
+  ])
+    numberSetting(
+      key: 'ballastWeight$position',
+      category: 'top',
+      label: 'バラスト重量（図の$label）',
+      unit: 'g',
+      max: 100,
+      step: 0.5,
+    ),
+];
+final _otherSettings = <SettingItem>[
+  selectSetting(
+    key: 'trackLayout',
+    category: 'other',
+    label: 'コースレイアウト',
+    options: const ['TECHNICAL', 'MIXED', 'FAST'],
+  ),
+  selectSetting(
+    key: 'traction',
+    category: 'other',
+    label: '路面グリップ',
+    options: const ['LOW', 'MEDIUM', 'HIGH'],
+  ),
+  textSetting(
+    key: 'driverName',
+    category: 'other',
+    label: 'ドライバー名',
+  ),
+  textSetting(
+    key: 'country',
+    category: 'other',
+    label: '国',
+  ),
+  textSetting(
+    key: 'race',
+    category: 'other',
+    label: 'レース名',
+  ),
+  textSetting(
+    key: 'track',
+    category: 'other',
+    label: 'サーキット名',
+  ),
+  textSetting(
+    key: 'tire',
+    category: 'other',
+    label: 'タイヤ',
+  ),
+  textSetting(
+    key: 'tireInner',
+    category: 'other',
+    label: 'タイヤインナー',
+  ),
+  textSetting(
+    key: 'wheel',
+    category: 'other',
+    label: 'ホイール',
+  ),
+  textSetting(
+    key: 'additive',
+    category: 'other',
+    label: 'タイヤ添加剤',
+  ),
+  textSetting(
+    key: 'frontAdditiveTiming',
+    category: 'other',
+    label: 'フロント 添加剤塗布時間',
+  ),
+  textSetting(
+    key: 'rearAdditiveTiming',
+    category: 'other',
+    label: 'リヤ 添加剤塗布時間',
+  ),
+  textSetting(
+    key: 'totalWeight',
+    category: 'other',
+    label: '総重量',
+    unit: 'g',
+  ),
+  textSetting(
+    key: 'notes',
+    category: 'other',
+    label: 'ノート',
+  ),
+  textSetting(
+    key: 'motor',
+    category: 'other',
+    label: 'モーター',
+  ),
+  textSetting(
+    key: 'servo',
+    category: 'other',
+    label: 'サーボ',
+  ),
+  textSetting(
+    key: 'finalDriveRatio',
+    category: 'other',
+    label: '最終減速比',
+  ),
+  textSetting(
+    key: 'steeringTravelIn',
+    category: 'other',
+    label: 'ステアリング切れ角 内側',
+    unit: 'degr.',
+  ),
+  textSetting(
+    key: 'steeringTravelOut',
+    category: 'other',
+    label: 'ステアリング切れ角 外側',
+    unit: 'degr.',
+  ),
+  textSetting(
+    key: 'body',
+    category: 'other',
+    label: 'ボディ',
+  ),
+  textSetting(
+    key: 'battery',
+    category: 'other',
+    label: 'バッテリー',
+  ),
+  textSetting(
+    key: 'wing',
+    category: 'other',
+    label: 'ウイング',
+  ),
+  textSetting(
+    key: 'receiver',
+    category: 'other',
+    label: '受信機',
+  ),
+  textSetting(
+    key: 'esc',
+    category: 'other',
+    label: 'ESC',
+  ),
+  textSetting(
+    key: 'radio',
+    category: 'other',
+    label: '送信機',
+  ),
+  textSetting(
+    key: 'escSetting',
+    category: 'other',
+    label: 'ESC 設定',
+  ),
+  textSetting(
+    key: 'bestLapTime',
+    category: 'other',
+    label: 'ベストラップ',
+  ),
+  textSetting(
+    key: 'qualifyingPosition',
+    category: 'other',
+    label: '予選順位',
+  ),
+  textSetting(
+    key: 'finalPosition',
+    category: 'other',
+    label: '決勝順位',
+  ),
+  // ギヤ歯数と重量配分は x4_24_settings.dart の同種項目の範囲と刻みを使用。
+  numberSetting(
+    key: 'spurGear',
+    category: 'other',
+    label: 'スパーギヤ',
+    unit: 'T',
+    min: 60,
+    max: 120,
+    step: 1,
+    defaultValue: '116',
+  ),
+  numberSetting(
+    key: 'pinionGear',
+    category: 'other',
+    label: 'ピニオンギヤ',
+    unit: 'T',
+    min: 20,
+    max: 60,
+    step: 1,
+    defaultValue: '30',
+  ),
+  numberSetting(
+    key: 'frontWeightBalance',
+    category: 'other',
+    label: 'フロント 重量配分',
+    unit: '%',
+    max: 100,
+    step: 0.5,
+  ),
+  numberSetting(
+    key: 'rearWeightBalance',
+    category: 'other',
+    label: 'リヤ 重量配分',
+    unit: '%',
+    max: 100,
+    step: 0.5,
+  ),
+];
