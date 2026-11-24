@@ -25,7 +25,7 @@ class _DashboardHomeTab extends StatelessWidget {
                     title: _t(isEnglish, 'No machines yet', 'マシンがまだありません'),
                     message: _t(
                       isEnglish,
-                      'Add your first machine to start from a simpler home screen.',
+                      'Add your first machine to open it directly from this screen.',
                       '最初のマシンを追加すると、この画面からすぐ開けるようになります。',
                     ),
                     actionLabel: _t(isEnglish, 'Select a machine', 'マシンを選ぶ'),
@@ -70,7 +70,7 @@ class _DashboardHomeTab extends StatelessWidget {
                       title: _t(isEnglish, 'Recent machines', '最近触ったマシン'),
                       subtitle: _t(
                         isEnglish,
-                        'Open the machines you touched most recently.',
+                        'Quickly open the machines you worked on most recently.',
                         '最近触ったマシンからすぐ開けます。',
                       ),
                     ),
@@ -81,7 +81,7 @@ class _DashboardHomeTab extends StatelessWidget {
                             _t(isEnglish, 'No recent work yet', 'まだ保存履歴がありません'),
                         message: _t(
                           isEnglish,
-                          'Save a setting and your latest machines will appear here.',
+                          'Save a setting to see the machines you worked on most recently.',
                           '設定を保存すると、ここに最近触ったマシンが並びます。',
                         ),
                         actionLabel: _t(isEnglish, 'Create a setting', '設定を作る'),

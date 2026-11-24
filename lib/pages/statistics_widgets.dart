@@ -882,19 +882,19 @@ String _formatRelativeTime(DateTime? date, DateTime now, bool isEnglish) {
         : '${difference.inMinutes}分前';
   }
   if (difference.inDays < 1) {
-    return isEnglish
-        ? '${difference.inHours} hrs ago'
-        : '${difference.inHours}時間前';
+    final hours = difference.inHours;
+    return isEnglish ? '$hours ${hours == 1 ? 'hr' : 'hrs'} ago' : '$hours時間前';
   }
   if (difference.inDays < 30) {
-    return isEnglish
-        ? '${difference.inDays} days ago'
-        : '${difference.inDays}日前';
+    final days = difference.inDays;
+    return isEnglish ? '$days ${days == 1 ? 'day' : 'days'} ago' : '$days日前';
   }
   final months = (difference.inDays / 30).floor();
   if (months < 12) {
-    return isEnglish ? '$months months ago' : '$monthsか月前';
+    return isEnglish
+        ? '$months ${months == 1 ? 'month' : 'months'} ago'
+        : '$monthsか月前';
   }
   final years = (months / 12).floor();
-  return isEnglish ? '$years years ago' : '$years年前';
+  return isEnglish ? '$years ${years == 1 ? 'year' : 'years'} ago' : '$years年前';
 }

@@ -99,11 +99,13 @@ class _SectionCard extends StatelessWidget {
 class _ChangeTile extends StatelessWidget {
   final RunSettingChange change;
   final String label;
+  final bool isEnglish;
   final VoidCallback onRemove;
 
   const _ChangeTile({
     required this.change,
     required this.label,
+    required this.isEnglish,
     required this.onRemove,
   });
 
@@ -126,7 +128,7 @@ class _ChangeTile extends StatelessWidget {
           ),
           trailing: IconButton(
             icon: const Icon(Icons.close),
-            tooltip: 'Remove',
+            tooltip: _t(isEnglish, 'Remove', '削除'),
             onPressed: onRemove,
           ),
         ),

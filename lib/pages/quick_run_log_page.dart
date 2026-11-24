@@ -1322,6 +1322,7 @@ class _QuickRunLogPageState extends State<QuickRunLogPage> {
                                       label: item == null
                                           ? change.settingLabel
                                           : provider.settingLabel(item),
+                                      isEnglish: isEnglish,
                                       onRemove: () => _removeChange(change),
                                     );
                                   },
