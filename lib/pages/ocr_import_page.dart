@@ -42,7 +42,9 @@ class _OCRImportPageState extends State<OCRImportPage> {
   final Set<String> _selectedKeys = {};
   Key _providerIndicatorKey = UniqueKey();
   bool _isProcessing = false;
-  String? _serviceInitError;
+  String _serviceInitMessage(bool isEnglish) => isEnglish
+      ? 'Could not initialize OCR. Restart the app and try again.'
+      : 'OCRサービスを初期化できませんでした。アプリを再起動してください。';
 
   @override
   void initState() {
@@ -53,7 +55,6 @@ class _OCRImportPageState extends State<OCRImportPage> {
     } catch (error, stackTrace) {
       debugLog('OCR service initialization failed: $error');
       debugLog('Stack trace: $stackTrace');
-      _serviceInitError = 'OCRサービスを初期化できませんでした。アプリを再起動してください。';
     }
   }
 
@@ -64,9 +65,10 @@ class _OCRImportPageState extends State<OCRImportPage> {
   }
 
   Future<void> _pickImage(ImageSource source) async {
+    final isEnglish = context.read<SettingsProvider>().isEnglish;
     final service = _ocrService;
     if (service == null) {
-      _showMessage(_serviceInitError ?? 'OCRサービスを利用できません。');
+      _showMessage(_serviceInitMessage(isEnglish));
       return;
     }
     if (!await _ensureAiConfigured() || !mounted) return;
@@ -78,19 +80,18 @@ class _OCRImportPageState extends State<OCRImportPage> {
     }
     if (!mounted) return;
 
-    final settingsProvider =
-        Provider.of<SettingsProvider>(context, listen: false);
     final consentGranted = await ApiConsentService.requestConsent(
       context,
       type: ApiConsentType.aiAndOcr,
-      isEnglish: settingsProvider.isEnglish,
+      isEnglish: isEnglish,
     );
     if (!consentGranted || !mounted) return;
 
     if (source == ImageSource.camera && !kIsWeb) {
       final status = await Permission.camera.request();
       if (!status.isGranted) {
-        _showMessage('カメラの権限が必要です。');
+        _showMessage(
+            isEnglish ? 'Camera permission is required.' : 'カメラの権限が必要です。');
         return;
       }
     }
@@ -106,7 +107,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
           : await service.pickImageFromGallery();
       if (!mounted) return;
       if (image == null) {
-        _showMessage('画像が選択されませんでした。');
+        _showMessage(isEnglish ? 'No image was selected.' : '画像が選択されませんでした。');
         return;
       }
       setState(() => _selectedImage = image);
@@ -116,17 +117,24 @@ class _OCRImportPageState extends State<OCRImportPage> {
     } catch (error, stackTrace) {
       debugLog('Image selection failed: $error');
       debugLog('Stack trace: $stackTrace');
-      if (mounted) _showMessage('画像の取得に失敗しました。もう一度お試しください。');
+      if (mounted) {
+        _showMessage(isEnglish
+            ? 'Could not load the image. Try again.'
+            : '画像の取得に失敗しました。もう一度お試しください。');
+      }
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
   }
 
   Future<void> _processImage(dynamic image) async {
+    final isEnglish = context.read<SettingsProvider>().isEnglish;
     final service = _ocrService;
     final definition = getCarSettingDefinition(widget.car.id);
     if (service == null || definition == null) {
-      _showMessage('この車種の設定定義が見つかりません。');
+      _showMessage(isEnglish
+          ? 'No setup definition was found for this car model.'
+          : 'この車種の設定定義が見つかりません。');
       return;
     }
     try {
@@ -150,7 +158,9 @@ class _OCRImportPageState extends State<OCRImportPage> {
           );
       });
       if (result.candidates.isEmpty) {
-        _showMessage('入力済みの設定値を認識できませんでした。');
+        _showMessage(isEnglish
+            ? 'No filled-in setup values could be recognized.'
+            : '入力済みの設定値を認識できませんでした。');
       }
     } on OcrExtractionException catch (error) {
       if (mounted) _showMessage(error.message);
@@ -160,7 +170,9 @@ class _OCRImportPageState extends State<OCRImportPage> {
       debugLog('Structured OCR failed: $error');
       debugLog('Stack trace: $stackTrace');
       if (mounted) {
-        _showMessage('画像の解析に失敗しました。画像の向きや鮮明さを確認してください。');
+        _showMessage(isEnglish
+            ? 'Could not read the image. Check that it is upright and clear.'
+            : '画像の解析に失敗しました。画像の向きや鮮明さを確認してください。');
       }
     }
   }
@@ -220,28 +232,32 @@ class _OCRImportPageState extends State<OCRImportPage> {
   }
 
   Future<void> _importSettings() async {
+    final isEnglish = context.read<SettingsProvider>().isEnglish;
     final result = _result;
     if (result == null || result.modelMismatch) return;
     final imported = result.selectedSettings(_selectedKeys);
     if (imported.isEmpty) {
-      _showMessage('取り込む候補を選択してください。');
+      _showMessage(
+          isEnglish ? 'Select the values to import.' : '取り込む候補を選択してください。');
       return;
     }
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (dialogContext) => AlertDialog(
-            title: const Text('セッティングのインポート'),
+            title: Text(isEnglish ? 'Import Setup' : 'セッティングのインポート'),
             content: Text(
-              '${imported.length}個の設定を現在のセッティングへ上書きします。',
+              isEnglish
+                  ? 'This will overwrite ${imported.length} values in the current setup.'
+                  : '${imported.length}個の設定を現在のセッティングへ上書きします。',
             ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(dialogContext).pop(false),
-                child: const Text('キャンセル'),
+                child: Text(isEnglish ? 'Cancel' : 'キャンセル'),
               ),
               FilledButton(
                 onPressed: () => Navigator.of(dialogContext).pop(true),
-                child: const Text('インポート'),
+                child: Text(isEnglish ? 'Import' : 'インポート'),
               ),
             ],
           ),
@@ -261,7 +277,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
     );
   }
 
-  Widget _buildImagePreview() {
+  Widget _buildImagePreview(bool isEnglish) {
     final image = _selectedImage;
     if (image == null) return const SizedBox.shrink();
     return ClipRRect(
@@ -274,8 +290,10 @@ class _OCRImportPageState extends State<OCRImportPage> {
               ? Image.network(
                   image.path as String,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) =>
-                      const Center(child: Text('画像を表示できません')),
+                  errorBuilder: (_, __, ___) => Center(
+                      child: Text(isEnglish
+                          ? 'Could not display the image'
+                          : '画像を表示できません')),
                 )
               : Image.file(image as File, fit: BoxFit.contain),
         ),
@@ -308,6 +326,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
 
   Widget _buildResult(OcrExtractionResult result) {
     final provider = context.watch<SettingsProvider>();
+    final isEnglish = provider.isEnglish;
     final definition = carSettingsDefinitions[widget.car.id];
     final labelsByKey = <String, String>{
       for (final item in definition?.availableSettings ?? [])
@@ -318,12 +337,15 @@ class _OCRImportPageState extends State<OCRImportPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text('読み取り候補', style: theme.textTheme.titleLarge),
+        Text(isEnglish ? 'Detected Values' : '読み取り候補',
+            style: theme.textTheme.titleLarge),
         const SizedBox(height: 8),
         Text(
           result.detectedModel.trim().isEmpty
-              ? '検出車種: 判定できませんでした'
-              : '検出車種: ${result.detectedModel}',
+              ? (isEnglish ? 'Detected model: Unknown' : '検出車種: 判定できませんでした')
+              : (isEnglish
+                  ? 'Detected model: ${result.detectedModel}'
+                  : '検出車種: ${result.detectedModel}'),
           style: theme.textTheme.bodyMedium?.copyWith(
             color: colors.onSurfaceVariant,
           ),
@@ -332,8 +354,9 @@ class _OCRImportPageState extends State<OCRImportPage> {
         if (result.modelMismatch) ...[
           _buildNotice(
             icon: Icons.error_outline_rounded,
-            text:
-                '画像は${result.detectedModel}のシートと判定されました。現在選択中の${widget.car.name}には取り込めません。正しい車種からやり直してください。',
+            text: isEnglish
+                ? 'This appears to be a ${result.detectedModel} setup sheet and cannot be imported into ${widget.car.name}. Select the correct car model and try again.'
+                : '画像は${result.detectedModel}のシートと判定されました。現在選択中の${widget.car.name}には取り込めません。正しい車種からやり直してください。',
             background: colors.errorContainer,
             foreground: colors.onErrorContainer,
           ),
@@ -352,7 +375,9 @@ class _OCRImportPageState extends State<OCRImportPage> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Text(
-              '入力済みの設定値を認識できませんでした。',
+              isEnglish
+                  ? 'No filled-in setup values could be recognized.'
+                  : '入力済みの設定値を認識できませんでした。',
               textAlign: TextAlign.center,
               style: theme.textTheme.bodyLarge,
             ),
@@ -361,6 +386,7 @@ class _OCRImportPageState extends State<OCRImportPage> {
           OcrCandidateReviewList(
             result: result,
             labelsByKey: labelsByKey,
+            isEnglish: isEnglish,
             selectedKeys: _selectedKeys,
             onSelectionChanged: (key, selected) {
               setState(() {
@@ -378,7 +404,9 @@ class _OCRImportPageState extends State<OCRImportPage> {
               ? null
               : _importSettings,
           icon: const Icon(Icons.download_rounded),
-          label: Text('選択した設定をインポート (${_selectedKeys.length}個)'),
+          label: Text(isEnglish
+              ? 'Import Selected Values (${_selectedKeys.length})'
+              : '選択した設定をインポート (${_selectedKeys.length}個)'),
         ),
       ],
     );
@@ -388,8 +416,11 @@ class _OCRImportPageState extends State<OCRImportPage> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final isEnglish = context.watch<SettingsProvider>().isEnglish;
     return Scaffold(
-      appBar: AppBar(title: const Text('OCRでセッティングをインポート')),
+      appBar: AppBar(
+          title:
+              Text(isEnglish ? 'Import Setup with OCR' : 'OCRでセッティングをインポート')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         child: Center(
@@ -398,10 +429,10 @@ class _OCRImportPageState extends State<OCRImportPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (_serviceInitError != null) ...[
+                if (_ocrService == null) ...[
                   _buildNotice(
                     icon: Icons.error_outline_rounded,
-                    text: _serviceInitError!,
+                    text: _serviceInitMessage(isEnglish),
                     background: colors.errorContainer,
                     foreground: colors.onErrorContainer,
                   ),
@@ -410,7 +441,9 @@ class _OCRImportPageState extends State<OCRImportPage> {
                 if (kIsWeb) ...[
                   _buildNotice(
                     icon: Icons.info_outline_rounded,
-                    text: 'Web版ではギャラリーからの画像選択を推奨します。',
+                    text: isEnglish
+                        ? 'On the web, choose an image from the gallery for best results.'
+                        : 'Web版ではギャラリーからの画像選択を推奨します。',
                     background: colors.secondaryContainer,
                     foreground: colors.onSecondaryContainer,
                   ),
@@ -427,27 +460,32 @@ class _OCRImportPageState extends State<OCRImportPage> {
                           ? null
                           : () => _pickImage(ImageSource.camera),
                       icon: const Icon(Icons.camera_alt_outlined),
-                      label: Text(kIsWeb ? 'カメラを起動' : 'カメラで撮影'),
+                      label: Text(kIsWeb
+                          ? (isEnglish ? 'Open Camera' : 'カメラを起動')
+                          : (isEnglish ? 'Take Photo' : 'カメラで撮影')),
                     ),
                     OutlinedButton.icon(
                       onPressed: _isProcessing || _ocrService == null
                           ? null
                           : () => _pickImage(ImageSource.gallery),
                       icon: const Icon(Icons.photo_library_outlined),
-                      label: const Text('ギャラリーから選択'),
+                      label:
+                          Text(isEnglish ? 'Choose from Gallery' : 'ギャラリーから選択'),
                     ),
                   ],
                 ),
                 if (_selectedImage != null) ...[
                   const SizedBox(height: 20),
-                  _buildImagePreview(),
+                  _buildImagePreview(isEnglish),
                 ],
                 if (_isProcessing) ...[
                   const SizedBox(height: 24),
                   const Center(child: CircularProgressIndicator()),
                   const SizedBox(height: 12),
                   Text(
-                    'シートの文字と選択マークを解析しています…',
+                    isEnglish
+                        ? 'Reading text and selection marks on the sheet…'
+                        : 'シートの文字と選択マークを解析しています…',
                     textAlign: TextAlign.center,
                     style: theme.textTheme.bodyMedium,
                   ),
@@ -470,12 +508,14 @@ class OcrCandidateReviewList extends StatelessWidget {
     super.key,
     required this.result,
     this.labelsByKey = const {},
+    this.isEnglish = false,
     required this.selectedKeys,
     required this.onSelectionChanged,
   });
 
   final OcrExtractionResult result;
   final Map<String, String> labelsByKey;
+  final bool isEnglish;
   final Set<String> selectedKeys;
   final void Function(String key, bool selected) onSelectionChanged;
 
@@ -504,9 +544,9 @@ class OcrCandidateReviewList extends StatelessWidget {
     final colors = theme.colorScheme;
     final enabled = candidate.isValid && !result.modelMismatch;
     final confidenceLabel = switch (candidate.confidence) {
-      OcrConfidence.high => '確信度 高',
-      OcrConfidence.medium => '確信度 中',
-      OcrConfidence.low => '確信度 低',
+      OcrConfidence.high => isEnglish ? 'High confidence' : '確信度 高',
+      OcrConfidence.medium => isEnglish ? 'Medium confidence' : '確信度 中',
+      OcrConfidence.low => isEnglish ? 'Low confidence' : '確信度 低',
     };
     final detail = candidate.rejectionReason ??
         (candidate.evidence.isEmpty
@@ -530,7 +570,7 @@ class OcrCandidateReviewList extends StatelessWidget {
       secondary: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 140),
         child: Text(
-          displayValue(candidate),
+          displayValue(candidate, isEnglish: isEnglish),
           textAlign: TextAlign.end,
           style: theme.textTheme.titleMedium,
         ),
@@ -538,22 +578,28 @@ class OcrCandidateReviewList extends StatelessWidget {
     );
   }
 
-  static String displayValue(OcrCandidate candidate) {
+  static String displayValue(OcrCandidate candidate, {bool isEnglish = false}) {
+    String positionLabel(int row, int col) =>
+        isEnglish ? 'Row ${row + 1}, col ${col + 1}' : '${row + 1}行${col + 1}列';
+
     final value = candidate.value;
     if (value is List) {
       final positions = <String>[];
       for (final point in value) {
         if (point is Map && point['row'] is int && point['col'] is int) {
-          positions.add('${point['row'] + 1}行${point['col'] + 1}列');
+          positions
+              .add(positionLabel(point['row'] as int, point['col'] as int));
         }
       }
-      return positions.isEmpty ? '位置不明' : positions.join(', ');
+      return positions.isEmpty
+          ? (isEnglish ? 'Unknown position' : '位置不明')
+          : positions.join(', ');
     }
     if (value != null) return value.toString();
     if (candidate.rawValue.isNotEmpty) return candidate.rawValue;
     if (candidate.points.isNotEmpty) {
       return candidate.points
-          .map((point) => '${point.row + 1}行${point.col + 1}列')
+          .map((point) => positionLabel(point.row, point.col))
           .join(', ');
     }
     return '—';

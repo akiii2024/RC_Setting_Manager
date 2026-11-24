@@ -30,6 +30,7 @@ void main() {
                   children: [
                     OcrCandidateReviewList(
                       result: result,
+                      isEnglish: true,
                       selectedKeys: selectedKeys,
                       onSelectionChanged: (key, selected) {
                         setState(() {
@@ -51,7 +52,8 @@ void main() {
       ),
     );
 
-    expect(find.text('2行3列'), findsOneWidget);
+    expect(find.text('Row 2, col 3'), findsOneWidget);
+    expect(find.textContaining('Low confidence'), findsOneWidget);
     expect(find.text('車種定義にない項目です'), findsOneWidget);
     expect(find.text('選択件数: 2'), findsOneWidget);
 
@@ -72,6 +74,7 @@ void main() {
 
   test('選択された検証済み候補だけを動的な取り込みマップにする', () {
     final result = _reviewResult();
+    expect(OcrCandidateReviewList.displayValue(result.candidates[2]), '2行3列');
     expect(
       result.selectedSettings({
         'frontWheelHub',
