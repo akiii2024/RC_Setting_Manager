@@ -20,11 +20,13 @@ abstract final class TelemetryFileService {
     if (result == null || result.files.isEmpty) return null;
     final file = result.files.single;
     if (file.size > TelemetrySessionCodec.maxAnalysisBytes) {
-      throw const TelemetryFormatException('CSVは20 MiB以下にしてください。');
+      throw const TelemetryFormatException('CSVは20 MiB以下にしてください。',
+          englishMessage: 'Choose a CSV file no larger than 20 MiB.');
     }
     final bytes = file.bytes;
     if (bytes == null) {
-      throw const TelemetryFormatException('CSVファイルを読み込めませんでした。');
+      throw const TelemetryFormatException('CSVファイルを読み込めませんでした。',
+          englishMessage: 'Could not read the CSV file.');
     }
     return TelemetryAnalysisService.parseCsv(
       text: _decodeCsv(bytes),
@@ -42,7 +44,8 @@ abstract final class TelemetryFileService {
     if (result == null || result.files.isEmpty) return null;
     final bytes = result.files.single.bytes;
     if (bytes == null) {
-      throw const TelemetryFormatException('.stgファイルを読み込めませんでした。');
+      throw const TelemetryFormatException('.stgファイルを読み込めませんでした。',
+          englishMessage: 'Could not read the .stg file.');
     }
     return _codec.decode(bytes);
   }
@@ -57,15 +60,17 @@ abstract final class TelemetryFileService {
     final file = result.files.single;
     final bytes = file.bytes;
     if (bytes == null) {
-      throw const TelemetryFormatException('動画ファイルを読み込めませんでした。');
+      throw const TelemetryFormatException('動画ファイルを読み込めませんでした。',
+          englishMessage: 'Could not read the video file.');
     }
     return (file.name, bytes);
   }
 
-  static Future<void> saveStg(TelemetrySession session) async {
+  static Future<void> saveStg(TelemetrySession session,
+      {bool isEnglish = false}) async {
     final baseName = session.csvFileName.replaceFirst(RegExp(r'\.[^.]+$'), '');
     await FilePicker.saveFile(
-      dialogTitle: 'テレメトリーセッションを保存',
+      dialogTitle: isEnglish ? 'Save Telemetry Session' : 'テレメトリーセッションを保存',
       fileName: '$baseName.stg',
       bytes: _codec.encode(session),
     );
@@ -73,10 +78,11 @@ abstract final class TelemetryFileService {
 
   static Future<void> saveCourse(
     List<CoursePoint> points,
-    int durationMillis,
-  ) async {
+    int durationMillis, {
+    bool isEnglish = false,
+  }) async {
     await FilePicker.saveFile(
-      dialogTitle: 'コースマップを保存',
+      dialogTitle: isEnglish ? 'Save Course Map' : 'コースマップを保存',
       fileName: 'course_map.json',
       bytes: _codec.encodeCourse(points, durationMillis),
     );
@@ -92,7 +98,8 @@ abstract final class TelemetryFileService {
     if (result == null || result.files.isEmpty) return null;
     final bytes = result.files.single.bytes;
     if (bytes == null) {
-      throw const TelemetryFormatException('コースJSONを読み込めませんでした。');
+      throw const TelemetryFormatException('コースJSONを読み込めませんでした。',
+          englishMessage: 'Could not read the course JSON file.');
     }
     return _codec.decodeCourse(bytes);
   }

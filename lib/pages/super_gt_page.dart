@@ -50,7 +50,11 @@ class _SuperGtPageState extends State<SuperGtPage> {
   bool _dirty = false;
   bool _saved = false;
   int _selectionRevision = 0;
-  String? _loadError;
+  bool _hasLoadError = false;
+
+  bool get _isEnglish => context.read<SettingsProvider>().isEnglish;
+
+  String _t(String en, String ja) => _isEnglish ? en : ja;
 
   @override
   void initState() {
@@ -103,7 +107,7 @@ class _SuperGtPageState extends State<SuperGtPage> {
     _bodyWeight.clear();
     _voltage.clear();
     _targetRatio.clear();
-    _loadError = null;
+    _hasLoadError = false;
     try {
       final measurement = SuperGtMeasurement.fromSettings(settings);
       if (measurement != null) {
@@ -123,7 +127,7 @@ class _SuperGtPageState extends State<SuperGtPage> {
         _targetRatio.text = _text(target);
       }
     } on FormatException {
-      _loadError = '測定記録を読み込めませんでした。元の設定は保持しています。新しい実測値を入力してください。';
+      _hasLoadError = true;
     }
     _dirty = false;
     _saved = false;
@@ -181,15 +185,17 @@ class _SuperGtPageState extends State<SuperGtPage> {
     return await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('未保存の測定記録'),
-            content: const Text('入力内容を破棄しますか？ 保存する場合は画面に戻ってください。'),
+            title: Text(_t('Unsaved Measurement', '未保存の測定記録')),
+            content: Text(_t(
+                'Discard your changes? Return to the form to save them.',
+                '入力内容を破棄しますか？ 保存する場合は画面に戻ってください。')),
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(context, false),
-                  child: const Text('入力に戻る')),
+                  child: Text(_t('Keep Editing', '入力に戻る'))),
               TextButton(
                   onPressed: () => Navigator.pop(context, true),
-                  child: const Text('破棄する')),
+                  child: Text(_t('Discard', '破棄する'))),
             ],
           ),
         ) ??
@@ -203,7 +209,10 @@ class _SuperGtPageState extends State<SuperGtPage> {
     final measurement = _measurement;
     if (car == null || measurement == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('車両、測定時の最終減速比、タイヤ回転数を確認してください。')),
+        SnackBar(
+            content: Text(_t(
+                'Check the car, measured final drive ratio, and tire RPM.',
+                '車両、測定時の最終減速比、タイヤ回転数を確認してください。'))),
       );
       return;
     }
@@ -224,7 +233,7 @@ class _SuperGtPageState extends State<SuperGtPage> {
       );
       if (!mounted) return;
       final success =
-          handleSettingsOperationResult(context, result, isEnglish: false);
+          handleSettingsOperationResult(context, result, isEnglish: _isEnglish);
       if (success) {
         final saved = (result as SettingsOperationSuccess<SavedSetting>).value!;
         setState(() {
@@ -234,7 +243,9 @@ class _SuperGtPageState extends State<SuperGtPage> {
           _saved = true;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('測定記録を新しいセットアップとして保存しました。')),
+          SnackBar(
+              content: Text(_t('Measurement saved as a new setup.',
+                  '測定記録を新しいセットアップとして保存しました。'))),
         );
       }
     } finally {
@@ -276,7 +287,8 @@ class _SuperGtPageState extends State<SuperGtPage> {
           if ((value ?? '').trim().isEmpty && !required) return null;
           final number = _positive(value ?? '');
           if (number == null || number > 1000000000) {
-            return '0より大きく10億以下の数値を入力してください。';
+            return _t('Enter a number greater than 0 and at most 1 billion.',
+                '0より大きく10億以下の数値を入力してください。');
           }
           return null;
         },
@@ -286,13 +298,15 @@ class _SuperGtPageState extends State<SuperGtPage> {
 
   Widget _confirmation(String key, String title, String detail) {
     final value = _confirmations[key];
-    final state = value == null ? '未確認' : (value ? '確認済み' : '条件外');
+    final state = value == null
+        ? _t('Unchecked', '未確認')
+        : (value ? _t('Confirmed', '確認済み') : _t('Out of spec', '条件外'));
     return CheckboxListTile(
       contentPadding: EdgeInsets.zero,
       controlAffinity: ListTileControlAffinity.leading,
       tristate: true,
       value: value,
-      title: Text('$title：$state'),
+      title: Text(_t('$title: $state', '$title：$state')),
       subtitle: Text(detail),
       onChanged: (_) {
         setState(() {
@@ -322,33 +336,46 @@ class _SuperGtPageState extends State<SuperGtPage> {
       }
     }
     final validPrediction = predicted != null && predicted.isFinite;
-    return _section('ギヤ変更の予測', [
-      _number(_targetRatio, 'targetRatio', '変更後の最終減速比'),
+    return _section(_t('Gear Change Prediction', 'ギヤ変更の予測'), [
+      _number(_targetRatio, 'targetRatio',
+          _t('New Final Drive Ratio', '変更後の最終減速比')),
       if (validPrediction) ...[
-        Text('予測タイヤ回転数 ${predicted.toStringAsFixed(1)} rpm',
+        Text(
+            _t('Predicted tire speed: ${predicted.toStringAsFixed(1)} rpm',
+                '予測タイヤ回転数 ${predicted.toStringAsFixed(1)} rpm'),
             key: const ValueKey('predictedTireRpm'),
             style: Theme.of(context).textTheme.headlineSmall),
         const SizedBox(height: 8),
         Text(
           predicted > _rules.maxTireRpm
-              ? '予測は上限を ${(predicted - _rules.maxTireRpm).toStringAsFixed(1)} rpm 超えています。'
-              : '予測上の上限までの余裕 ${(_rules.maxTireRpm - predicted).toStringAsFixed(1)} rpm',
+              ? _t(
+                  'Predicted tire speed exceeds the limit by ${(predicted - _rules.maxTireRpm).toStringAsFixed(1)} rpm.',
+                  '予測は上限を ${(predicted - _rules.maxTireRpm).toStringAsFixed(1)} rpm 超えています。')
+              : _t(
+                  'Predicted headroom: ${(_rules.maxTireRpm - predicted).toStringAsFixed(1)} rpm',
+                  '予測上の上限までの余裕 ${(_rules.maxTireRpm - predicted).toStringAsFixed(1)} rpm'),
         ),
         if (target! < _rules.minimumFinalDriveRatio)
-          Text('変更後の最終減速比が下限 ${_rules.minimumFinalDriveRatio} を下回っています。',
+          Text(
+              _t('The new final drive ratio is below the minimum of ${_rules.minimumFinalDriveRatio}.',
+                  '変更後の最終減速比が下限 ${_rules.minimumFinalDriveRatio} を下回っています。'),
               style: TextStyle(color: Theme.of(context).colorScheme.error)),
         const SizedBox(height: 12),
       ] else
-        const Text('測定時の最終減速比・タイヤ回転数と、変更後の最終減速比を入力すると予測できます。'),
-      const Text(
-          'モーター回転数が同じと仮定した参考値です。電圧・温度・負荷で変わるため、ギヤ変更後は再測定してください。予測値は実測のチェック結果には使いません。'),
+        Text(_t(
+            'Enter the measured final drive ratio and tire RPM, then enter the new final drive ratio to see a prediction.',
+            '測定時の最終減速比・タイヤ回転数と、変更後の最終減速比を入力すると予測できます。')),
+      Text(_t(
+          'This estimate assumes the same motor RPM. Voltage, temperature, and load can affect the result, so measure again after changing gears. Only measured values are used for compliance checks.',
+          'モーター回転数が同じと仮定した参考値です。電圧・温度・負荷で変わるため、ギヤ変更後は再測定してください。予測値は実測のチェック結果には使いません。')),
       const SizedBox(height: 12),
       ExpansionTile(
         tilePadding: EdgeInsets.zero,
-        title: const Text('変更後のギヤ歯数から計算'),
+        title: Text(_t('Calculate from New Gear Tooth Counts', '変更後のギヤ歯数から計算')),
         children: [
           FinalDriveRatioCalculator(
             key: ValueKey('calculator-$_carId-$_sourceSettingId'),
+            isEnglish: _isEnglish,
             carId: _selectedCar(context.read<SettingsProvider>())?.id,
             spurTeeth: _baseSettings['spurGear'],
             pinionTeeth: _baseSettings['pinionGear'],
@@ -386,7 +413,8 @@ class _SuperGtPageState extends State<SuperGtPage> {
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('SUPER GT レギュレーション')),
+        appBar: AppBar(
+            title: Text(_t('SUPER GT Regulations', 'SUPER GT レギュレーション'))),
         body: !provider.isInitialized
             ? const Center(child: CircularProgressIndicator())
             : AbsorbPointer(
@@ -401,17 +429,19 @@ class _SuperGtPageState extends State<SuperGtPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            _section('車両とセットアップ', [
+                            _section(_t('Car and Setup', '車両とセットアップ'), [
                               if (car == null)
-                                const Text('車両を登録してから測定記録を作成してください。')
+                                Text(_t(
+                                    'Add a car before creating a measurement record.',
+                                    '車両を登録してから測定記録を作成してください。'))
                               else
                                 DropdownButtonFormField<String>(
                                   key: ValueKey(
                                       'car-${car.id}-$_selectionRevision'),
                                   initialValue: car.id,
                                   isExpanded: true,
-                                  decoration:
-                                      const InputDecoration(labelText: '車両'),
+                                  decoration: InputDecoration(
+                                      labelText: _t('Car', '車両')),
                                   items: cars
                                       .map((item) => DropdownMenuItem(
                                           value: item.id,
@@ -438,11 +468,14 @@ class _SuperGtPageState extends State<SuperGtPage> {
                                 initialValue:
                                     sourceExists ? _sourceSettingId : '',
                                 isExpanded: true,
-                                decoration: const InputDecoration(
-                                    labelText: '設定・保存済みの測定を呼び出す'),
+                                decoration: InputDecoration(
+                                    labelText: _t('Load a Setup or Measurement',
+                                        '設定・保存済みの測定を呼び出す')),
                                 items: [
-                                  const DropdownMenuItem(
-                                      value: '', child: Text('新しい測定')),
+                                  DropdownMenuItem(
+                                      value: '',
+                                      child:
+                                          Text(_t('New Measurement', '新しい測定'))),
                                   ...savedSettings.map((setting) =>
                                       DropdownMenuItem(
                                           value: setting.id,
@@ -468,32 +501,38 @@ class _SuperGtPageState extends State<SuperGtPage> {
                                       name: selected?.name));
                                 },
                               ),
-                              if (_loadError != null) ...[
+                              if (_hasLoadError) ...[
                                 const SizedBox(height: 16),
-                                Text(_loadError!,
+                                Text(
+                                    _t('Could not load the measurement. Your original setup is intact. Enter new measured values.',
+                                        '測定記録を読み込めませんでした。元の設定は保持しています。新しい実測値を入力してください。'),
                                     style: TextStyle(
                                         color: Theme.of(context)
                                             .colorScheme
                                             .error)),
                               ],
                             ]),
-                            _section('適用する規則', [
-                              const Text('2026年度 4WD／全国統一規則（2026年8月10日更新）'),
+                            _section(_t('Applicable Rules', '適用する規則'), [
+                              Text(_t(
+                                  '2026 National 4WD Rules (updated August 10, 2026)',
+                                  '2026年度 4WD／全国統一規則（2026年8月10日更新）')),
                               Text(_rules.title),
                               const SizedBox(height: 16),
                               DropdownButtonFormField<SuperGtPowerSource>(
                                 key: ValueKey('power-${_rules.id}'),
                                 initialValue: _rules.powerSource,
                                 isExpanded: true,
-                                decoration:
-                                    const InputDecoration(labelText: 'パワーソース'),
-                                items: const [
+                                decoration: InputDecoration(
+                                    labelText: _t('Power Source', 'パワーソース')),
+                                items: [
                                   DropdownMenuItem(
                                       value: SuperGtPowerSource.hobbywing,
-                                      child: Text('Hobbywing 指定コンボ')),
+                                      child: Text(_t('Approved Hobbywing Combo',
+                                          'Hobbywing 指定コンボ'))),
                                   DropdownMenuItem(
                                       value: SuperGtPowerSource.yokomo,
-                                      child: Text('ヨコモ 指定コンボ')),
+                                      child: Text(_t('Approved Yokomo Combo',
+                                          'ヨコモ 指定コンボ'))),
                                 ],
                                 onChanged: (value) {
                                   if (value == null) return;
@@ -509,15 +548,15 @@ class _SuperGtPageState extends State<SuperGtPage> {
                               DropdownButtonFormField<SuperGtBodyGroup>(
                                 key: ValueKey('group-${_rules.id}'),
                                 initialValue: _rules.bodyGroup,
-                                decoration:
-                                    const InputDecoration(labelText: 'ボディグループ'),
-                                items: const [
+                                decoration: InputDecoration(
+                                    labelText: _t('Body Group', 'ボディグループ')),
+                                items: [
                                   DropdownMenuItem(
                                       value: SuperGtBodyGroup.a,
-                                      child: Text('グループ A')),
+                                      child: Text(_t('Group A', 'グループ A'))),
                                   DropdownMenuItem(
                                       value: SuperGtBodyGroup.b,
-                                      child: Text('グループ B')),
+                                      child: Text(_t('Group B', 'グループ B'))),
                                 ],
                                 onChanged: (value) {
                                   if (value == null) return;
@@ -530,11 +569,13 @@ class _SuperGtPageState extends State<SuperGtPage> {
                                 },
                               ),
                               const SizedBox(height: 16),
-                              Text(
-                                  '最終減速比 ${_rules.minimumFinalDriveRatio} 以上／タイヤ ${_rules.maxTireRpm.toStringAsFixed(0)} rpm 以下\n車重 ${_rules.minCarWeightGrams.toStringAsFixed(0)} g 以上／ボディ ${_rules.minBodyWeightGrams.toStringAsFixed(0)} g 以上'),
+                              Text(_t(
+                                  'Min. final drive ratio: ${_rules.minimumFinalDriveRatio} / Max. tire speed: ${_rules.maxTireRpm.toStringAsFixed(0)} rpm\nMin. car weight: ${_rules.minCarWeightGrams.toStringAsFixed(0)} g / Min. body weight: ${_rules.minBodyWeightGrams.toStringAsFixed(0)} g',
+                                  '最終減速比 ${_rules.minimumFinalDriveRatio} 以上／タイヤ ${_rules.maxTireRpm.toStringAsFixed(0)} rpm 以下\n車重 ${_rules.minCarWeightGrams.toStringAsFixed(0)} g 以上／ボディ ${_rules.minBodyWeightGrams.toStringAsFixed(0)} g 以上')),
                               const SizedBox(height: 8),
-                              const Text(
-                                  '会場の追加規則・公認品一覧も確認してください。FWD・GT3000・大会独自条件には未対応です。'),
+                              Text(_t(
+                                  'Check any additional venue rules and the approved parts list. FWD, GT3000, and event-specific requirements are outside the scope of these checks.',
+                                  '会場の追加規則・公認品一覧も確認してください。FWD・GT3000・大会独自条件には未対応です。')),
                               TextButton.icon(
                                 onPressed: () async {
                                   try {
@@ -542,134 +583,194 @@ class _SuperGtPageState extends State<SuperGtPage> {
                                   } catch (_) {
                                     if (context.mounted) {
                                       ScaffoldMessenger.of(context)
-                                          .showSnackBar(const SnackBar(
-                                              content: Text(
-                                                  '公式規則を開けませんでした。通信状態や端末のブラウザを確認してください。')));
+                                          .showSnackBar(SnackBar(
+                                              content: Text(_t(
+                                                  'Could not open the official rules. Check your connection and browser.',
+                                                  '公式規則を開けませんでした。通信状態や端末のブラウザを確認してください。'))));
                                     }
                                   }
                                 },
                                 icon: const Icon(Icons.open_in_new),
-                                label: const Text('公式規則・公認品一覧を確認'),
+                                label: Text(_t(
+                                    'View Official Rules and Approved Parts',
+                                    '公式規則・公認品一覧を確認')),
                               ),
                             ]),
-                            _section('測定記録（予測の基準）', [
-                              Text(
-                                  '測定日時：${_measuredAt.toLocal().toString().split('.').first}'),
+                            _section(
+                                _t('Baseline Measurements', '測定記録（予測の基準）'), [
+                              Text(_t(
+                                  'Measured at: ${_measuredAt.toLocal().toString().split('.').first}',
+                                  '測定日時：${_measuredAt.toLocal().toString().split('.').first}')),
                               const SizedBox(height: 16),
                               TextFormField(
                                   controller: _motor,
-                                  decoration: const InputDecoration(
-                                      labelText: 'モーター名・個体メモ'),
+                                  decoration: InputDecoration(
+                                      labelText: _t(
+                                          'Motor Name or Notes', 'モーター名・個体メモ')),
                                   onChanged: (_) => _changed()),
                               const SizedBox(height: 16),
-                              _number(_ratio, 'measuredRatio', '測定時の最終減速比',
+                              _number(_ratio, 'measuredRatio',
+                                  _t('Measured Final Drive Ratio', '測定時の最終減速比'),
                                   required: true, measured: true),
-                              const Text('スパー ÷ ピニオン × 内部減速比の値を入力します。'),
+                              Text(_t(
+                                  'Enter (spur teeth ÷ pinion teeth) × internal drive ratio.',
+                                  'スパー ÷ ピニオン × 内部減速比の値を入力します。')),
                               const SizedBox(height: 16),
-                              _number(_tireRpm, 'measuredTireRpm', '実測タイヤ回転数',
+                              _number(_tireRpm, 'measuredTireRpm',
+                                  _t('Measured Tire Speed', '実測タイヤ回転数'),
                                   unit: 'rpm', required: true, measured: true),
                               if (measurement != null) ...[
                                 Text(
-                                    '推定モーター回転数 ${measurement.inferredMotorRpm.toStringAsFixed(1)} rpm',
+                                    _t('Estimated motor speed: ${measurement.inferredMotorRpm.toStringAsFixed(1)} rpm',
+                                        '推定モーター回転数 ${measurement.inferredMotorRpm.toStringAsFixed(1)} rpm'),
                                     key: const ValueKey('inferredMotorRpm'),
                                     style: Theme.of(context)
                                         .textTheme
                                         .headlineSmall),
                                 const SizedBox(height: 8),
-                                const Text('実測タイヤ回転数 × 測定時の最終減速比'),
+                                Text(_t(
+                                    'Measured tire RPM × measured final drive ratio',
+                                    '実測タイヤ回転数 × 測定時の最終減速比')),
                                 const SizedBox(height: 16),
                               ],
-                              _number(_carWeight, 'carWeight', '実測車重（ボディを含む）',
+                              _number(
+                                  _carWeight,
+                                  'carWeight',
+                                  _t('Measured Car Weight (with Body)',
+                                      '実測車重（ボディを含む）'),
+                                  unit: 'g',
+                                  measured: true),
+                              _number(_bodyWeight, 'bodyWeight',
+                                  _t('Measured Body Weight', '実測ボディ重量'),
                                   unit: 'g', measured: true),
-                              _number(_bodyWeight, 'bodyWeight', '実測ボディ重量',
-                                  unit: 'g', measured: true),
-                              _number(_voltage, 'batteryVoltage', '測定時バッテリー電圧',
-                                  unit: 'V', measured: true),
+                              _number(
+                                  _voltage,
+                                  'batteryVoltage',
+                                  _t('Battery Voltage at Measurement',
+                                      '測定時バッテリー電圧'),
+                                  unit: 'V',
+                                  measured: true),
                               TextFormField(
                                   controller: _memo,
-                                  decoration: const InputDecoration(
-                                      labelText: '大会・コース・温度などの測定メモ'),
+                                  decoration: InputDecoration(
+                                      labelText: _t(
+                                          'Measurement Notes (event, track, temperature, etc.)',
+                                          '大会・コース・温度などの測定メモ')),
                                   minLines: 2,
                                   maxLines: 5,
                                   onChanged: (_) => _changed()),
                             ]),
                             _prediction(measurement),
-                            _section('指定品・禁止事項の確認', [
-                              const Text(
-                                  'タップで「未確認 → 確認済み → 条件外」を切り替えます。実物と公式規則を照合してください。'),
-                              _confirmation('powerSource', '車両・パワーソース',
-                                  '4WDシャーシと選択した指定モーター／ESCの組合せ、使用設定を確認'),
-                              _confirmation(
-                                  'body', '公認ボディ', '公認品・グループ・カットラインを確認'),
-                              _confirmation('tires', '指定タイヤ',
-                                  '開催地指定の銘柄・硬度・購入／マーキング条件を確認'),
-                              _confirmation('prohibitedTreatments', '禁止事項',
-                                  'グリップ剤・ウォーマー・禁止加工を使用せず、指定クリーナーを確認'),
-                            ]),
-                            _section('実測・確認結果', [
-                              if (measurement == null)
-                                const Text(
-                                    '測定時の最終減速比とタイヤ回転数を入力してください。未入力項目は条件内として扱いません。')
-                              else ...[
-                                Text(
-                                    measurement.hasFailures
-                                        ? '条件外の項目があります'
-                                        : measurement.hasUnconfirmed
-                                            ? '未確認の項目があります'
-                                            : '記録した項目はすべて条件内です',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium),
-                                const SizedBox(height: 16),
-                                ...measurement.checks.map((check) => Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 12),
-                                      child: Row(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Icon(
-                                                switch (check.state) {
-                                                  SuperGtCheckState.pass =>
-                                                    Icons.check_circle_outline,
-                                                  SuperGtCheckState.fail =>
-                                                    Icons.error_outline,
-                                                  SuperGtCheckState
-                                                        .unconfirmed =>
-                                                    Icons.help_outline
-                                                },
-                                                color: check.state ==
-                                                        SuperGtCheckState.fail
-                                                    ? Theme.of(context)
-                                                        .colorScheme
-                                                        .error
-                                                    : Theme.of(context)
-                                                        .colorScheme
-                                                        .onSurfaceVariant),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                                child: Text(
-                                                    '${check.label}：${check.message}')),
-                                          ]),
-                                    )),
-                              ],
-                              const Text(
-                                  '入力値と手動確認による補助結果です。公式車検の合格を保証するものではありません。'),
-                            ]),
-                            _section('測定記録を保存', [
+                            _section(
+                                _t('Parts and Prohibited Practices',
+                                    '指定品・禁止事項の確認'),
+                                [
+                                  Text(_t(
+                                      'Tap to cycle through Unchecked → Confirmed → Out of spec. Inspect the actual car against the official rules.',
+                                      'タップで「未確認 → 確認済み → 条件外」を切り替えます。実物と公式規則を照合してください。')),
+                                  _confirmation(
+                                      'powerSource',
+                                      _t('Car and Power Source', '車両・パワーソース'),
+                                      _t('Check the 4WD chassis, selected approved motor and ESC combo, and settings.',
+                                          '4WDシャーシと選択した指定モーター／ESCの組合せ、使用設定を確認')),
+                                  _confirmation(
+                                      'body',
+                                      _t('Approved Body', '公認ボディ'),
+                                      _t('Check approval, body group, and cut lines.',
+                                          '公認品・グループ・カットラインを確認')),
+                                  _confirmation(
+                                      'tires',
+                                      _t('Specified Tires', '指定タイヤ'),
+                                      _t('Check the tire model, hardness, and purchase or marking requirements for the venue.',
+                                          '開催地指定の銘柄・硬度・購入／マーキング条件を確認')),
+                                  _confirmation(
+                                      'prohibitedTreatments',
+                                      _t('Prohibited Practices', '禁止事項'),
+                                      _t('Avoid tire additives, warmers, and prohibited modifications. Check the specified cleaner.',
+                                          'グリップ剤・ウォーマー・禁止加工を使用せず、指定クリーナーを確認')),
+                                ]),
+                            _section(
+                                _t('Measurement and Check Results', '実測・確認結果'),
+                                [
+                                  if (measurement == null)
+                                    Text(_t(
+                                        'Enter the measured final drive ratio and tire RPM. Blank items remain unchecked.',
+                                        '測定時の最終減速比とタイヤ回転数を入力してください。未入力項目は条件内として扱いません。'))
+                                  else ...[
+                                    Text(
+                                        measurement.hasFailures
+                                            ? _t('Some items are out of spec.',
+                                                '条件外の項目があります')
+                                            : measurement.hasUnconfirmed
+                                                ? _t(
+                                                    'Some items still need checking.',
+                                                    '未確認の項目があります')
+                                                : _t(
+                                                    'All recorded items meet the requirements.',
+                                                    '記録した項目はすべて条件内です'),
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .titleMedium),
+                                    const SizedBox(height: 16),
+                                    ...measurement
+                                        .localizedChecks(isEnglish: _isEnglish)
+                                        .map((check) => Padding(
+                                              padding: const EdgeInsets.only(
+                                                  bottom: 12),
+                                              child: Row(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Icon(
+                                                        switch (check.state) {
+                                                          SuperGtCheckState
+                                                                .pass =>
+                                                            Icons
+                                                                .check_circle_outline,
+                                                          SuperGtCheckState
+                                                                .fail =>
+                                                            Icons.error_outline,
+                                                          SuperGtCheckState
+                                                                .unconfirmed =>
+                                                            Icons.help_outline
+                                                        },
+                                                        color: check.state ==
+                                                                SuperGtCheckState
+                                                                    .fail
+                                                            ? Theme.of(context)
+                                                                .colorScheme
+                                                                .error
+                                                            : Theme.of(context)
+                                                                .colorScheme
+                                                                .onSurfaceVariant),
+                                                    const SizedBox(width: 12),
+                                                    Expanded(
+                                                        child: Text(_t(
+                                                            '${check.label}: ${check.message}',
+                                                            '${check.label}：${check.message}'))),
+                                                  ]),
+                                            )),
+                                  ],
+                                  Text(_t(
+                                      'These results are based on your entries and manual checks. Passing official scrutineering is subject to a separate inspection.',
+                                      '入力値と手動確認による補助結果です。公式車検の合格を保証するものではありません。')),
+                                ]),
+                            _section(_t('Save Measurement', '測定記録を保存'), [
                               TextFormField(
                                   key: const ValueKey('measurementName'),
                                   controller: _name,
-                                  decoration:
-                                      const InputDecoration(labelText: '保存名'),
+                                  decoration: InputDecoration(
+                                      labelText: _t('Setup Name', '保存名')),
                                   onChanged: (_) => _changed(),
                                   validator: (value) =>
                                       (value ?? '').trim().isEmpty
-                                          ? '保存名を入力してください。'
+                                          ? _t('Enter a name for the setup.',
+                                              '保存名を入力してください。')
                                           : null),
                               const SizedBox(height: 12),
-                              const Text(
-                                  '元のセットアップを残し、測定値・推定モーター回転数・規則の版を新しいセットアップとして保存します。未確認・条件外も記録できます。'),
+                              Text(_t(
+                                  'Save the measurements, estimated motor RPM, and rule version as a new setup. The original setup stays intact. You can also save unchecked and out-of-spec items.',
+                                  '元のセットアップを残し、測定値・推定モーター回転数・規則の版を新しいセットアップとして保存します。未確認・条件外も記録できます。')),
                             ]),
                           ],
                         ),
@@ -700,10 +801,10 @@ class _SuperGtPageState extends State<SuperGtPage> {
                               child: CircularProgressIndicator(strokeWidth: 2))
                           : const Icon(Icons.save_outlined),
                       label: Text(_saving
-                          ? '保存中…'
+                          ? _t('Saving…', '保存中…')
                           : _saved
-                              ? '保存済み'
-                              : '測定記録を保存'),
+                              ? _t('Saved', '保存済み')
+                              : _t('Save Measurement', '測定記録を保存')),
                     )),
               )),
         ),

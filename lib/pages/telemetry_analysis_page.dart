@@ -166,7 +166,7 @@ class _TelemetryAnalysisPageState extends State<TelemetryAnalysisPage> {
     } catch (error) {
       if (mounted) {
         setState(() => _error = _t(
-              'The selected video cannot be played: $error',
+              'The selected video cannot be played. Try another video file.',
               '選択した動画を再生できません: $error',
             ));
       }
@@ -190,7 +190,12 @@ class _TelemetryAnalysisPageState extends State<TelemetryAnalysisPage> {
 
   void _showError(Object error) {
     if (!mounted) return;
-    setState(() => _error = error.toString().replaceFirst('Exception: ', ''));
+    setState(() {
+      _error = _isEnglish
+          ? (error is TelemetryFormatException ? error.englishMessage : null) ??
+              'The telemetry operation failed. Check the file or available storage and try again.'
+          : error.toString().replaceFirst('Exception: ', '');
+    });
   }
 
   TelemetryFeatureReport? _buildFeatureReport(TelemetrySession? session) {
@@ -203,8 +208,25 @@ class _TelemetryAnalysisPageState extends State<TelemetryAnalysisPage> {
   }
 
   String _aiErrorMessage(Object error) {
-    if (error is AiProviderException) return error.message;
-    if (error is StateError) {
+    if (error is AiProviderException) {
+      if (!_isEnglish) return error.message;
+      return switch (error.kind) {
+        AiProviderErrorKind.authentication =>
+          'AI authentication failed. Check your provider settings.',
+        AiProviderErrorKind.rateLimit =>
+          'The AI provider rate limit was reached. Try again later.',
+        AiProviderErrorKind.invalidRequest =>
+          'The AI provider rejected the request. Check your provider and model settings.',
+        AiProviderErrorKind.serviceUnavailable =>
+          'The AI provider is unavailable. Try again later.',
+        AiProviderErrorKind.timeout => 'The AI request timed out. Try again.',
+        AiProviderErrorKind.network =>
+          'Could not reach the AI provider. Check your connection and try again.',
+        AiProviderErrorKind.invalidResponse =>
+          'The AI provider returned an invalid response. Try again.',
+      };
+    }
+    if (!_isEnglish && error is StateError) {
       return error.message.toString();
     }
     return _t(
@@ -584,6 +606,7 @@ class _TelemetryAnalysisPageState extends State<TelemetryAnalysisPage> {
 
   @override
   Widget build(BuildContext context) {
+    final isEnglish = context.select((SettingsProvider p) => p.isEnglish);
     final session = _session;
     final theme = Theme.of(context);
     final palette = theme.brightness == Brightness.dark
@@ -614,7 +637,11 @@ class _TelemetryAnalysisPageState extends State<TelemetryAnalysisPage> {
                 if (session != null)
                   IconButton(
                     tooltip: _t('Save .stg', '.stgを保存'),
-                    onPressed: () => TelemetryFileService.saveStg(session),
+                    onPressed: () =>
+                        _runLoading(() => TelemetryFileService.saveStg(
+                              session,
+                              isEnglish: isEnglish,
+                            )),
                     icon: const Icon(Icons.save_alt_rounded),
                   ),
                 if (widget.runLog?.telemetryAttachment != null)
@@ -652,7 +679,7 @@ class _TelemetryAnalysisPageState extends State<TelemetryAnalysisPage> {
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 120),
                         children: [
                           _ImportCard(
-                            isEnglish: _isEnglish,
+                            isEnglish: isEnglish,
                             session: session,
                             loading: _loading,
                             onCsv: _pickCsv,
@@ -1330,20 +1357,21 @@ class _TelemetryAnalysisPageState extends State<TelemetryAnalysisPage> {
               OutlinedButton.icon(
                 onPressed: points.isEmpty
                     ? null
-                    : () => TelemetryFileService.saveCourse(
+                    : () => _runLoading(() => TelemetryFileService.saveCourse(
                           points,
                           session.prediction.detectedPeriodMillis,
-                        ),
+                          isEnglish: _isEnglish,
+                        )),
                 icon: const Icon(Icons.save_alt_rounded),
                 label: Text(_t('Save JSON', 'JSON保存')),
               ),
               OutlinedButton.icon(
-                onPressed: () async {
+                onPressed: () => _runLoading(() async {
                   final loaded = await TelemetryFileService.pickCourse();
                   if (loaded != null && mounted) {
                     setState(() => session.editedCoursePoints = loaded);
                   }
-                },
+                }),
                 icon: const Icon(Icons.file_open_rounded),
                 label: Text(_t('Load JSON', 'JSON読込')),
               ),

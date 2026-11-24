@@ -76,6 +76,24 @@ void main() {
     SharedPreferences.setMockInitialValues({});
   });
 
+  testWidgets('英語設定で測定フォームと判定の詳細を表示する', (tester) async {
+    SharedPreferences.setMockInitialValues({'language_settings': true});
+    final provider = _provider();
+    await _ready(provider);
+    addTearDown(provider.dispose);
+    await _pumpPage(tester, provider, themeMode: ThemeMode.dark);
+
+    expect(find.text('SUPER GT Regulations'), findsOneWidget);
+    expect(find.text('Save Measurement'), findsWidgets);
+    await _enter(tester, 'measuredRatio', '5.3');
+    await _enter(tester, 'measuredTireRpm', '3900');
+    final result = find.text('Tire speed: Within spec: Max. 4000.0 rpm '
+        '(headroom 100 rpm)');
+    await _scrollPageTo(tester, result);
+    expect(result, findsOneWidget);
+    expect(find.textContaining('条件内'), findsNothing);
+  });
+
   testWidgets('測定値からモーター回転数と変更後タイヤ回転数を表示する', (tester) async {
     final provider = _provider();
     await _ready(provider);

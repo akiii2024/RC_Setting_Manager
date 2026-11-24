@@ -206,66 +206,116 @@ class SuperGtMeasurement {
   double get inferredMotorRpm => SuperGtDriveMath.inferredMotorRpm(
       tireRpm: tireRpm, finalDriveRatio: finalDriveRatio);
 
-  List<SuperGtCheck> get checks => [
-        _numeric(
-            'finalDriveRatio',
-            '最終減速比',
-            finalDriveRatio >= rules.minimumFinalDriveRatio,
-            '基準 ${rules.minimumFinalDriveRatio}（${_margin(finalDriveRatio - rules.minimumFinalDriveRatio)}）'),
-        _numeric('tireRpm', 'タイヤ回転数', tireRpm <= rules.maxTireRpm,
-            '上限 ${rules.maxTireRpm}rpm（${_tireMargin(tireRpm, rules.maxTireRpm)}）'),
-        _optional(
-            'carWeightGrams',
-            '車重',
-            carWeightGrams,
-            (v) => v >= rules.minCarWeightGrams,
-            '下限 ${rules.minCarWeightGrams}g ${_weightMargin(carWeightGrams, rules.minCarWeightGrams)}'),
-        _optional(
-            'bodyWeightGrams',
-            'ボディ重量',
-            bodyWeightGrams,
-            (v) => v >= rules.minBodyWeightGrams,
-            '下限 ${rules.minBodyWeightGrams}g ${_weightMargin(bodyWeightGrams, rules.minBodyWeightGrams)}'),
-        _optional(
-            'batteryVoltage',
-            'バッテリー電圧',
-            batteryVoltage,
-            (v) => v >= rules.minVoltage && v <= rules.maxVoltage,
-            '範囲 ${rules.minVoltage}–${rules.maxVoltage}V'),
-        _confirmation('powerSource', 'モーター／ESC', 'powerSource'),
-        _confirmation('body', 'ボディ', 'body'),
-        _confirmation('tires', 'タイヤ', 'tires'),
-        _confirmation('prohibitedTreatments', '禁止処理', 'prohibitedTreatments'),
-      ];
-  bool get hasFailures => checks.any((c) => c.state == SuperGtCheckState.fail);
-  bool get hasUnconfirmed =>
-      checks.any((c) => c.state == SuperGtCheckState.unconfirmed);
+  List<SuperGtCheck> get checks => localizedChecks();
 
-  SuperGtCheck _numeric(String key, String label, bool pass, String detail) =>
-      SuperGtCheck(
+  List<SuperGtCheck> localizedChecks({bool isEnglish = false}) {
+    String t(String en, String ja) => isEnglish ? en : ja;
+
+    String margin(double value) => value >= 0
+        ? t('headroom ${_format(value)}', '余裕 ${_format(value)}')
+        : t('short by ${_format(-value)}', '不足 ${_format(-value)}');
+
+    String weightMargin(double? value, double minimum) =>
+        value == null ? '' : '${margin(value - minimum)} g';
+
+    SuperGtCheck numeric(String key, String label, bool pass, String detail) =>
+        SuperGtCheck(
           key: key,
           label: label,
           state: pass ? SuperGtCheckState.pass : SuperGtCheckState.fail,
-          message: pass ? '条件内: $detail' : '条件外: $detail');
-  SuperGtCheck _optional(String key, String label, double? value,
-          bool Function(double) test, String detail) =>
-      value == null
-          ? SuperGtCheck(
-              key: key,
-              label: label,
-              state: SuperGtCheckState.unconfirmed,
-              message: '未入力（$detail）')
-          : _numeric(key, label, test(value), '$detail / 実測 ${_format(value)}');
-  SuperGtCheck _confirmation(String key, String label, String field) {
-    final v = confirmations[field];
-    return SuperGtCheck(
+          message: pass
+              ? t('Within spec: $detail', '条件内: $detail')
+              : t('Out of spec: $detail', '条件外: $detail'),
+        );
+
+    SuperGtCheck optional(String key, String label, double? value,
+            bool Function(double) test, String detail) =>
+        value == null
+            ? SuperGtCheck(
+                key: key,
+                label: label,
+                state: SuperGtCheckState.unconfirmed,
+                message: t('Not entered ($detail)', '未入力（$detail）'),
+              )
+            : numeric(
+                key,
+                label,
+                test(value),
+                t('$detail / measured ${_format(value)}',
+                    '$detail / 実測 ${_format(value)}'));
+
+    SuperGtCheck confirmation(String key, String label) {
+      final value = confirmations[key];
+      return SuperGtCheck(
         key: key,
         label: label,
-        state: v == null
+        state: value == null
             ? SuperGtCheckState.unconfirmed
-            : (v ? SuperGtCheckState.pass : SuperGtCheckState.fail),
-        message: v == null ? '未確認' : (v ? '条件内（確認済み）' : '条件外'));
+            : (value ? SuperGtCheckState.pass : SuperGtCheckState.fail),
+        message: value == null
+            ? t('Unchecked', '未確認')
+            : (value
+                ? t('Within spec (confirmed)', '条件内（確認済み）')
+                : t('Out of spec', '条件外')),
+      );
+    }
+
+    final ratioLimit = rules.minimumFinalDriveRatio;
+    final rpmLimit = rules.maxTireRpm;
+    final rpmDifference = _format((rpmLimit - tireRpm).abs());
+    final tireMargin = tireRpm <= rpmLimit
+        ? t('headroom $rpmDifference rpm', '余裕 $rpmDifference rpm')
+        : t('over by $rpmDifference rpm', '超過 $rpmDifference rpm');
+    final carMinimum = rules.minCarWeightGrams;
+    final bodyMinimum = rules.minBodyWeightGrams;
+    final voltageRange = '${rules.minVoltage}–${rules.maxVoltage}';
+    return [
+      numeric(
+        'finalDriveRatio',
+        t('Final drive ratio', '最終減速比'),
+        finalDriveRatio >= ratioLimit,
+        t('Min. $ratioLimit (${margin(finalDriveRatio - ratioLimit)})',
+            '基準 $ratioLimit（${margin(finalDriveRatio - ratioLimit)}）'),
+      ),
+      numeric(
+        'tireRpm',
+        t('Tire speed', 'タイヤ回転数'),
+        tireRpm <= rpmLimit,
+        t('Max. $rpmLimit rpm ($tireMargin)', '上限 ${rpmLimit}rpm（$tireMargin）'),
+      ),
+      optional(
+        'carWeightGrams',
+        t('Car weight', '車重'),
+        carWeightGrams,
+        (v) => v >= carMinimum,
+        t('Min. $carMinimum g ${weightMargin(carWeightGrams, carMinimum)}',
+            '下限 ${carMinimum}g ${weightMargin(carWeightGrams, carMinimum)}'),
+      ),
+      optional(
+        'bodyWeightGrams',
+        t('Body weight', 'ボディ重量'),
+        bodyWeightGrams,
+        (v) => v >= bodyMinimum,
+        t('Min. $bodyMinimum g ${weightMargin(bodyWeightGrams, bodyMinimum)}',
+            '下限 ${bodyMinimum}g ${weightMargin(bodyWeightGrams, bodyMinimum)}'),
+      ),
+      optional(
+        'batteryVoltage',
+        t('Battery voltage', 'バッテリー電圧'),
+        batteryVoltage,
+        (v) => v >= rules.minVoltage && v <= rules.maxVoltage,
+        t('Range $voltageRange V', '範囲 ${voltageRange}V'),
+      ),
+      confirmation('powerSource', t('Motor / ESC', 'モーター／ESC')),
+      confirmation('body', t('Body', 'ボディ')),
+      confirmation('tires', t('Tires', 'タイヤ')),
+      confirmation('prohibitedTreatments', t('Prohibited treatments', '禁止処理')),
+    ];
   }
+
+  bool get hasFailures => checks.any((c) => c.state == SuperGtCheckState.fail);
+  bool get hasUnconfirmed =>
+      checks.any((c) => c.state == SuperGtCheckState.unconfirmed);
 
   Map<String, dynamic> toJson() => {
         'measuredAt': measuredAt.toIso8601String(),
@@ -381,13 +431,6 @@ void _positiveInteger(double value, String name) {
   }
 }
 
-String _margin(double value) =>
-    value >= 0 ? '余裕 ${_format(value)}' : '不足 ${_format(-value)}';
-String _tireMargin(double value, double maximum) => value <= maximum
-    ? '余裕 ${_format(maximum - value)} rpm'
-    : '超過 ${_format(value - maximum)} rpm';
-String _weightMargin(double? value, double minimum) =>
-    value == null ? '' : '${_margin(value - minimum)} g';
 String _format(double value) {
   if (value == value.roundToDouble()) {
     return value.toStringAsFixed(0);

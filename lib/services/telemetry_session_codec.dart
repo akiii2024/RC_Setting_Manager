@@ -67,28 +67,34 @@ class TelemetrySessionCodec {
 
   TelemetrySession decode(Uint8List bytes) {
     if (bytes.isEmpty) {
-      throw const TelemetryFormatException('.stgファイルが空です。');
+      throw const TelemetryFormatException('.stgファイルが空です。',
+          englishMessage: 'The .stg file is empty.');
     }
     late final Archive archive;
     try {
       archive = ZipDecoder().decodeBytes(bytes, verify: true);
     } catch (_) {
-      throw const TelemetryFormatException('.stgファイルを展開できません。');
+      throw const TelemetryFormatException('.stgファイルを展開できません。',
+          englishMessage: 'Could not unpack the .stg file.');
     }
     if (archive.length > 16) {
-      throw const TelemetryFormatException('.stg内のファイル数が多すぎます。');
+      throw const TelemetryFormatException('.stg内のファイル数が多すぎます。',
+          englishMessage: 'The .stg archive contains too many files.');
     }
     final manifestFile = _find(archive, 'manifest.json');
     if (manifestFile == null) {
-      throw const TelemetryFormatException('manifest.jsonが見つかりません。');
+      throw const TelemetryFormatException('manifest.jsonが見つかりません。',
+          englishMessage: 'manifest.json was not found.');
     }
     final manifest = _decodeJson(_text(manifestFile), 'manifest.json');
     if (manifest['format'] != null && manifest['format'] != format) {
-      throw const TelemetryFormatException('対応していない.stg形式です。');
+      throw const TelemetryFormatException('対応していない.stg形式です。',
+          englishMessage: 'This .stg format is unsupported.');
     }
     final manifestVersion = (manifest['version'] as num?)?.toInt() ?? 1;
     if (manifestVersion < 1 || manifestVersion > version) {
-      throw const TelemetryFormatException('対応していない.stgバージョンです。');
+      throw const TelemetryFormatException('対応していない.stgバージョンです。',
+          englishMessage: 'This .stg version is unsupported.');
     }
     final csvJson = manifest['csv'];
     final csvFileName = csvJson is Map<String, dynamic>
@@ -96,7 +102,8 @@ class TelemetrySessionCodec {
         : 'telemetry.csv';
     final csvFile = _find(archive, csvFileName);
     if (csvFile == null || csvFile.size > maxAnalysisBytes) {
-      throw const TelemetryFormatException('CSVがないか、20 MiBを超えています。');
+      throw const TelemetryFormatException('CSVがないか、20 MiBを超えています。',
+          englishMessage: 'The CSV is missing or exceeds 20 MiB.');
     }
     final session = TelemetryAnalysisService.parseCsv(
       text: _text(csvFile),
@@ -175,7 +182,8 @@ class TelemetrySessionCodec {
     final json = _decodeJson(utf8.decode(bytes), 'course_map.json');
     final points = json['points'];
     if (points is! List) {
-      throw const TelemetryFormatException('コースポイントがありません。');
+      throw const TelemetryFormatException('コースポイントがありません。',
+          englishMessage: 'No course points were found.');
     }
     return points
         .whereType<Map>()
@@ -202,6 +210,7 @@ class TelemetrySessionCodec {
     } catch (_) {
       // The user-facing exception below has the actionable context.
     }
-    throw TelemetryFormatException('$labelを読み取れません。');
+    throw TelemetryFormatException('$labelを読み取れません。',
+        englishMessage: 'Could not read $label.');
   }
 }
