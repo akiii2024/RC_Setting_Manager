@@ -12,6 +12,9 @@ abstract final class CarDriveRatios {
   // https://cdn.shopify.com/s/files/1/0722/1133/3229/files/BD12_Manual.pdf
   // https://cdn.shopify.com/s/files/1/0722/1133/3229/files/MS1.0_Instruction_Manual.pdf
   // https://cdn.shopify.com/s/files/1/0722/1133/3229/files/MS2.0_Instruction_Manual.pdf (p26)
+  // Xpress XQ11R: メーカーの記入例はスパー110T、ピニオン35T、FDR 5.97。
+  // 5.97 × 35 / 110 から内部減速比は約1.9。
+  // https://www.rc-xpress.com/manuals-setups/Execute-XQ11R-Blank-Editable-Setup-Sheet.pdf
   static const _standardRatios = <String, double>{
     'tamiya/trf420': 1.85,
     'tamiya/trf420x': 1.85,
@@ -21,6 +24,7 @@ abstract final class CarDriveRatios {
     'yokomo/bd12': 1.9,
     'yokomo/ms1_0': 1.9,
     'yokomo/ms2_0': 2.0,
+    'xpress/xq11r': 1.9,
   };
 
   static double? forCarId(String? carId) => _standardRatios[carId];

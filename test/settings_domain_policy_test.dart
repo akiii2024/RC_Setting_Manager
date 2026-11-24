@@ -16,6 +16,7 @@ void main() {
       'yokomo/bd12',
       'yokomo/ms1_0',
       'yokomo/ms2_0',
+      'xpress/xq11r',
     ]);
 
     final customized = catalog.first.copyWith(isInGarage: true);

@@ -70,6 +70,7 @@ void main() {
       'yokomo/bd12',
       'yokomo/ms1_0',
       'yokomo/ms2_0',
+      'xpress/xq11r',
     ]);
     for (final entry in carSettingsDefinitions.entries) {
       expect(entry.value.carId, entry.key);
@@ -208,6 +209,14 @@ void main() {
         'options': '04e11613',
         'composites': '39675f6d',
         'fullShape': 'f04b3561',
+      },
+      'xpress/xq11r': {
+        'count': 49,
+        'keys': '99820bae',
+        'categories': 'afa3cecf',
+        'options': '7e5d6298',
+        'composites': '741638a5',
+        'fullShape': '6e10de6a',
       },
     });
   });

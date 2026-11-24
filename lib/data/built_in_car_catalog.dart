@@ -18,6 +18,12 @@ abstract final class BuiltInCarCatalog {
       logoPath: 'assets/images/yokomo.png',
     );
 
+    final xpress = Manufacturer(
+      id: 'xpress',
+      name: 'Xpress',
+      logoPath: 'assets/images/xpress.png',
+    );
+
     return [
       Car(
         id: 'tamiya/trf421',
@@ -73,6 +79,13 @@ abstract final class BuiltInCarCatalog {
         name: 'MS2.0',
         imageUrl: 'assets/images/ms2_0.jpg',
         manufacturer: yokomo,
+        category: 'ツーリングカー',
+      ),
+      Car(
+        id: 'xpress/xq11r',
+        name: 'XQ11R',
+        imageUrl: 'assets/images/xq11r.jpg',
+        manufacturer: xpress,
         category: 'ツーリングカー',
       ),
     ];
