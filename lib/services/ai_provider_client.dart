@@ -220,6 +220,7 @@ class AiProviderClient {
 
   Future<String> generateText(
     String prompt, {
+    String? system,
     Uint8List? imageBytes,
     String? mimeType,
     int maxTokens = 4096,
@@ -229,6 +230,9 @@ class AiProviderClient {
       'プロンプト',
       maxLength: maxPromptCharacters,
     );
+    final normalizedSystem = system == null
+        ? null
+        : _requiredValue(system, 'システム指示', maxLength: maxSystemCharacters);
     final normalizedMimeType = _validateImage(imageBytes, mimeType);
     _validateMaxTokens(maxTokens);
 
@@ -238,6 +242,7 @@ class AiProviderClient {
       AiProvider.openCodeGo =>
         await _postCompatible(
           prompt: normalizedPrompt,
+          system: normalizedSystem,
           imageBytes: imageBytes,
           mimeType: normalizedMimeType,
           maxTokens: maxTokens,
@@ -246,6 +251,12 @@ class AiProviderClient {
           _geminiGenerateContentUri(),
           _headers(),
           {
+            if (normalizedSystem != null)
+              'systemInstruction': {
+                'parts': [
+                  {'text': normalizedSystem},
+                ],
+              },
             'contents': [
               {
                 'role': 'user',

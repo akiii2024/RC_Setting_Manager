@@ -1213,6 +1213,7 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
     if (!setting.isAutoFilled) return null;
 
     if (setting.key == 'airTemp' || setting.key == 'humidity') {
+      final isEnglish = context.watch<SettingsProvider>().isEnglish;
       return IconButton(
         icon: _isWeatherLoading
             ? const SizedBox(
@@ -1230,7 +1231,9 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
                         .withValues(alpha: 0.5),
               ),
         onPressed: _isWeatherLoading ? null : _refreshWeather,
-        tooltip: setting.key == 'airTemp' ? '現在の気温を取得' : '現在の湿度を取得',
+        tooltip: setting.key == 'airTemp'
+            ? (isEnglish ? 'Fetch current temperature' : '現在の気温を取得')
+            : (isEnglish ? 'Fetch current humidity' : '現在の湿度を取得'),
       );
     }
 
@@ -1238,6 +1241,7 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
   }
 
   Widget _buildTextField(SettingItem setting) {
+    final isEnglish = context.watch<SettingsProvider>().isEnglish;
     if (_suggestionsForSetting(setting).isNotEmpty) {
       return _buildSuggestedTextField(setting);
     }
@@ -1261,7 +1265,7 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
                             DateTime.now().toString().split(' ')[0];
                       });
                     },
-                    tooltip: '現在の日付を入力',
+                    tooltip: isEnglish ? 'Enter today’s date' : '現在の日付を入力',
                   )
                 : setting.key == 'surface'
                     ? Icon(
@@ -1408,9 +1412,16 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
       return null;
     }
 
+    final isEnglish = context.watch<SettingsProvider>().isEnglish;
+    final optionItems = options.map(
+      (option) => DropdownMenuItem<String>(
+        value: option,
+        child: Text(isEnglish ? _englishSelectOptionLabel(option) : option),
+      ),
+    );
     final guideLabels = _selectGuideLabels(setting);
     if (guideLabels == null) {
-      return options.map(_buildSelectOptionMenuItem).toList();
+      return optionItems.toList();
     }
 
     return [
@@ -1418,7 +1429,7 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
         value: _selectGuideValue(setting.key, 'start'),
         label: guideLabels.start,
       ),
-      ...options.map(_buildSelectOptionMenuItem),
+      ...optionItems,
       _buildSelectGuideMenuItem(
         value: _selectGuideValue(setting.key, 'end'),
         label: guideLabels.end,
@@ -1426,12 +1437,23 @@ mixin _CarSettingNormalEditor on State<CarSettingPage> {
     ];
   }
 
-  DropdownMenuItem<String> _buildSelectOptionMenuItem(String option) {
-    return DropdownMenuItem(
-      value: option,
-      child: Text(option),
-    );
-  }
+  String _englishSelectOptionLabel(String option) => switch (option) {
+        'アスファルト' || '舗装' => 'Asphalt',
+        'カーペット' => 'Carpet',
+        'その他' => 'Other',
+        '高' || '高い' => 'High',
+        '低' || '低い' => 'Low',
+        'ハード' => 'Hard',
+        'カーボン' => 'Carbon',
+        'プラスチック' => 'Plastic',
+        'アルミ' => 'Aluminum',
+        '4mmナロー' => '4 mm Narrow',
+        'グラファイト' => 'Graphite',
+        'カーボングラファイト' => 'Carbon Graphite',
+        'スタンダード' || '標準タイプ' => 'Standard',
+        '薄型' || '薄型タイプ' => 'Low Profile',
+        _ => option,
+      };
 
   DropdownMenuItem<T> _buildSelectGuideMenuItem<T>({
     required T value,

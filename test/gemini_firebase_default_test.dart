@@ -3,7 +3,9 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:rc_setting_manager/models/ai_advisor.dart';
+import 'package:rc_setting_manager/models/car.dart';
 import 'package:rc_setting_manager/models/car_setting_definition.dart';
+import 'package:rc_setting_manager/models/manufacturer.dart';
 import 'package:rc_setting_manager/services/ai_advisor_service.dart';
 import 'package:rc_setting_manager/services/ai_configuration_service.dart';
 import 'package:rc_setting_manager/services/ocr_service.dart';
@@ -48,6 +50,54 @@ void main() {
       includeHistory: false,
     );
     expect(turn.message, '進入時の状態を教えてください。');
+  });
+
+  test('legacy conversation keeps its UI language through final advice',
+      () async {
+    const response = '''
+## Overall Rating
+4/5
+## Setup Analysis
+The balance is good.
+## Recommendations
+Try a small front camber change.
+## Driving Tips
+Use a smooth turn-in.
+''';
+    final car = Car(
+      id: 'test/car',
+      name: 'Car',
+      imageUrl: '',
+      manufacturer: Manufacturer(id: 'test', name: 'Test', logoPath: ''),
+      category: 'touring',
+    );
+    final service = AIAdvisorService(
+      configurationService:
+          AiConfigurationService(secretStore: MemorySecretStore()),
+      functionCaller: (name, data) async {
+        expect(name, 'generateGeminiContent');
+        expect(data['system'], 'Respond in English.');
+        final contents = data['contents'] as List;
+        expect(contents.first['parts'].first['text'],
+            startsWith('Respond in English.'));
+        expect(contents.last['parts'].first['text'],
+            contains('## Overall Rating'));
+        return {'text': response};
+      },
+    );
+    final greeting = await service.startConversationSession(
+      car: car,
+      settings: const {},
+      settingDefinition:
+          CarSettingDefinition(carId: car.id, availableSettings: []),
+      isEnglish: true,
+    );
+    expect(greeting, contains('your setup'));
+    final advice = await service.generateFinalAdvice();
+    expect(advice.overallScore, 4);
+    expect(advice.detailedAnalysis, 'The balance is good.');
+    expect(advice.recommendations, 'Try a small front camber change.');
+    expect(advice.drivingTips, 'Use a smooth turn-in.');
   });
 
   test('default OCR uses the dedicated Firebase function without a local key',

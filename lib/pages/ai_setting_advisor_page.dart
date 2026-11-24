@@ -221,7 +221,11 @@ class _AISettingAdvisorPageState extends State<AISettingAdvisorPage> {
     } catch (e) {
       debugLog('Failed to start AI consultation: $e');
       _showMessage(
-        _isEnglish ? 'Failed to start AI consultation.' : 'AI相談を開始できませんでした。',
+        e is AIAdvisorResponseException
+            ? e.message
+            : (_isEnglish
+                ? 'Failed to start AI consultation.'
+                : 'AI相談を開始できませんでした。'),
       );
     } finally {
       if (mounted) {
@@ -281,7 +285,9 @@ class _AISettingAdvisorPageState extends State<AISettingAdvisorPage> {
           _userFollowups -= 1;
         }
       });
-      _showMessage(_isEnglish ? 'Failed to send.' : '送信に失敗しました。');
+      _showMessage(e is AIAdvisorResponseException
+          ? e.message
+          : (_isEnglish ? 'Failed to send.' : '送信に失敗しました。'));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -329,7 +335,9 @@ class _AISettingAdvisorPageState extends State<AISettingAdvisorPage> {
     } catch (e) {
       debugLog('Failed to generate AI advice: $e');
       _showMessage(
-        _isEnglish ? 'Failed to generate advice.' : '提案の生成に失敗しました。',
+        e is AIAdvisorResponseException
+            ? e.message
+            : (_isEnglish ? 'Failed to generate advice.' : '提案の生成に失敗しました。'),
       );
     } finally {
       if (mounted) {
