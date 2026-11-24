@@ -17,6 +17,11 @@ abstract final class BuiltInCarCatalog {
       name: 'ヨコモ',
       logoPath: 'assets/images/yokomo.png',
     );
+    final xray = Manufacturer(
+      id: 'xray',
+      name: 'XRAY',
+      logoPath: 'assets/images/xray.png',
+    );
 
     return [
       Car(
@@ -73,6 +78,13 @@ abstract final class BuiltInCarCatalog {
         name: 'MS2.0',
         imageUrl: 'assets/images/ms2_0.jpg',
         manufacturer: yokomo,
+        category: 'ツーリングカー',
+      ),
+      Car(
+        id: 'xray/x4_24',
+        name: "X4'24",
+        imageUrl: 'assets/images/x4_24.jpg',
+        manufacturer: xray,
         category: 'ツーリングカー',
       ),
     ];

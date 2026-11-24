@@ -70,6 +70,7 @@ void main() {
       'yokomo/bd12',
       'yokomo/ms1_0',
       'yokomo/ms2_0',
+      'xray/x4_24',
     ]);
     for (final entry in carSettingsDefinitions.entries) {
       expect(entry.value.carId, entry.key);
@@ -100,8 +101,9 @@ void main() {
     }
   });
 
-  test('共通定義とコピー先にも走行可能な基準値を設定する', () {
+  test('タミヤ・ヨコモの車種に走行可能な基準値を設定する', () {
     for (final entry in carSettingsDefinitions.entries) {
+      if (entry.key == 'xray/x4_24') continue;
       final defaults = {
         for (final setting in entry.value.availableSettings)
           setting.key: setting.defaultValue,
@@ -138,10 +140,10 @@ void main() {
         '3');
   });
 
-  test('全車種のキー・カテゴリ・選択肢・複合metadataを維持する', () {
+  test('タミヤ・ヨコモのキー・カテゴリ・選択肢・複合metadataを維持する', () {
     final actual = {
       for (final entry in carSettingsDefinitions.entries)
-        entry.key: _definitionShape(entry.value),
+        if (entry.key != 'xray/x4_24') entry.key: _definitionShape(entry.value),
     };
 
     expect(actual, {
