@@ -21,6 +21,13 @@ abstract final class CarDriveRatios {
     'yokomo/bd12': 1.9,
     'yokomo/ms1_0': 1.9,
     'yokomo/ms2_0': 2.0,
+    // Infinity IF14-2: 公式マニュアルのギヤ比表（二次減速比）。
+    // https://www.creationmodel.net/infinity/images/manuals/10101-002_IF14-2_INSTRUCTION_MANUAL.pdf
+    'infinity/if14_2': 1.81,
+    // Xpress XQ11R: 公式セットアップシートの記入例から逆算。
+    'xpress/xq11r': 1.9,
+    // Mugen MTC2 FWD: 公式セットアップシート記載値。
+    'mugen/mtc2_fwd': 1.9,
   };
 
   static double? forCarId(String? carId) => _standardRatios[carId];

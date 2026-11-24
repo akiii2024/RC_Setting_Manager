@@ -17,6 +17,41 @@ abstract final class BuiltInCarCatalog {
       name: 'ヨコモ',
       logoPath: 'assets/images/yokomo.png',
     );
+    final xray = Manufacturer(
+      id: 'xray',
+      name: 'XRAY',
+      logoPath: 'assets/images/xray.png',
+    );
+    final arc = Manufacturer(
+      id: 'arc',
+      name: 'ARC',
+      logoPath: 'assets/images/arc.png',
+    );
+    final awesomatix = Manufacturer(
+      id: 'awesomatix',
+      name: 'Awesomatix',
+      logoPath: 'assets/images/awesomatix.png',
+    );
+    final infinity = Manufacturer(
+      id: 'infinity',
+      name: 'Infinity',
+      logoPath: 'assets/images/infinity.png',
+    );
+    final mugen = Manufacturer(
+      id: 'mugen',
+      name: 'Mugen',
+      logoPath: 'assets/images/mugen.png',
+    );
+    final schumacher = Manufacturer(
+      id: 'schumacher',
+      name: 'Schumacher',
+      logoPath: 'assets/images/schumacher.png',
+    );
+    final xpress = Manufacturer(
+      id: 'xpress',
+      name: 'Xpress',
+      logoPath: 'assets/images/xpress.png',
+    );
 
     return [
       Car(
@@ -73,6 +108,62 @@ abstract final class BuiltInCarCatalog {
         name: 'MS2.0',
         imageUrl: 'assets/images/ms2_0.jpg',
         manufacturer: yokomo,
+        category: 'ツーリングカー',
+      ),
+      Car(
+        id: 'xray/x4_24',
+        name: "X4'24",
+        imageUrl: 'assets/images/x4_24.jpg',
+        manufacturer: xray,
+        category: 'ツーリングカー',
+      ),
+      Car(
+        id: 'awesomatix/a800r',
+        name: 'A800R',
+        imageUrl: 'assets/images/a800r.jpg',
+        manufacturer: awesomatix,
+        category: 'ツーリングカー',
+      ),
+      Car(
+        id: 'schumacher/mi9',
+        name: 'Mi9',
+        imageUrl: 'assets/images/mi9.jpg',
+        manufacturer: schumacher,
+        category: 'ツーリングカー',
+      ),
+      Car(
+        id: 'infinity/if14_2',
+        name: 'IF14-2',
+        imageUrl: 'assets/images/if14_2.jpg',
+        manufacturer: infinity,
+        category: 'ツーリングカー',
+      ),
+      Car(
+        id: 'arc/arc_r12',
+        name: 'R12',
+        imageUrl: 'assets/images/arc_r12.jpg',
+        manufacturer: arc,
+        category: 'ツーリングカー',
+      ),
+      Car(
+        id: 'xpress/xq11r',
+        name: 'XQ11R',
+        imageUrl: 'assets/images/xq11r.jpg',
+        manufacturer: xpress,
+        category: 'ツーリングカー',
+      ),
+      Car(
+        id: 'mugen/mtc2_fwd',
+        name: 'MTC2 FWD',
+        imageUrl: 'assets/images/mtc2_fwd.jpg',
+        manufacturer: mugen,
+        category: 'FFツーリングカー',
+      ),
+      Car(
+        id: 'mugen/mtc3',
+        name: 'MTC3',
+        imageUrl: 'assets/images/mtc3.jpg',
+        manufacturer: mugen,
         category: 'ツーリングカー',
       ),
     ];

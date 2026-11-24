@@ -20,11 +20,7 @@ Car _car() {
     id: 'custom/test-car',
     name: 'Test Car',
     imageUrl: '',
-    manufacturer: Manufacturer(
-      id: 'test',
-      name: 'Test',
-      logoPath: '',
-    ),
+    manufacturer: Manufacturer(id: 'test', name: 'Test', logoPath: ''),
     category: 'touring',
   );
 }
@@ -97,10 +93,9 @@ void main() {
       expect(decoded.savedSettings.single.id, source.savedSettings.single.id);
       expect(decoded.runLogs.single.id, source.runLogs.single.id);
       expect(decoded.ownedParts.single.id, source.ownedParts.single.id);
-      expect(
-        decoded.visibilitySettings[_car().id]?.favoriteSettings,
-        const {'motor': true},
-      );
+      expect(decoded.visibilitySettings[_car().id]?.favoriteSettings, const {
+        'motor': true,
+      });
       expect(decoded.isEnglish, isTrue);
       expect(decoded.usePaperStyleEditor, isTrue);
     });
@@ -138,13 +133,15 @@ void main() {
 
     test('rejects nested corruption and duplicate identifiers', () {
       final missingRunLogId = _snapshot().toJson();
-      final runLog = (missingRunLogId['runLogs'] as List<dynamic>).single
-          as Map<String, dynamic>;
+      final runLog =
+          (missingRunLogId['runLogs'] as List<dynamic>).single
+              as Map<String, dynamic>;
       runLog.remove('id');
 
       final unknownKind = _snapshot().toJson();
-      final setting = (unknownKind['savedSettings'] as List<dynamic>).single
-          as Map<String, dynamic>;
+      final setting =
+          (unknownKind['savedSettings'] as List<dynamic>).single
+              as Map<String, dynamic>;
       setting['kind'] = 'future-kind';
 
       final duplicateSetting = _snapshot().toJson();
@@ -171,10 +168,7 @@ void main() {
     test('legacy model decoding remains tolerant of newly added fields', () {
       final legacy = _snapshot().savedSettings.single.toJson()..remove('kind');
 
-      expect(
-        SavedSetting.fromJson(legacy).kind,
-        SavedSettingKind.manual,
-      );
+      expect(SavedSetting.fromJson(legacy).kind, SavedSettingKind.manual);
     });
   });
 
@@ -200,9 +194,7 @@ void main() {
 
       expect(loaded?.cars.single.id, _car().id);
       expect(
-        preferences.getString(
-          SharedPreferencesSettingsLocalRepository.carsKey,
-        ),
+        preferences.getString(SharedPreferencesSettingsLocalRepository.carsKey),
         legacyCars,
       );
       expect(
@@ -213,41 +205,47 @@ void main() {
       );
     });
 
-    test('treats a false setString result as a snapshot write failure',
-        () async {
-      final oldJson = _snapshot().toJson()..['isEnglish'] = false;
-      final oldEncoded = jsonEncode(oldJson);
-      SharedPreferences.setMockInitialValues({
-        SharedPreferencesSettingsLocalRepository.settingsStateV2Key: oldEncoded,
-      });
-      final preferences = await SharedPreferences.getInstance();
-      var writerCalls = 0;
-      var reloadCalls = 0;
-      final repository = SharedPreferencesSettingsLocalRepository(
-        preferencesLoader: () async => preferences,
-        stringWriter: (preferences, key, value) async {
-          writerCalls++;
-          expect(
-            key,
-            SharedPreferencesSettingsLocalRepository.settingsStateV2Key,
-          );
-          expect(value, isNotEmpty);
-          await preferences.setString(key, value);
-          SharedPreferences.setMockInitialValues({key: oldEncoded});
-          return false;
-        },
-        preferencesReloader: (preferences) async {
-          reloadCalls++;
-          await preferences.reload();
-        },
-      );
+    test(
+      'treats a false setString result as a snapshot write failure',
+      () async {
+        final oldJson = _snapshot().toJson()..['isEnglish'] = false;
+        final oldEncoded = jsonEncode(oldJson);
+        SharedPreferences.setMockInitialValues({
+          SharedPreferencesSettingsLocalRepository.settingsStateV2Key:
+              oldEncoded,
+        });
+        final preferences = await SharedPreferences.getInstance();
+        var writerCalls = 0;
+        var reloadCalls = 0;
+        final repository = SharedPreferencesSettingsLocalRepository(
+          preferencesLoader: () async => preferences,
+          stringWriter: (preferences, key, value) async {
+            writerCalls++;
+            expect(
+              key,
+              SharedPreferencesSettingsLocalRepository.settingsStateV2Key,
+            );
+            expect(value, isNotEmpty);
+            await preferences.setString(key, value);
+            SharedPreferences.setMockInitialValues({key: oldEncoded});
+            return false;
+          },
+          preferencesReloader: (preferences) async {
+            reloadCalls++;
+            await preferences.reload();
+          },
+        );
 
-      await expectLater(repository.saveSnapshot(_snapshot()), throwsStateError);
+        await expectLater(
+          repository.saveSnapshot(_snapshot()),
+          throwsStateError,
+        );
 
-      expect(writerCalls, 1);
-      expect(reloadCalls, 1);
-      expect((await repository.loadSnapshot())?.isEnglish, isFalse);
-    });
+        expect(writerCalls, 1);
+        expect(reloadCalls, 1);
+        expect((await repository.loadSnapshot())?.isEnglish, isFalse);
+      },
+    );
 
     test('reloads cache and rethrows the original writer exception', () async {
       final oldJson = _snapshot().toJson()..['isEnglish'] = false;
@@ -279,121 +277,130 @@ void main() {
       expect((await repository.loadSnapshot())?.isEnglish, isFalse);
     });
 
-    test('reports an explicit cache recovery failure when reload also fails',
-        () async {
-      SharedPreferences.setMockInitialValues({});
-      final writeFailure = StateError('platform write failed');
-      final reloadFailure = StateError('cache reload failed');
-      final repository = SharedPreferencesSettingsLocalRepository(
-        stringWriter: (preferences, key, value) async => throw writeFailure,
-        preferencesReloader: (preferences) async => throw reloadFailure,
-      );
+    test(
+      'reports an explicit cache recovery failure when reload also fails',
+      () async {
+        SharedPreferences.setMockInitialValues({});
+        final writeFailure = StateError('platform write failed');
+        final reloadFailure = StateError('cache reload failed');
+        final repository = SharedPreferencesSettingsLocalRepository(
+          stringWriter: (preferences, key, value) async => throw writeFailure,
+          preferencesReloader: (preferences) async => throw reloadFailure,
+        );
 
-      await expectLater(
-        repository.saveSnapshot(_snapshot()),
-        throwsA(
-          isA<SettingsSnapshotCacheRecoveryFailure>()
-              .having(
-                (failure) => failure.writeFailure,
-                'writeFailure',
-                same(writeFailure),
-              )
-              .having(
-                (failure) => failure.reloadFailure,
-                'reloadFailure',
-                same(reloadFailure),
-              ),
-        ),
-      );
-    });
-
-    test('failed legacy migration is a startup error and preserves old keys',
-        () async {
-      final source = _snapshot();
-      final legacyCars =
-          jsonEncode(source.cars.map((car) => car.toJson()).toList());
-      final legacySettings = jsonEncode(
-        source.savedSettings.map((setting) => setting.toJson()).toList(),
-      );
-      final legacyRunLogs =
-          jsonEncode(source.runLogs.map((log) => log.toJson()).toList());
-      final legacyOwnedParts =
-          jsonEncode(source.ownedParts.map((part) => part.toJson()).toList());
-      final legacyVisibility = jsonEncode(
-        source.visibilitySettings.map(
-          (carId, settings) => MapEntry(carId, settings.toJson()),
-        ),
-      );
-      SharedPreferences.setMockInitialValues({
-        SharedPreferencesSettingsLocalRepository.carsKey: legacyCars,
-        SharedPreferencesSettingsLocalRepository.savedSettingsKey:
-            legacySettings,
-        SharedPreferencesSettingsLocalRepository.runLogsKey: legacyRunLogs,
-        SharedPreferencesSettingsLocalRepository.ownedPartsKey:
-            legacyOwnedParts,
-        SharedPreferencesSettingsLocalRepository.visibilitySettingsKey:
-            legacyVisibility,
-        SharedPreferencesSettingsLocalRepository.languageKey: true,
-        SharedPreferencesSettingsLocalRepository.editorLayoutKey: true,
-        SharedPreferencesSettingsLocalRepository.onlineModeKey: true,
-      });
-      final repository = SharedPreferencesSettingsLocalRepository(
-        stringWriter: (preferences, key, value) async => false,
-      );
-
-      await expectLater(
-        SettingsProvider.create(
-          appModeProvider: AppModeProvider(
-            preferredOnline: false,
-            isFirebaseReady: false,
+        await expectLater(
+          repository.saveSnapshot(_snapshot()),
+          throwsA(
+            isA<SettingsSnapshotCacheRecoveryFailure>()
+                .having(
+                  (failure) => failure.writeFailure,
+                  'writeFailure',
+                  same(writeFailure),
+                )
+                .having(
+                  (failure) => failure.reloadFailure,
+                  'reloadFailure',
+                  same(reloadFailure),
+                ),
           ),
-          localRepository: repository,
-        ),
-        throwsStateError,
-      );
+        );
+      },
+    );
 
-      final preferences = await SharedPreferences.getInstance();
-      expect(
-        preferences.getString(
-          SharedPreferencesSettingsLocalRepository.settingsStateV2Key,
-        ),
-        isNull,
-      );
-      expect(
-        preferences.getString(SharedPreferencesSettingsLocalRepository.carsKey),
-        legacyCars,
-      );
-      expect(
-        preferences.getString(
-          SharedPreferencesSettingsLocalRepository.savedSettingsKey,
-        ),
-        legacySettings,
-      );
-      expect(
-        preferences.getString(
-          SharedPreferencesSettingsLocalRepository.runLogsKey,
-        ),
-        legacyRunLogs,
-      );
-      expect(
-        preferences.getString(
-          SharedPreferencesSettingsLocalRepository.ownedPartsKey,
-        ),
-        legacyOwnedParts,
-      );
-      expect(
-        preferences.getString(
-          SharedPreferencesSettingsLocalRepository.visibilitySettingsKey,
-        ),
-        legacyVisibility,
-      );
-      expect(
-        preferences.getBool(
-          SharedPreferencesSettingsLocalRepository.onlineModeKey,
-        ),
-        isTrue,
-      );
-    });
+    test(
+      'failed legacy migration is a startup error and preserves old keys',
+      () async {
+        final source = _snapshot();
+        final legacyCars = jsonEncode(
+          source.cars.map((car) => car.toJson()).toList(),
+        );
+        final legacySettings = jsonEncode(
+          source.savedSettings.map((setting) => setting.toJson()).toList(),
+        );
+        final legacyRunLogs = jsonEncode(
+          source.runLogs.map((log) => log.toJson()).toList(),
+        );
+        final legacyOwnedParts = jsonEncode(
+          source.ownedParts.map((part) => part.toJson()).toList(),
+        );
+        final legacyVisibility = jsonEncode(
+          source.visibilitySettings.map(
+            (carId, settings) => MapEntry(carId, settings.toJson()),
+          ),
+        );
+        SharedPreferences.setMockInitialValues({
+          SharedPreferencesSettingsLocalRepository.carsKey: legacyCars,
+          SharedPreferencesSettingsLocalRepository.savedSettingsKey:
+              legacySettings,
+          SharedPreferencesSettingsLocalRepository.runLogsKey: legacyRunLogs,
+          SharedPreferencesSettingsLocalRepository.ownedPartsKey:
+              legacyOwnedParts,
+          SharedPreferencesSettingsLocalRepository.visibilitySettingsKey:
+              legacyVisibility,
+          SharedPreferencesSettingsLocalRepository.languageKey: true,
+          SharedPreferencesSettingsLocalRepository.editorLayoutKey: true,
+          SharedPreferencesSettingsLocalRepository.onlineModeKey: true,
+        });
+        final repository = SharedPreferencesSettingsLocalRepository(
+          stringWriter: (preferences, key, value) async => false,
+        );
+
+        await expectLater(
+          SettingsProvider.create(
+            appModeProvider: AppModeProvider(
+              preferredOnline: false,
+              isFirebaseReady: false,
+            ),
+            localRepository: repository,
+          ),
+          throwsStateError,
+        );
+
+        final preferences = await SharedPreferences.getInstance();
+        expect(
+          preferences.getString(
+            SharedPreferencesSettingsLocalRepository.settingsStateV2Key,
+          ),
+          isNull,
+        );
+        expect(
+          preferences.getString(
+            SharedPreferencesSettingsLocalRepository.carsKey,
+          ),
+          legacyCars,
+        );
+        expect(
+          preferences.getString(
+            SharedPreferencesSettingsLocalRepository.savedSettingsKey,
+          ),
+          legacySettings,
+        );
+        expect(
+          preferences.getString(
+            SharedPreferencesSettingsLocalRepository.runLogsKey,
+          ),
+          legacyRunLogs,
+        );
+        expect(
+          preferences.getString(
+            SharedPreferencesSettingsLocalRepository.ownedPartsKey,
+          ),
+          legacyOwnedParts,
+        );
+        expect(
+          preferences.getString(
+            SharedPreferencesSettingsLocalRepository.visibilitySettingsKey,
+          ),
+          legacyVisibility,
+        );
+        expect(
+          preferences.getBool(
+            SharedPreferencesSettingsLocalRepository.onlineModeKey,
+          ),
+          isTrue,
+        );
+      },
+    );
 
     test('propagates malformed JSON and unsupported v2 versions', () async {
       SharedPreferences.setMockInitialValues({
@@ -404,61 +411,66 @@ void main() {
 
       final unsupported = _snapshot().toJson()..['schemaVersion'] = 99;
       SharedPreferences.setMockInitialValues({
-        SharedPreferencesSettingsLocalRepository.settingsStateV2Key:
-            jsonEncode(unsupported),
+        SharedPreferencesSettingsLocalRepository.settingsStateV2Key: jsonEncode(
+          unsupported,
+        ),
       });
       repository = SharedPreferencesSettingsLocalRepository();
       await expectLater(repository.loadSnapshot(), throwsFormatException);
     });
 
-    test('loads every legacy field but ignores and preserves online_mode',
-        () async {
-      final source = _snapshot();
-      final visibilityJson = source.visibilitySettings.map(
-        (carId, settings) => MapEntry(carId, settings.toJson()),
-      );
-      SharedPreferences.setMockInitialValues({
-        SharedPreferencesSettingsLocalRepository.carsKey:
-            jsonEncode(source.cars.map((car) => car.toJson()).toList()),
-        SharedPreferencesSettingsLocalRepository.savedSettingsKey: jsonEncode(
-          source.savedSettings.map((setting) => setting.toJson()).toList(),
-        ),
-        SharedPreferencesSettingsLocalRepository.runLogsKey:
-            jsonEncode(source.runLogs.map((log) => log.toJson()).toList()),
-        SharedPreferencesSettingsLocalRepository.ownedPartsKey: jsonEncode(
-          source.ownedParts.map((part) => part.toJson()).toList(),
-        ),
-        SharedPreferencesSettingsLocalRepository.visibilitySettingsKey:
-            jsonEncode(visibilityJson),
-        SharedPreferencesSettingsLocalRepository.languageKey: true,
-        SharedPreferencesSettingsLocalRepository.editorLayoutKey: true,
-        SharedPreferencesSettingsLocalRepository.onlineModeKey: true,
-      });
-      final repository = SharedPreferencesSettingsLocalRepository();
+    test(
+      'loads every legacy field but ignores and preserves online_mode',
+      () async {
+        final source = _snapshot();
+        final visibilityJson = source.visibilitySettings.map(
+          (carId, settings) => MapEntry(carId, settings.toJson()),
+        );
+        SharedPreferences.setMockInitialValues({
+          SharedPreferencesSettingsLocalRepository.carsKey: jsonEncode(
+            source.cars.map((car) => car.toJson()).toList(),
+          ),
+          SharedPreferencesSettingsLocalRepository.savedSettingsKey: jsonEncode(
+            source.savedSettings.map((setting) => setting.toJson()).toList(),
+          ),
+          SharedPreferencesSettingsLocalRepository.runLogsKey: jsonEncode(
+            source.runLogs.map((log) => log.toJson()).toList(),
+          ),
+          SharedPreferencesSettingsLocalRepository.ownedPartsKey: jsonEncode(
+            source.ownedParts.map((part) => part.toJson()).toList(),
+          ),
+          SharedPreferencesSettingsLocalRepository.visibilitySettingsKey:
+              jsonEncode(visibilityJson),
+          SharedPreferencesSettingsLocalRepository.languageKey: true,
+          SharedPreferencesSettingsLocalRepository.editorLayoutKey: true,
+          SharedPreferencesSettingsLocalRepository.onlineModeKey: true,
+        });
+        final repository = SharedPreferencesSettingsLocalRepository();
 
-      final loaded = await repository.loadLegacySnapshot();
-      final preferences = await SharedPreferences.getInstance();
+        final loaded = await repository.loadLegacySnapshot();
+        final preferences = await SharedPreferences.getInstance();
 
-      expect(loaded.cars.single.id, source.cars.single.id);
-      expect(loaded.savedSettings.single.id, source.savedSettings.single.id);
-      expect(loaded.runLogs.single.id, source.runLogs.single.id);
-      expect(loaded.ownedParts.single.id, source.ownedParts.single.id);
-      expect(loaded.visibilitySettings, contains(source.cars.single.id));
-      expect(loaded.isEnglish, isTrue);
-      expect(loaded.usePaperStyleEditor, isTrue);
-      expect(
-        preferences.getBool(
-          SharedPreferencesSettingsLocalRepository.onlineModeKey,
-        ),
-        isTrue,
-      );
-      expect(
-        preferences.getString(
-          SharedPreferencesSettingsLocalRepository.settingsStateV2Key,
-        ),
-        isNull,
-      );
-    });
+        expect(loaded.cars.single.id, source.cars.single.id);
+        expect(loaded.savedSettings.single.id, source.savedSettings.single.id);
+        expect(loaded.runLogs.single.id, source.runLogs.single.id);
+        expect(loaded.ownedParts.single.id, source.ownedParts.single.id);
+        expect(loaded.visibilitySettings, contains(source.cars.single.id));
+        expect(loaded.isEnglish, isTrue);
+        expect(loaded.usePaperStyleEditor, isTrue);
+        expect(
+          preferences.getBool(
+            SharedPreferencesSettingsLocalRepository.onlineModeKey,
+          ),
+          isTrue,
+        );
+        expect(
+          preferences.getString(
+            SharedPreferencesSettingsLocalRepository.settingsStateV2Key,
+          ),
+          isNull,
+        );
+      },
+    );
 
     test('builds complete defaults when no legacy key exists', () async {
       SharedPreferences.setMockInitialValues({});
@@ -466,7 +478,7 @@ void main() {
 
       final loaded = await repository.loadLegacySnapshot();
 
-      expect(loaded.cars, hasLength(8));
+      expect(loaded.cars, hasLength(16));
       expect(loaded.savedSettings, isEmpty);
       expect(loaded.runLogs, isEmpty);
       expect(loaded.ownedParts, isEmpty);
@@ -476,32 +488,34 @@ void main() {
     });
   });
 
-  test('SettingsOperationResult exposes typed success and failure variants',
-      () {
-    final warning = SettingsSyncWarning(
-      operation: 'saveSetting',
-      cause: StateError('cloud failed'),
-      stackTrace: StackTrace.current,
-    );
-    final success = SettingsOperationResult<int>.success(
-      value: 1,
-      warning: warning,
-    );
-    final persistenceFailure = SettingsPersistenceFailure(
-      kind: SettingsPersistenceFailureKind.write,
-      operation: 'saveSetting',
-      cause: StateError('local failed'),
-      stackTrace: StackTrace.current,
-    );
-    final failure = SettingsOperationResult<int>.failure(persistenceFailure);
+  test(
+    'SettingsOperationResult exposes typed success and failure variants',
+    () {
+      final warning = SettingsSyncWarning(
+        operation: 'saveSetting',
+        cause: StateError('cloud failed'),
+        stackTrace: StackTrace.current,
+      );
+      final success = SettingsOperationResult<int>.success(
+        value: 1,
+        warning: warning,
+      );
+      final persistenceFailure = SettingsPersistenceFailure(
+        kind: SettingsPersistenceFailureKind.write,
+        operation: 'saveSetting',
+        cause: StateError('local failed'),
+        stackTrace: StackTrace.current,
+      );
+      final failure = SettingsOperationResult<int>.failure(persistenceFailure);
 
-    expect(success, isA<SettingsOperationSuccess<int>>());
-    expect((success as SettingsOperationSuccess<int>).value, 1);
-    expect(success.warning, same(warning));
-    expect(failure, isA<SettingsOperationFailure<int>>());
-    expect(
-      (failure as SettingsOperationFailure<int>).failure,
-      same(persistenceFailure),
-    );
-  });
+      expect(success, isA<SettingsOperationSuccess<int>>());
+      expect((success as SettingsOperationSuccess<int>).value, 1);
+      expect(success.warning, same(warning));
+      expect(failure, isA<SettingsOperationFailure<int>>());
+      expect(
+        (failure as SettingsOperationFailure<int>).failure,
+        same(persistenceFailure),
+      );
+    },
+  );
 }

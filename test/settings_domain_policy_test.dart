@@ -16,6 +16,14 @@ void main() {
       'yokomo/bd12',
       'yokomo/ms1_0',
       'yokomo/ms2_0',
+      'xray/x4_24',
+      'awesomatix/a800r',
+      'schumacher/mi9',
+      'infinity/if14_2',
+      'arc/arc_r12',
+      'xpress/xq11r',
+      'mugen/mtc2_fwd',
+      'mugen/mtc3',
     ]);
 
     final customized = catalog.first.copyWith(isInGarage: true);
