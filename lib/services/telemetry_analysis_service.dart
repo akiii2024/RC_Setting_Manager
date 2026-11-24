@@ -3,7 +3,9 @@ import 'dart:math' as math;
 import '../models/telemetry.dart';
 
 class TelemetryFormatException implements Exception {
-  const TelemetryFormatException(this.message);
+  const TelemetryFormatException(this.message, {this.englishMessage});
+
+  final String? englishMessage;
 
   final String message;
 
@@ -36,7 +38,8 @@ abstract final class TelemetryAnalysisService {
         .where((line) => line.trim().isNotEmpty)
         .toList(growable: false);
     if (lines.isEmpty) {
-      throw const TelemetryFormatException('CSVにデータがありません。');
+      throw const TelemetryFormatException('CSVにデータがありません。',
+          englishMessage: 'The CSV contains no data.');
     }
 
     var headerIndex = lines.indexWhere((line) {
@@ -46,6 +49,8 @@ abstract final class TelemetryAnalysisService {
     if (headerIndex < 0) {
       throw const TelemetryFormatException(
         'SANWA形式のヘッダー（LAP, LAP TIME, REC TIME）が見つかりません。',
+        englishMessage:
+            'The SANWA header (LAP, LAP TIME, REC TIME) was not found.',
       );
     }
 
@@ -63,7 +68,8 @@ abstract final class TelemetryAnalysisService {
         .toList(growable: false);
     for (final required in _requiredColumns) {
       if (!columns.contains(required)) {
-        throw TelemetryFormatException('必須列「$required」が見つかりません。');
+        throw TelemetryFormatException('必須列「$required」が見つかりません。',
+            englishMessage: 'Required column "$required" was not found.');
       }
     }
 
@@ -81,6 +87,8 @@ abstract final class TelemetryAnalysisService {
       if (recordMillis == 0 && !recordText.contains('00:00:00')) {
         throw TelemetryFormatException(
           '${rowIndex + headerIndex + 2}行目のREC TIMEを読み取れません。',
+          englishMessage:
+              'Could not read REC TIME on row ${rowIndex + headerIndex + 2}.',
         );
       }
       for (final column in columns.where(
@@ -92,6 +100,8 @@ abstract final class TelemetryAnalysisService {
         if (numeric.isEmpty || double.tryParse(numeric) == null) {
           throw TelemetryFormatException(
             '${rowIndex + headerIndex + 2}行目の「$column」を数値として読み取れません。',
+            englishMessage:
+                'Could not read "$column" as a number on row ${rowIndex + headerIndex + 2}.',
           );
         }
       }
@@ -104,7 +114,8 @@ abstract final class TelemetryAnalysisService {
       );
     }
     if (samples.isEmpty) {
-      throw const TelemetryFormatException('有効なテレメトリーレコードがありません。');
+      throw const TelemetryFormatException('有効なテレメトリーレコードがありません。',
+          englishMessage: 'No valid telemetry records were found.');
     }
     samples.sort((a, b) => a.recordMillis.compareTo(b.recordMillis));
 

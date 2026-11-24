@@ -158,6 +158,34 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets('英語設定ではAI分析のエラーを英語で表示する', (tester) async {
+    final service = TelemetryAiAnalysisService(
+      configurationService: AiConfigurationService(
+        secretStore: MemorySecretStore(),
+      ),
+      functionCaller: (_, __) async => throw StateError('一時的に分析できません。'),
+    );
+    await _pumpPage(
+      tester,
+      english: true,
+      size: const Size(360, 800),
+      brightness: Brightness.dark,
+      aiAnalysisService: service,
+    );
+
+    final analyze = find.text('Analyze driving with AI');
+    await tester.scrollUntilVisible(analyze.hitTestable(), 300);
+    await tester.tap(analyze);
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    expect(find.textContaining('The AI driving review could not be generated.'),
+        findsOneWidget);
+    expect(find.text('一時的に分析できません。'), findsNothing);
+    expect(analyze, findsOneWidget);
+  });
+
   testWidgets('AI走行コーチの失敗時に再試行できるエラーを表示する', (tester) async {
     final service = TelemetryAiAnalysisService(
       configurationService: AiConfigurationService(
