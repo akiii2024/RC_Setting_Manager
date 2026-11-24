@@ -1,5 +1,7 @@
 import 'package:rc_setting_manager/utils/app_logger.dart';
+
 import '../models/car_setting_definition.dart';
+import 'car_settings/definitions/mugen/mtc3_settings.dart' as mtc3;
 import 'car_settings/definitions/tamiya/trf420_settings.dart' as trf420;
 import 'car_settings/definitions/tamiya/trf420x_settings.dart' as trf420x;
 import 'car_settings/definitions/tamiya/trf421_settings.dart' as trf421;
@@ -19,6 +21,7 @@ final Map<String, CarSettingDefinition> carSettingsDefinitions = {
   'yokomo/bd12': bd12.bd12Settings,
   'yokomo/ms1_0': ms1.ms1Settings,
   'yokomo/ms2_0': ms2.ms2Settings,
+  'mugen/mtc3': mtc3.mtc3Settings,
 };
 
 // 車種IDから設定定義を取得する関数

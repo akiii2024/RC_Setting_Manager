@@ -31,9 +31,11 @@ void main() {
     for (final car in BuiltInCarCatalog.create()) {
       final expected = car.id.startsWith('tamiya/')
           ? 1.85
-          : car.id == 'yokomo/ms2_0'
-              ? 2.0
-              : 1.9;
+          : switch (car.id) {
+              'yokomo/ms2_0' => 2.0,
+              'mugen/mtc3' => null,
+              _ => 1.9,
+            };
       expect(CarDriveRatios.forCarId(car.id), expected, reason: car.id);
     }
     expect(CarDriveRatios.forCarId('custom/car'), isNull);

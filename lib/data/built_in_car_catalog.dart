@@ -18,6 +18,12 @@ abstract final class BuiltInCarCatalog {
       logoPath: 'assets/images/yokomo.png',
     );
 
+    final mugen = Manufacturer(
+      id: 'mugen',
+      name: 'Mugen',
+      logoPath: 'assets/images/mugen.png',
+    );
+
     return [
       Car(
         id: 'tamiya/trf421',
@@ -73,6 +79,13 @@ abstract final class BuiltInCarCatalog {
         name: 'MS2.0',
         imageUrl: 'assets/images/ms2_0.jpg',
         manufacturer: yokomo,
+        category: 'ツーリングカー',
+      ),
+      Car(
+        id: 'mugen/mtc3',
+        name: 'MTC3',
+        imageUrl: 'assets/images/mtc3.jpg',
+        manufacturer: mugen,
         category: 'ツーリングカー',
       ),
     ];
