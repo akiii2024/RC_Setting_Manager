@@ -278,10 +278,10 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                 _buildTRF420XSettingsRow(
                   _buildTRF420XSettingFieldWithFavorite(
                     'frontWheelHub',
-                    'ホイールハブ',
+                    isEnglish ? 'Wheel Hub' : 'ホイールハブ',
                     TextFormField(
                       decoration: InputDecoration(
-                        labelText: 'ホイールハブ (mm)',
+                        labelText: isEnglish ? 'Wheel Hub (mm)' : 'ホイールハブ (mm)',
                         border: const OutlineInputBorder(),
                         errorText: _numberInputErrorText('frontWheelHub'),
                       ),
@@ -295,10 +295,12 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                   ),
                   _buildTRF420XSettingFieldWithFavorite(
                     'frontWheelHubSpacer',
-                    'ホイールハブスペーサー',
+                    isEnglish ? 'Wheel Hub Spacer' : 'ホイールハブスペーサー',
                     TextFormField(
                       decoration: InputDecoration(
-                        labelText: 'ホイールハブスペーサー (mm)',
+                        labelText: isEnglish
+                            ? 'Wheel Hub Spacer (mm)'
+                            : 'ホイールハブスペーサー (mm)',
                         border: const OutlineInputBorder(),
                         errorText: _numberInputErrorText('frontWheelHubSpacer'),
                       ),
@@ -318,10 +320,10 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                 _buildTRF420XSingleSetting(
                   _buildTRF420XSettingFieldWithFavorite(
                     'frontDroop',
-                    'ドループ',
+                    isEnglish ? 'Droop' : 'ドループ',
                     TextFormField(
                       decoration: InputDecoration(
-                        labelText: 'ドループ (mm)',
+                        labelText: isEnglish ? 'Droop (mm)' : 'ドループ (mm)',
                         border: const OutlineInputBorder(),
                         errorText: _numberInputErrorText('frontDroop'),
                       ),
@@ -340,10 +342,10 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                 _buildTRF420XSingleSetting(
                   _buildTRF420XSettingFieldWithFavorite(
                     'frontDiffarentialPosition',
-                    'デフ位置',
+                    isEnglish ? 'Diff Position' : 'デフ位置',
                     Row(
                       children: [
-                        const Text('デフ位置: '),
+                        Text(isEnglish ? 'Diff Position: ' : 'デフ位置: '),
                         const SizedBox(width: 8),
                         ToggleButtons(
                           isSelected: [
@@ -356,14 +358,16 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                                   ['high', 'low'][index];
                             });
                           },
-                          children: const [
+                          children: [
                             Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 16),
-                              child: Text('高'),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(isEnglish ? 'High' : '高'),
                             ),
                             Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 16),
-                              child: Text('低'),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                              child: Text(isEnglish ? 'Low' : '低'),
                             ),
                           ],
                         ),
@@ -378,11 +382,12 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                 _buildTRF420XSettingsRow(
                   _buildTRF420XSettingFieldWithFavorite(
                     'frontSusMountFront',
-                    'サスマウント前',
+                    isEnglish ? 'Front Suspension Mount' : 'サスマウント前',
                     DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'サスマウント前',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText:
+                            isEnglish ? 'Front Suspension Mount' : 'サスマウント前',
+                        border: const OutlineInputBorder(),
                       ),
                       initialValue: settings['frontSusMountFront'] == null ||
                               settings['frontSusMountFront'].toString().isEmpty
@@ -402,11 +407,12 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                   ),
                   _buildTRF420XSettingFieldWithFavorite(
                     'frontSusMountRear',
-                    'サスマウント後',
+                    isEnglish ? 'Rear Suspension Mount' : 'サスマウント後',
                     DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'サスマウント後',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText:
+                            isEnglish ? 'Rear Suspension Mount' : 'サスマウント後',
+                        border: const OutlineInputBorder(),
                       ),
                       initialValue: settings['frontSusMountRear'] == null ||
                               settings['frontSusMountRear'].toString().isEmpty
@@ -432,18 +438,22 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                 _buildTRF420XSettingsRow(
                   _buildTRF420XSettingFieldWithFavorite(
                     'frontSusMountFrontShaftPosition',
-                    'サスマウント前シャフト位置',
+                    isEnglish ? 'Front Mount Shaft Position' : 'サスマウント前シャフト位置',
                     _buildTRF420XGridSelector(
-                      label: 'サスマウント前シャフト位置',
+                      label: isEnglish
+                          ? 'Front Mount Shaft Position'
+                          : 'サスマウント前シャフト位置',
                       settingKey: 'frontSusMountFrontShaftPosition',
                       size: 150,
                     ),
                   ),
                   _buildTRF420XSettingFieldWithFavorite(
                     'frontSusMountRearShaftPosition',
-                    'サスマウント後シャフト位置',
+                    isEnglish ? 'Rear Mount Shaft Position' : 'サスマウント後シャフト位置',
                     _buildTRF420XGridSelector(
-                      label: 'サスマウント後シャフト位置',
+                      label: isEnglish
+                          ? 'Rear Mount Shaft Position'
+                          : 'サスマウント後シャフト位置',
                       settingKey: 'frontSusMountRearShaftPosition',
                       size: 150,
                     ),
@@ -456,21 +466,29 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                 _buildTRF420XSettingsRow(
                   _buildTRF420XSettingFieldWithFavorite(
                     'frontDrive',
-                    'デフ種類',
+                    isEnglish ? 'Diff Type' : 'デフ種類',
                     DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'デフ種類',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: isEnglish ? 'Diff Type' : 'デフ種類',
+                        border: const OutlineInputBorder(),
                       ),
                       initialValue: settings['frontDrive'] == null ||
                               settings['frontDrive'].toString().isEmpty
                           ? null
                           : settings['frontDrive'],
-                      items: const [
-                        DropdownMenuItem(value: 'スプール', child: Text('スプール')),
-                        DropdownMenuItem(value: 'ギアデフ', child: Text('ギアデフ')),
-                        DropdownMenuItem(value: 'ボールデフ', child: Text('ボールデフ')),
-                        DropdownMenuItem(value: 'ワンウェイ', child: Text('ワンウェイ')),
+                      items: [
+                        DropdownMenuItem(
+                            value: 'スプール',
+                            child: Text(isEnglish ? 'Spool' : 'スプール')),
+                        DropdownMenuItem(
+                            value: 'ギアデフ',
+                            child: Text(isEnglish ? 'Gear Diff' : 'ギアデフ')),
+                        DropdownMenuItem(
+                            value: 'ボールデフ',
+                            child: Text(isEnglish ? 'Ball Diff' : 'ボールデフ')),
+                        DropdownMenuItem(
+                            value: 'ワンウェイ',
+                            child: Text(isEnglish ? 'One-Way' : 'ワンウェイ')),
                       ],
                       onChanged: (value) {
                         setState(() {
@@ -481,11 +499,11 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                   ),
                   _buildTRF420XSettingFieldWithFavorite(
                     'frontDifferentialOil',
-                    'デフオイル',
+                    isEnglish ? 'Diff Oil' : 'デフオイル',
                     TextFormField(
-                      decoration: const InputDecoration(
-                        labelText: 'デフオイル',
-                        border: OutlineInputBorder(),
+                      decoration: InputDecoration(
+                        labelText: isEnglish ? 'Diff Oil' : 'デフオイル',
+                        border: const OutlineInputBorder(),
                       ),
                       initialValue: settings['frontDifferentialOil'] ?? '',
                       onChanged: (value) {
@@ -501,14 +519,14 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                 _buildTRF420XSingleSetting(
                   _buildTRF420XSettingField(
                     'frontDamperSettings',
-                    'フロントダンパー設定',
+                    isEnglish ? 'Front Damper Settings' : 'フロントダンパー設定',
                     _buildTRF420XExpandablePanel(
-                      title: 'フロントダンパー設定',
+                      title: isEnglish ? 'Front Damper Settings' : 'フロントダンパー設定',
                       children: [
                         const SizedBox(height: 8),
-                        const Text(
-                          'ダンパーオフセット (mm)',
-                          style: TextStyle(fontSize: 12),
+                        Text(
+                          isEnglish ? 'Damper Offset (mm)' : 'ダンパーオフセット (mm)',
+                          style: const TextStyle(fontSize: 12),
                         ),
                         const SizedBox(height: 16),
 
@@ -516,10 +534,11 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                         _buildTRF420XSettingsRow(
                           _buildTRF420XSettingFieldWithFavorite(
                             'frontDamperOffsetStay',
-                            'ステー',
+                            isEnglish ? 'Damper Stay' : 'ステー',
                             TextFormField(
                               decoration: InputDecoration(
-                                labelText: 'ステー (mm)',
+                                labelText:
+                                    isEnglish ? 'Damper Stay (mm)' : 'ステー (mm)',
                                 border: const OutlineInputBorder(),
                                 errorText: _numberInputErrorText(
                                     'frontDamperOffsetStay'),
@@ -536,10 +555,12 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                           ),
                           _buildTRF420XSettingFieldWithFavorite(
                             'frontDamperOffsetArm',
-                            'サスアーム',
+                            isEnglish ? 'Suspension Arm' : 'サスアーム',
                             TextFormField(
                               decoration: InputDecoration(
-                                labelText: 'サスアーム (mm)',
+                                labelText: isEnglish
+                                    ? 'Suspension Arm (mm)'
+                                    : 'サスアーム (mm)',
                                 border: const OutlineInputBorder(),
                                 errorText: _numberInputErrorText(
                                     'frontDamperOffsetArm'),
@@ -562,11 +583,12 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                         _buildTRF420XSettingsRow(
                           _buildTRF420XSettingFieldWithFavorite(
                             'frontDumperType',
-                            'ダンパータイプ',
+                            isEnglish ? 'Damper Type' : 'ダンパータイプ',
                             TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'ダンパータイプ',
-                                border: OutlineInputBorder(),
+                              decoration: InputDecoration(
+                                labelText:
+                                    isEnglish ? 'Damper Type' : 'ダンパータイプ',
+                                border: const OutlineInputBorder(),
                               ),
                               initialValue: settings['frontDumperType'] ?? '',
                               onChanged: (value) {
@@ -578,11 +600,11 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                           ),
                           _buildTRF420XSettingFieldWithFavorite(
                             'frontDumperOilSeal',
-                            'オイルシール',
+                            isEnglish ? 'Oil Seal' : 'オイルシール',
                             TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'オイルシール',
-                                border: OutlineInputBorder(),
+                              decoration: InputDecoration(
+                                labelText: isEnglish ? 'Oil Seal' : 'オイルシール',
+                                border: const OutlineInputBorder(),
                               ),
                               initialValue:
                                   settings['frontDumperOilSeal'] ?? '',
@@ -631,11 +653,12 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                         _buildTRF420XSettingsRow(
                           _buildTRF420XSettingFieldWithFavorite(
                             'frontDumperStroke',
-                            'ストローク長',
+                            isEnglish ? 'Stroke Length' : 'ストローク長',
                             TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'ストローク長',
-                                border: OutlineInputBorder(),
+                              decoration: InputDecoration(
+                                labelText:
+                                    isEnglish ? 'Stroke Length' : 'ストローク長',
+                                border: const OutlineInputBorder(),
                               ),
                               initialValue: settings['frontDumperStroke'] ?? '',
                               onChanged: (value) {
@@ -647,11 +670,12 @@ mixin _CarSettingTrf420xEditor on State<CarSettingPage> {
                           ),
                           _buildTRF420XSettingFieldWithFavorite(
                             'frontDumperAirHole',
-                            'エア抜き穴',
+                            isEnglish ? 'Bleed Hole' : 'エア抜き穴',
                             TextFormField(
-                              decoration: const InputDecoration(
-                                labelText: 'エア抜き穴(mm)',
-                                border: OutlineInputBorder(),
+                              decoration: InputDecoration(
+                                labelText:
+                                    isEnglish ? 'Bleed Hole (mm)' : 'エア抜き穴(mm)',
+                                border: const OutlineInputBorder(),
                               ),
                               initialValue:
                                   settings['frontDumperAirHole'] ?? '',
