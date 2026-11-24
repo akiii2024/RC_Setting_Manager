@@ -6,7 +6,6 @@ import '../providers/settings_provider.dart';
 import '../providers/app_mode_provider.dart';
 import '../data/car_settings_definitions.dart';
 import '../models/car_setting_definition.dart';
-import '../models/car.dart';
 import '../models/saved_setting.dart';
 import '../models/settings_operation_result.dart';
 import '../utils/settings_operation_feedback.dart';
@@ -271,7 +270,12 @@ class _LoginPageState extends State<LoginPage> {
       return isEnglish
           ? 'Network error. Please check your internet connection.'
           : 'ネットワークエラーです。インターネット接続を確認してください。';
-    } else if (error.contains('Firebase認証は現在利用できません')) {
+    } else if (error.contains('オンラインモード（ベータ）を有効にしてください。')) {
+      return isEnglish
+          ? 'Enable online mode (Beta) to continue.'
+          : 'オンラインモード（ベータ）を有効にしてください。';
+    } else if (error.contains('Firebase認証は現在利用できません') ||
+        error.contains('Firebase認証がまだ利用できません。')) {
       return isEnglish
           ? 'Firebase authentication is not available. Please check Firebase configuration.'
           : 'Firebase認証が利用できません。Firebase設定を確認してください。';
@@ -507,7 +511,7 @@ class _LoginPageState extends State<LoginPage> {
         return NewSavedSettingInput(
           name: isEnglish ? 'Demo - ${car.name}' : 'デモ - ${car.name}',
           car: car,
-          settings: _generateDemoSettingsForCar(car, definition),
+          settings: _generateDemoSettingsForCar(definition, isEnglish),
         );
       }).toList(growable: false);
       final result = await settingsProvider.addSettingsBatch(inputs);
@@ -558,7 +562,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Map<String, dynamic> _generateDemoSettingsForCar(
-      Car car, CarSettingDefinition? definition) {
+      CarSettingDefinition? definition, bool isEnglish) {
     final Map<String, dynamic> demo = {};
 
     if (definition != null) {
@@ -576,8 +580,8 @@ class _LoginPageState extends State<LoginPage> {
     demo.putIfAbsent('humidity', () => 50);
     demo.putIfAbsent('trackTemp', () => 30);
     demo.putIfAbsent('surface', () => 'カーペット');
-    demo.putIfAbsent('condition', () => 'ドライ');
-    demo.putIfAbsent('memo', () => 'デモデータです');
+    demo.putIfAbsent('condition', () => isEnglish ? 'Dry' : 'ドライ');
+    demo.putIfAbsent('memo', () => isEnglish ? 'Demo data' : 'デモデータです');
 
     return demo;
   }

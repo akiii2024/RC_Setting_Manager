@@ -331,11 +331,30 @@ class _AiProviderSettingsPageState extends State<AiProviderSettingsPage> {
   void _showError(Object error) {
     if (!mounted) return;
     final message = error is AiProviderException
-        ? error.message
+        ? (_isEnglish ? _englishProviderError(error) : error.message)
         : (_isEnglish
             ? 'Could not update AI settings. Check developer mode and the API key, then try again.'
             : 'AI設定を更新できませんでした。開発者モードとAPIキーを確認し、再試行してください。');
     _showMessage(message);
+  }
+
+  String _englishProviderError(AiProviderException error) {
+    final provider = error.provider.displayName;
+    return switch (error.kind) {
+      AiProviderErrorKind.authentication =>
+        'Check your $provider API key and access permissions.',
+      AiProviderErrorKind.rateLimit =>
+        '$provider usage limit reached. Try again later.',
+      AiProviderErrorKind.invalidRequest =>
+        '$provider could not process the request. Check the model settings.',
+      AiProviderErrorKind.serviceUnavailable =>
+        '$provider is currently unavailable.',
+      AiProviderErrorKind.timeout => 'The connection to $provider timed out.',
+      AiProviderErrorKind.network =>
+        'Could not connect to $provider. Check your internet connection.',
+      AiProviderErrorKind.invalidResponse =>
+        '$provider returned an invalid response.',
+    };
   }
 
   void _showMessage(String message) {

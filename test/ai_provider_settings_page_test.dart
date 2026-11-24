@@ -5,6 +5,7 @@ import 'package:rc_setting_manager/models/open_code_go_model.dart';
 import 'package:rc_setting_manager/models/ai_provider.dart';
 import 'package:rc_setting_manager/pages/ai_provider_settings_page.dart';
 import 'package:rc_setting_manager/services/ai_configuration_service.dart';
+import 'package:rc_setting_manager/services/ai_provider_client.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -235,6 +236,49 @@ void main() {
     expect(testedConfiguration?.apiKey, 'anthropic-test-key');
     expect(await service.activeConfiguration, isNull);
     expect(find.text('Anthropicへの接続を確認しました。'), findsOneWidget);
+  });
+
+  testWidgets('connection errors follow the UI language', (tester) async {
+    for (final isEnglish in [true, false]) {
+      SharedPreferences.setMockInitialValues({});
+      final service = AiConfigurationService(secretStore: MemorySecretStore());
+      await service.unlockDeveloperMode();
+      await service.setDeveloperModeEnabled(true);
+      const japaneseError = 'GeminiのAPIキーまたは利用権限を確認してください。';
+      const englishError = 'Check your Gemini API key and access permissions.';
+
+      await tester.pumpWidget(MaterialApp(
+        key: ValueKey(isEnglish),
+        home: AiProviderSettingsPage(
+          configurationService: service,
+          isEnglish: isEnglish,
+          connectionTester: (configuration) async {
+            throw AiProviderException(
+              provider: configuration.provider,
+              kind: AiProviderErrorKind.authentication,
+              message: japaneseError,
+            );
+          },
+        ),
+      ));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text(isEnglish ? 'My API key' : '自分のAPIキー'));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField).at(1), 'test-key');
+      final testButton = find.text(isEnglish ? 'Test connection' : '接続テスト');
+      await _scrollTo(tester, testButton);
+      await tester.tap(testButton);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(
+        isEnglish ? 'Agree and test connection' : '同意して接続する',
+      ));
+      await tester.pumpAndSettle();
+
+      expect(
+          find.text(isEnglish ? englishError : japaneseError), findsOneWidget);
+      expect(find.text(isEnglish ? japaneseError : englishError), findsNothing);
+    }
   });
 
   testWidgets('can switch back to standard Gemini without an API key',

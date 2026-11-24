@@ -171,7 +171,7 @@ class StatisticsPage extends StatelessWidget {
           Text(
             _text(
               isEnglish,
-              'Find setups that produce lap time',
+              'Find your fastest setups',
               'タイムが出るセットを探す',
             ),
             style: theme.textTheme.headlineSmall?.copyWith(
@@ -183,7 +183,7 @@ class StatisticsPage extends StatelessWidget {
           Text(
             _text(
               isEnglish,
-              'Run logs are ranked by best lap, setup, feel, and changed setting items.',
+              'Compare run logs by best lap, setup, feel tag, and setting change.',
               '走行ログをベストラップ、セット、フィーリング、変更項目ごとに集計します。',
             ),
             style: theme.textTheme.bodyMedium?.copyWith(
@@ -585,7 +585,7 @@ class StatisticsPage extends StatelessWidget {
           Text(
             _text(
               isEnglish,
-              'Track save volume, recent momentum, and the chassis you tune most.',
+              'See how many setups you have saved, how often you save them, and which chassis you use most.',
               '保存件数、直近の更新頻度、よく使うシャーシをまとめて表示します。',
             ),
             style: theme.textTheme.bodyMedium?.copyWith(
