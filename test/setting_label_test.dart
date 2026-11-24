@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:rc_setting_manager/data/car_settings/common/basic_settings.dart';
 import 'package:rc_setting_manager/data/car_settings_definitions.dart';
 import 'package:rc_setting_manager/domain/settings/display_settings_store.dart';
 import 'package:rc_setting_manager/domain/settings/setting_label_mode.dart';
@@ -59,7 +60,7 @@ void main() {
     expect(item.toJson(), json);
   });
 
-  test('X4’24 のみ純正シートに対応した英語表記を持つ', () {
+  test('X4’24 とタミヤ TRF 4車種が英語表記を持つ', () {
     final labels = {
       for (final item
           in carSettingsDefinitions['xray/x4_24']!.availableSettings)
@@ -71,10 +72,26 @@ void main() {
     expect(labels['rearStabilizer'], 'Rear Anti-roll Bar');
     expect(labels['surface'], 'Track Surface');
     expect(labels['airTemp'], isNull);
+    const tamiyaIds = {
+      'tamiya/trf420',
+      'tamiya/trf420x',
+      'tamiya/trf421',
+      'tamiya/trf421x',
+    };
+    final basicKeys = basicSettings.map((item) => item.key).toSet();
     for (final entry in carSettingsDefinitions.entries) {
       if (entry.key == 'xray/x4_24') continue;
-      expect(entry.value.availableSettings.map((item) => item.labelEn),
-          everyElement(isNull));
+      final tamiyaLabels = <String>{};
+      for (final item in entry.value.availableSettings) {
+        final reason = '${entry.key} / ${item.key}';
+        if (tamiyaIds.contains(entry.key) && !basicKeys.contains(item.key)) {
+          final label = item.labelEn?.trim() ?? '';
+          expect(label, isNotEmpty, reason: reason);
+          expect(tamiyaLabels.add(label), isTrue, reason: reason);
+        } else {
+          expect(item.labelEn, isNull, reason: reason);
+        }
+      }
     }
   });
 }

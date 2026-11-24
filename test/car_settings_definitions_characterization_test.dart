@@ -28,15 +28,13 @@ String _fingerprint(Object? value) {
 
 Map<String, Object> _definitionShape(CarSettingDefinition definition) {
   final settings = definition.availableSettings;
-  final normalizedSettings = settings
-      .map((setting) {
-        final json = setting.toJson();
-        if (setting.key == 'date') {
-          json['defaultValue'] = '<current-date>';
-        }
-        return json;
-      })
-      .toList(growable: false);
+  final normalizedSettings = settings.map((setting) {
+    final json = setting.toJson();
+    if (setting.key == 'date') {
+      json['defaultValue'] = '<current-date>';
+    }
+    return json;
+  }).toList(growable: false);
   final options = [
     for (final setting in settings)
       if (setting.options != null)
@@ -157,13 +155,15 @@ void main() {
       expect(defaults['pinionGear'], '30', reason: entry.key);
     }
     expect(
-      carSettingsDefinitions['tamiya/trf421x']!.availableSettings
+      carSettingsDefinitions['tamiya/trf421x']!
+          .availableSettings
           .firstWhere((setting) => setting.key == 'lowerDeck')
           .defaultValue,
       '2',
     );
     expect(
-      carSettingsDefinitions['tamiya/trf420']!.availableSettings
+      carSettingsDefinitions['tamiya/trf420']!
+          .availableSettings
           .firstWhere((setting) => setting.key == 'rearToeAngle')
           .defaultValue,
       '3',
@@ -184,7 +184,7 @@ void main() {
         'categories': 'ac31c2e7',
         'options': '3c11f54c',
         'composites': '769dd45f',
-        'fullShape': 'bfa271f4',
+        'fullShape': '2fa6c55f',
       },
       'tamiya/trf420': {
         'count': 99,
@@ -192,7 +192,7 @@ void main() {
         'categories': 'e8eb5d01',
         'options': '9ca9378b',
         'composites': '2a570281',
-        'fullShape': '3d175545',
+        'fullShape': 'd4224dd2',
       },
       'tamiya/trf420x': {
         'count': 94,
@@ -200,7 +200,7 @@ void main() {
         'categories': '616648bb',
         'options': 'eb8442e1',
         'composites': '2a570281',
-        'fullShape': '7cdcda3b',
+        'fullShape': '6bf7ad22',
       },
       'tamiya/trf421x': {
         'count': 100,
@@ -208,7 +208,7 @@ void main() {
         'categories': 'f4593996',
         'options': 'a96eeec0',
         'composites': '769dd45f',
-        'fullShape': '0b46186d',
+        'fullShape': '95f0be35',
       },
       'yokomo/bd11': {
         'count': 75,
