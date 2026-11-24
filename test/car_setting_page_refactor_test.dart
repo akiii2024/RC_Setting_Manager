@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:rc_setting_manager/services/setting_draft_service.dart';
 import 'package:rc_setting_manager/app/app_theme.dart';
+import 'package:rc_setting_manager/domain/settings/setting_label_mode.dart';
 import 'package:rc_setting_manager/models/car.dart';
 import 'package:rc_setting_manager/models/manufacturer.dart';
 import 'package:rc_setting_manager/models/saved_setting.dart';
@@ -123,6 +124,41 @@ double _contrastRatio(Color first, Color second) {
 }
 
 void main() {
+  for (final paperEditor in [false, true]) {
+    testWidgets('X4’24 の編集画面に項目名の表記を反映する ($paperEditor)', (tester) async {
+      final provider = await _pumpEditor(
+        tester,
+        car: _car(id: 'xray/x4_24', name: 'X4’24'),
+        savedSettings: const {'frontGroundClearance': 5.0},
+        paperEditor: paperEditor,
+      );
+      addTearDown(provider.dispose);
+      await tester.pumpAndSettle();
+
+      Future<void> openFront() async {
+        final section = paperEditor
+            ? find.text('Front').first
+            : find.widgetWithText(Tab, 'Front');
+        await tester.ensureVisible(section);
+        await tester.tap(section);
+        await tester.pumpAndSettle();
+      }
+
+      await openFront();
+      expect(find.text('Front Ride Height'), findsWidgets);
+
+      if (paperEditor) {
+        await tester.tap(find.byIcon(Icons.close));
+        await tester.pumpAndSettle();
+      }
+      await provider.setSettingLabelMode(SettingLabelMode.japanese);
+      await tester.pumpAndSettle();
+      if (paperEditor) await openFront();
+      expect(find.text('Front Ride Height'), findsNothing);
+      expect(find.text('フロント 車高'), findsWidgets);
+    });
+  }
+
   for (final brightness in Brightness.values) {
     for (final section in {
       'Front': const Size(500, 1000),

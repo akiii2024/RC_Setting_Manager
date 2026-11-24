@@ -833,6 +833,12 @@ class _AISettingAdvisorPageState extends State<AISettingAdvisorPage> {
   }
 
   Widget _changeCard(int index, AdvisorSettingChange change) {
+    final provider = context.watch<SettingsProvider>();
+    final item = widget.settingDefinition.availableSettings
+        .where((item) => item.key == change.settingKey)
+        .firstOrNull;
+    final label =
+        item == null ? change.settingLabel : provider.settingLabel(item);
     final applicable = _validatedChanges.containsKey(index);
     final selected = _selectedChangeIndexes.contains(index);
     return Card(
@@ -849,7 +855,7 @@ class _AISettingAdvisorPageState extends State<AISettingAdvisorPage> {
               }
             : null,
         title: Text(
-          '${change.settingLabel}: ${change.currentValue} → ${change.proposedValue}',
+          '$label: ${change.currentValue} → ${change.proposedValue}',
           style: const TextStyle(fontWeight: FontWeight.bold),
         ),
         subtitle: Padding(

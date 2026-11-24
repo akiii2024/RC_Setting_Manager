@@ -86,6 +86,7 @@ void main() {
           'ownedParts',
           'visibilitySettings',
           'isEnglish',
+          'settingLabelMode',
           'usePaperStyleEditor',
         }),
       );
@@ -133,15 +134,13 @@ void main() {
 
     test('rejects nested corruption and duplicate identifiers', () {
       final missingRunLogId = _snapshot().toJson();
-      final runLog =
-          (missingRunLogId['runLogs'] as List<dynamic>).single
-              as Map<String, dynamic>;
+      final runLog = (missingRunLogId['runLogs'] as List<dynamic>).single
+          as Map<String, dynamic>;
       runLog.remove('id');
 
       final unknownKind = _snapshot().toJson();
-      final setting =
-          (unknownKind['savedSettings'] as List<dynamic>).single
-              as Map<String, dynamic>;
+      final setting = (unknownKind['savedSettings'] as List<dynamic>).single
+          as Map<String, dynamic>;
       setting['kind'] = 'future-kind';
 
       final duplicateSetting = _snapshot().toJson();

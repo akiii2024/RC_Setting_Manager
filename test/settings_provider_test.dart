@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:rc_setting_manager/domain/settings/setting_label_mode.dart';
 import 'package:rc_setting_manager/models/car.dart';
 import 'package:rc_setting_manager/models/manufacturer.dart';
 import 'package:rc_setting_manager/models/owned_part.dart';
@@ -59,6 +60,40 @@ T _successfulValue<T>(SettingsOperationResult<T> result) {
 }
 
 void main() {
+  test('既存の設定を復元し、項目名の表記を保存できる', () async {
+    SharedPreferences.setMockInitialValues({'language_settings': true});
+    final provider = _createProvider();
+    addTearDown(provider.dispose);
+    await _waitForProvider(provider);
+    expect(provider.settingLabelMode, SettingLabelMode.auto);
+    expect(provider.isEnglish, isTrue);
+
+    final repositoryKey = 'settings_state_v2';
+    final preferences = await SharedPreferences.getInstance();
+    final oldSnapshot = jsonDecode(preferences.getString(repositoryKey)!)
+        as Map<String, dynamic>;
+    oldSnapshot.remove('settingLabelMode');
+    await preferences.setString(repositoryKey, jsonEncode(oldSnapshot));
+
+    final oldSnapshotProvider = _createProvider();
+    addTearDown(oldSnapshotProvider.dispose);
+    await _waitForProvider(oldSnapshotProvider);
+    expect(oldSnapshotProvider.settingLabelMode, SettingLabelMode.auto);
+    expect(oldSnapshotProvider.isEnglish, isTrue);
+
+    expect(
+      _successfulValue(await oldSnapshotProvider.setSettingLabelMode(
+        SettingLabelMode.japanese,
+      )),
+      isTrue,
+    );
+    final reloaded = _createProvider();
+    addTearDown(reloaded.dispose);
+    await _waitForProvider(reloaded);
+    expect(reloaded.settingLabelMode, SettingLabelMode.japanese);
+    expect(reloaded.isEnglish, isTrue);
+  });
+
   test('persists garage membership and suppression flags', () async {
     final initialCar = _buildCar();
 

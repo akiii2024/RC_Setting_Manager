@@ -1,3 +1,4 @@
+import '../domain/settings/setting_label_mode.dart';
 import '../models/car.dart';
 import '../models/owned_part.dart';
 import '../models/run_log.dart';
@@ -50,9 +51,13 @@ abstract interface class SettingsCloudRepository {
 
   Future<Map<String, VisibilitySettings>> getVisibilitySettings();
 
-  Future<void> saveLanguageSettings(bool isEnglish);
+  Future<void> saveLanguageSettings(
+    bool isEnglish, {
+    required SettingLabelMode settingLabelMode,
+  });
 
-  Future<bool> getLanguageSettings();
+  Future<({bool isEnglish, SettingLabelMode? settingLabelMode})>
+      getLanguageSettings();
 
   Future<void> syncAllData({
     required List<SavedSetting> savedSettings,
@@ -61,6 +66,7 @@ abstract interface class SettingsCloudRepository {
     required List<OwnedPart> ownedParts,
     required Map<String, VisibilitySettings> visibilitySettings,
     required bool isEnglish,
+    required SettingLabelMode settingLabelMode,
   });
 }
 
@@ -147,11 +153,16 @@ class FirestoreSettingsCloudRepository implements SettingsCloudRepository {
       _service.getVisibilitySettings();
 
   @override
-  Future<void> saveLanguageSettings(bool isEnglish) =>
-      _service.saveLanguageSettings(isEnglish);
+  Future<void> saveLanguageSettings(
+    bool isEnglish, {
+    required SettingLabelMode settingLabelMode,
+  }) =>
+      _service.saveLanguageSettings(isEnglish,
+          settingLabelMode: settingLabelMode);
 
   @override
-  Future<bool> getLanguageSettings() => _service.getLanguageSettings();
+  Future<({bool isEnglish, SettingLabelMode? settingLabelMode})>
+      getLanguageSettings() => _service.getLanguageSettings();
 
   @override
   Future<void> syncAllData({
@@ -161,6 +172,7 @@ class FirestoreSettingsCloudRepository implements SettingsCloudRepository {
     required List<OwnedPart> ownedParts,
     required Map<String, VisibilitySettings> visibilitySettings,
     required bool isEnglish,
+    required SettingLabelMode settingLabelMode,
   }) =>
       _service.syncAllData(
         savedSettings: savedSettings,
@@ -169,5 +181,6 @@ class FirestoreSettingsCloudRepository implements SettingsCloudRepository {
         ownedParts: ownedParts,
         visibilitySettings: visibilitySettings,
         isEnglish: isEnglish,
+        settingLabelMode: settingLabelMode,
       );
 }

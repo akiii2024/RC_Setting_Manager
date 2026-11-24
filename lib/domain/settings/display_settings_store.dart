@@ -1,5 +1,6 @@
 import '../../models/car.dart';
 import '../../models/visibility_settings.dart';
+import 'setting_label_mode.dart';
 
 typedef AvailableSettingsLookup = List<String> Function(String carId);
 
@@ -7,10 +8,12 @@ typedef AvailableSettingsLookup = List<String> Function(String carId);
 class DisplaySettingsStore {
   Map<String, VisibilitySettings> _visibilitySettings = {};
   bool _isEnglish = false;
+  SettingLabelMode _settingLabelMode = SettingLabelMode.auto;
   bool _usePaperStyleEditor = false;
 
   Map<String, VisibilitySettings> get visibilitySettings => _visibilitySettings;
   bool get isEnglish => _isEnglish;
+  SettingLabelMode get settingLabelMode => _settingLabelMode;
   bool get usePaperStyleEditor => _usePaperStyleEditor;
 
   void replaceVisibilitySettings(
@@ -26,6 +29,14 @@ class DisplaySettingsStore {
   bool toggleLanguage() {
     _isEnglish = !_isEnglish;
     return _isEnglish;
+  }
+
+  bool setSettingLabelMode(SettingLabelMode value) {
+    if (_settingLabelMode == value) {
+      return false;
+    }
+    _settingLabelMode = value;
+    return true;
   }
 
   bool setPaperStyleEditor(bool value) {

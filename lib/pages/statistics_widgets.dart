@@ -616,12 +616,14 @@ class _SettingPerformanceTile extends StatelessWidget {
 class _ChangePerformanceTile extends StatelessWidget {
   final int rank;
   final ChangeRunPerformance stat;
+  final String label;
   final bool isEnglish;
   final DateTime now;
 
   const _ChangePerformanceTile({
     required this.rank,
     required this.stat,
+    required this.label,
     required this.isEnglish,
     required this.now,
   });
@@ -645,7 +647,7 @@ class _ChangePerformanceTile extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      stat.settingLabel,
+                      label,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.titleMedium?.copyWith(

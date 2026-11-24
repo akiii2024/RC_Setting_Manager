@@ -36,8 +36,10 @@ class SettingItem {
   final String type; // 'number', 'text', 'slider', 'select' など
   final Map<String, dynamic> constraints; // min, max, divisions など
   final String? unit; // 単位
-  final String category; // 'basic', 'front', 'frontDamper', 'rear', 'rearDamper', 'top', 'other' など
+  final String
+      category; // 'basic', 'front', 'frontDamper', 'rear', 'rearDamper', 'top', 'other' など
   final String label; // 表示名
+  final String? labelEn;
   final List<String>? options; // select typeの場合の選択肢
   final String? defaultValue; // デフォルト値
   final bool isAutoFilled; // 自動入力フラグ
@@ -49,10 +51,26 @@ class SettingItem {
     this.unit,
     required this.category,
     required this.label,
+    this.labelEn,
     this.options,
     this.defaultValue,
     this.isAutoFilled = false,
   });
+
+  SettingItem withEnglishLabel(String labelEn) {
+    return SettingItem(
+      key: key,
+      type: type,
+      constraints: constraints,
+      unit: unit,
+      category: category,
+      label: label,
+      labelEn: labelEn,
+      options: options,
+      defaultValue: defaultValue,
+      isAutoFilled: isAutoFilled,
+    );
+  }
 
   // JSONからの変換
   factory SettingItem.fromJson(Map<String, dynamic> json) {
@@ -63,6 +81,7 @@ class SettingItem {
       unit: json['unit'] as String?,
       category: json['category'] as String,
       label: json['label'] as String,
+      labelEn: json['labelEn'] as String?,
       options: (json['options'] as List?)?.map((e) => e as String).toList(),
       defaultValue: json['defaultValue'] as String?,
       isAutoFilled: json['isAutoFilled'] as bool? ?? false,
@@ -78,6 +97,7 @@ class SettingItem {
       'unit': unit,
       'category': category,
       'label': label,
+      if (labelEn != null) 'labelEn': labelEn,
       'options': options,
       'defaultValue': defaultValue,
       'isAutoFilled': isAutoFilled,
