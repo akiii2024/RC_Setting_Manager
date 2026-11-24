@@ -44,6 +44,7 @@ class _ConversationDialogState extends State<_ConversationDialog> {
     try {
       _aiService = AIAdvisorService();
       final initialMessage = await _aiService!.startConversationSession(
+        isEnglish: widget.isEnglish,
         car: widget.car,
         settings: widget.settings,
         settingDefinition: widget.settingDefinition,
@@ -68,9 +69,11 @@ class _ConversationDialogState extends State<_ConversationDialog> {
       if (mounted) {
         setState(() {
           _messages.add(ChatMessage(
-            text: widget.isEnglish
-                ? 'Failed to start the conversation.'
-                : '会話の開始に失敗しました。',
+            text: e is AIAdvisorResponseException
+                ? e.message
+                : (widget.isEnglish
+                    ? 'Failed to start the conversation.'
+                    : '会話の開始に失敗しました。'),
             isUser: false,
             timestamp: DateTime.now(),
           ));
@@ -116,9 +119,11 @@ class _ConversationDialogState extends State<_ConversationDialog> {
       if (mounted) {
         setState(() {
           _messages.add(ChatMessage(
-            text: widget.isEnglish
-                ? 'Failed to send the message.'
-                : 'メッセージの送信に失敗しました。',
+            text: e is AIAdvisorResponseException
+                ? e.message
+                : (widget.isEnglish
+                    ? 'Failed to send the message.'
+                    : 'メッセージの送信に失敗しました。'),
             isUser: false,
             timestamp: DateTime.now(),
           ));
@@ -172,9 +177,11 @@ class _ConversationDialogState extends State<_ConversationDialog> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(widget.isEnglish
-                ? 'Failed to generate advice.'
-                : '最終アドバイスの生成に失敗しました。'),
+            content: Text(e is AIAdvisorResponseException
+                ? e.message
+                : (widget.isEnglish
+                    ? 'Failed to generate advice.'
+                    : '最終アドバイスの生成に失敗しました。')),
             duration: const Duration(seconds: 5),
           ),
         );

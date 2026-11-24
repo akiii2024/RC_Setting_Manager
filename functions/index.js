@@ -1045,8 +1045,11 @@ async function callGeminiRequest(model, requestBody) {
   };
 }
 
-async function callGemini(contents) {
-  const response = await callGeminiRequest(geminiModel, {contents});
+async function callGemini(contents, system) {
+  const response = await callGeminiRequest(geminiModel, {
+    contents,
+    ...(system && {systemInstruction: {parts: [{text: system}]}}),
+  });
   return {text: response.text};
 }
 
@@ -1507,7 +1510,12 @@ async function handleGenerateSettingAdvice(request) {
 async function handleGenerateGeminiContent(request) {
   const usages = await enforceRateLimits(request, geminiRateLimits());
   const contents = normalizeContents(request.data?.contents);
-  const result = await callGemini(contents);
+  const system = request.data?.system;
+  if (system !== undefined &&
+      (typeof system !== "string" || !system.trim() || system.length > 20000)) {
+    throw new HttpsError("invalid-argument", "Invalid system instruction.");
+  }
+  const result = await callGemini(contents, system);
   return {
     ...result,
     usage: formatGeminiUsage(usages),

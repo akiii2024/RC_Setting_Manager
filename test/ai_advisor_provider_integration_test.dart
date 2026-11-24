@@ -63,6 +63,7 @@ void main() {
     final httpClient = MockClient((request) async {
       final body = jsonDecode(request.body) as Map<String, dynamic>;
       expect(body['store'], isFalse);
+      expect(body['instructions'], contains('Respond in English.'));
       expect(body['text'], isA<Map>());
       return http.Response(
         jsonEncode({

@@ -447,6 +447,7 @@ class _CarSettingPageState extends State<CarSettingPage>
     try {
       final aiService = AIAdvisorService();
       final advice = await aiService.analyzeSettings(
+        isEnglish: isEnglish,
         car: widget.originalCar,
         settings: settings,
         settingDefinition: _carSettingDefinition!,
@@ -470,8 +471,11 @@ class _CarSettingPageState extends State<CarSettingPage>
         // エラーメッセージを表示
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-                isEnglish ? 'Failed to get AI advice.' : 'AIアドバイスの取得に失敗しました。'),
+            content: Text(e is AIAdvisorResponseException
+                ? e.message
+                : (isEnglish
+                    ? 'Failed to get AI advice.'
+                    : 'AIアドバイスの取得に失敗しました。')),
             duration: const Duration(seconds: 5),
           ),
         );
