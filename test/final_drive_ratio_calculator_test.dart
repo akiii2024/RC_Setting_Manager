@@ -9,31 +9,45 @@ Finder _internalField() => find.widgetWithText(TextFormField, '内部減速比')
 String _internalValue(WidgetTester tester) =>
     tester.widget<TextFormField>(_internalField()).controller!.text;
 
-Future<void> _pump(WidgetTester tester,
-    {String? carId,
-    ValueChanged<double>? onCalculated,
-    bool english = false}) async {
-  await tester.pumpWidget(MaterialApp(
+Future<void> _pump(
+  WidgetTester tester, {
+  String? carId,
+  ValueChanged<double>? onCalculated,
+  bool english = false,
+}) async {
+  await tester.pumpWidget(
+    MaterialApp(
       home: Scaffold(
-          body: SingleChildScrollView(
-    child: FinalDriveRatioCalculator(
-        carId: carId,
-        spurTeeth: 100,
-        pinionTeeth: 40,
-        isEnglish: english,
-        onCalculated: onCalculated),
-  ))));
+        body: SingleChildScrollView(
+          child: FinalDriveRatioCalculator(
+            carId: carId,
+            spurTeeth: 100,
+            pinionTeeth: 40,
+            isEnglish: english,
+            onCalculated: onCalculated,
+          ),
+        ),
+      ),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 
 void main() {
   test('登録済み車種の標準内部減速比と未知車種を区別する', () {
     for (final car in BuiltInCarCatalog.create()) {
-      final expected = car.id.startsWith('tamiya/')
-          ? 1.85
-          : car.id == 'yokomo/ms2_0'
-              ? 2.0
-              : 1.9;
+      final expected = switch (car.id) {
+        'tamiya/trf420' ||
+        'tamiya/trf420x' ||
+        'tamiya/trf421' ||
+        'tamiya/trf421x' => 1.85,
+        'yokomo/bd11' || 'yokomo/bd12' || 'yokomo/ms1_0' => 1.9,
+        'yokomo/ms2_0' => 2.0,
+        'infinity/if14_2' => 1.81,
+        'xpress/xq11r' => 1.9,
+        'mugen/mtc2_fwd' => 1.9,
+        _ => null,
+      };
       expect(CarDriveRatios.forCarId(car.id), expected, reason: car.id);
     }
     expect(CarDriveRatios.forCarId('custom/car'), isNull);
@@ -42,8 +56,11 @@ void main() {
 
   testWidgets('車種の標準値が入力され、そのまま計算できる', (tester) async {
     double? calculated;
-    await _pump(tester,
-        carId: 'tamiya/trf421', onCalculated: (value) => calculated = value);
+    await _pump(
+      tester,
+      carId: 'tamiya/trf421',
+      onCalculated: (value) => calculated = value,
+    );
     expect(_internalValue(tester), '1.85');
     await tester.tap(find.text('最終減速比を計算'));
     await tester.pump();
@@ -74,11 +91,15 @@ void main() {
 
   testWidgets('計算ツール内で車両を選び直すと標準値を更新する', (tester) async {
     final cars = BuiltInCarCatalog.create();
-    await tester.pumpWidget(MaterialApp(
+    await tester.pumpWidget(
+      MaterialApp(
         home: Scaffold(
-            body: SingleChildScrollView(
-      child: FinalDriveRatioCalculator(carId: cars.first.id, cars: cars),
-    ))));
+          body: SingleChildScrollView(
+            child: FinalDriveRatioCalculator(carId: cars.first.id, cars: cars),
+          ),
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.byType(DropdownButtonFormField<String>));
     await tester.pumpAndSettle();

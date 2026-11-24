@@ -8,9 +8,7 @@ import 'package:rc_setting_manager/models/car_setting_definition.dart';
 Object? _canonicalize(Object? value) {
   if (value is Map) {
     final keys = value.keys.map((key) => key.toString()).toList()..sort();
-    return {
-      for (final key in keys) key: _canonicalize(value[key]),
-    };
+    return {for (final key in keys) key: _canonicalize(value[key])};
   }
   if (value is Iterable) {
     return value.map(_canonicalize).toList(growable: false);
@@ -30,13 +28,15 @@ String _fingerprint(Object? value) {
 
 Map<String, Object> _definitionShape(CarSettingDefinition definition) {
   final settings = definition.availableSettings;
-  final normalizedSettings = settings.map((setting) {
-    final json = setting.toJson();
-    if (setting.key == 'date') {
-      json['defaultValue'] = '<current-date>';
-    }
-    return json;
-  }).toList(growable: false);
+  final normalizedSettings = settings
+      .map((setting) {
+        final json = setting.toJson();
+        if (setting.key == 'date') {
+          json['defaultValue'] = '<current-date>';
+        }
+        return json;
+      })
+      .toList(growable: false);
   final options = [
     for (final setting in settings)
       if (setting.options != null)
@@ -51,8 +51,9 @@ Map<String, Object> _definitionShape(CarSettingDefinition definition) {
   return {
     'count': settings.length,
     'keys': _fingerprint(settings.map((setting) => setting.key).toList()),
-    'categories':
-        _fingerprint(settings.map((setting) => setting.category).toList()),
+    'categories': _fingerprint(
+      settings.map((setting) => setting.category).toList(),
+    ),
     'options': _fingerprint(options),
     'composites': _fingerprint(composites),
     'fullShape': _fingerprint(normalizedSettings),
@@ -70,6 +71,14 @@ void main() {
       'yokomo/bd12',
       'yokomo/ms1_0',
       'yokomo/ms2_0',
+      'xray/x4_24',
+      'arc/arc_r12',
+      'awesomatix/a800r',
+      'infinity/if14_2',
+      'mugen/mtc2_fwd',
+      'mugen/mtc3',
+      'schumacher/mi9',
+      'xpress/xq11r',
     ]);
     for (final entry in carSettingsDefinitions.entries) {
       expect(entry.value.carId, entry.key);
@@ -86,22 +95,35 @@ void main() {
           final value = double.tryParse(setting.defaultValue!);
           expect(value, isNotNull, reason: reason);
           expect(value!.isFinite, isTrue, reason: reason);
-          expect(value, greaterThanOrEqualTo(setting.constraints['min'] as num),
-              reason: reason);
-          expect(value, lessThanOrEqualTo(setting.constraints['max'] as num),
-              reason: reason);
+          expect(
+            value,
+            greaterThanOrEqualTo(setting.constraints['min'] as num),
+            reason: reason,
+          );
+          expect(
+            value,
+            lessThanOrEqualTo(setting.constraints['max'] as num),
+            reason: reason,
+          );
         } else if (setting.type == 'text' && setting.key != 'date') {
           expect(setting.defaultValue, isEmpty, reason: reason);
         } else if (setting.type == 'select') {
-          expect(setting.options, contains(setting.defaultValue),
-              reason: reason);
+          expect(
+            setting.options,
+            contains(setting.defaultValue),
+            reason: reason,
+          );
         }
       }
     }
   });
 
-  test('共通定義とコピー先にも走行可能な基準値を設定する', () {
+  test('タミヤ・ヨコモの車種に走行可能な基準値を設定する', () {
     for (final entry in carSettingsDefinitions.entries) {
+      if (!entry.key.startsWith('tamiya/') &&
+          !entry.key.startsWith('yokomo/')) {
+        continue;
+      }
       final defaults = {
         for (final setting in entry.value.availableSettings)
           setting.key: setting.defaultValue,
@@ -109,39 +131,50 @@ void main() {
       final isTamiya = entry.key.startsWith('tamiya/');
       for (final end in ['front', 'rear']) {
         expect(
-            defaults['$end${isTamiya ? 'GroundClearance' : 'RideHeight'}'], '5',
-            reason: entry.key);
-        expect(defaults['$end${isTamiya ? 'CamberAngle' : 'Camber'}'], '-2',
-            reason: entry.key);
-        expect(defaults['$end${isTamiya ? 'DamperPistonHole' : 'PistonHole'}'],
-            '4',
-            reason: entry.key);
+          defaults['$end${isTamiya ? 'GroundClearance' : 'RideHeight'}'],
+          '5',
+          reason: entry.key,
+        );
+        expect(
+          defaults['$end${isTamiya ? 'CamberAngle' : 'Camber'}'],
+          '-2',
+          reason: entry.key,
+        );
+        expect(
+          defaults['$end${isTamiya ? 'DamperPistonHole' : 'PistonHole'}'],
+          '4',
+          reason: entry.key,
+        );
         // 自由記述のオイル銘柄/粘度は利用者が指定する。
-        expect(defaults['$end${isTamiya ? 'DamperOil' : 'ShockOil'}'], '',
-            reason: entry.key);
+        expect(
+          defaults['$end${isTamiya ? 'DamperOil' : 'ShockOil'}'],
+          '',
+          reason: entry.key,
+        );
       }
       expect(defaults['motor'], '', reason: entry.key);
       expect(defaults['spurGear'], '116', reason: entry.key);
       expect(defaults['pinionGear'], '30', reason: entry.key);
     }
     expect(
-        carSettingsDefinitions['tamiya/trf421x']!
-            .availableSettings
-            .firstWhere((setting) => setting.key == 'lowerDeck')
-            .defaultValue,
-        '2');
+      carSettingsDefinitions['tamiya/trf421x']!.availableSettings
+          .firstWhere((setting) => setting.key == 'lowerDeck')
+          .defaultValue,
+      '2',
+    );
     expect(
-        carSettingsDefinitions['tamiya/trf420']!
-            .availableSettings
-            .firstWhere((setting) => setting.key == 'rearToeAngle')
-            .defaultValue,
-        '3');
+      carSettingsDefinitions['tamiya/trf420']!.availableSettings
+          .firstWhere((setting) => setting.key == 'rearToeAngle')
+          .defaultValue,
+      '3',
+    );
   });
 
-  test('全車種のキー・カテゴリ・選択肢・複合metadataを維持する', () {
+  test('タミヤ・ヨコモのキー・カテゴリ・選択肢・複合metadataを維持する', () {
     final actual = {
       for (final entry in carSettingsDefinitions.entries)
-        entry.key: _definitionShape(entry.value),
+        if (entry.key.startsWith('tamiya/') || entry.key.startsWith('yokomo/'))
+          entry.key: _definitionShape(entry.value),
     };
 
     expect(actual, {
