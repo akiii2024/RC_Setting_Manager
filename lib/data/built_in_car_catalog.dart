@@ -18,6 +18,12 @@ abstract final class BuiltInCarCatalog {
       logoPath: 'assets/images/yokomo.png',
     );
 
+    final infinity = Manufacturer(
+      id: 'infinity',
+      name: 'Infinity',
+      logoPath: 'assets/images/infinity.png',
+    );
+
     return [
       Car(
         id: 'tamiya/trf421',
@@ -73,6 +79,13 @@ abstract final class BuiltInCarCatalog {
         name: 'MS2.0',
         imageUrl: 'assets/images/ms2_0.jpg',
         manufacturer: yokomo,
+        category: 'ツーリングカー',
+      ),
+      Car(
+        id: 'infinity/if14_2',
+        name: 'IF14-2',
+        imageUrl: 'assets/images/if14_2.jpg',
+        manufacturer: infinity,
         category: 'ツーリングカー',
       ),
     ];

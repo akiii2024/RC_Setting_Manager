@@ -70,6 +70,7 @@ void main() {
       'yokomo/bd12',
       'yokomo/ms1_0',
       'yokomo/ms2_0',
+      'infinity/if14_2',
     ]);
     for (final entry in carSettingsDefinitions.entries) {
       expect(entry.value.carId, entry.key);
@@ -107,6 +108,7 @@ void main() {
           setting.key: setting.defaultValue,
       };
       final isTamiya = entry.key.startsWith('tamiya/');
+      final isIf142 = entry.key == 'infinity/if14_2';
       for (final end in ['front', 'rear']) {
         expect(
             defaults['$end${isTamiya ? 'GroundClearance' : 'RideHeight'}'], '5',
@@ -116,11 +118,15 @@ void main() {
         expect(defaults['$end${isTamiya ? 'DamperPistonHole' : 'PistonHole'}'],
             '4',
             reason: entry.key);
-        // 自由記述のオイル銘柄/粘度は利用者が指定する。
-        expect(defaults['$end${isTamiya ? 'DamperOil' : 'ShockOil'}'], '',
-            reason: entry.key);
+        // シート上の自由記述のオイル欄は利用者が指定する。
+        final oilKey = switch ((isTamiya, isIf142)) {
+          (true, _) => 'DamperOil',
+          (_, true) => 'Diff',
+          _ => 'ShockOil',
+        };
+        expect(defaults['$end$oilKey'], '', reason: entry.key);
       }
-      expect(defaults['motor'], '', reason: entry.key);
+      expect(defaults[isIf142 ? 'motorMount' : 'motor'], '', reason: entry.key);
       expect(defaults['spurGear'], '116', reason: entry.key);
       expect(defaults['pinionGear'], '30', reason: entry.key);
     }
@@ -208,6 +214,14 @@ void main() {
         'options': '04e11613',
         'composites': '39675f6d',
         'fullShape': 'f04b3561',
+      },
+      'infinity/if14_2': {
+        'count': 112,
+        'keys': 'def37cd1',
+        'categories': '847a6e24',
+        'options': '916fb925',
+        'composites': '741638a5',
+        'fullShape': 'aa1524f3',
       },
     });
   });

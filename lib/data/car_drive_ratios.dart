@@ -12,6 +12,8 @@ abstract final class CarDriveRatios {
   // https://cdn.shopify.com/s/files/1/0722/1133/3229/files/BD12_Manual.pdf
   // https://cdn.shopify.com/s/files/1/0722/1133/3229/files/MS1.0_Instruction_Manual.pdf
   // https://cdn.shopify.com/s/files/1/0722/1133/3229/files/MS2.0_Instruction_Manual.pdf (p26)
+  // Infinity IF14-2: 公式マニュアルのギヤ比表に記載された二次減速比。
+  // https://www.creationmodel.net/infinity/images/manuals/10101-002_IF14-2_INSTRUCTION_MANUAL.pdf
   static const _standardRatios = <String, double>{
     'tamiya/trf420': 1.85,
     'tamiya/trf420x': 1.85,
@@ -21,6 +23,7 @@ abstract final class CarDriveRatios {
     'yokomo/bd12': 1.9,
     'yokomo/ms1_0': 1.9,
     'yokomo/ms2_0': 2.0,
+    'infinity/if14_2': 1.81,
   };
 
   static double? forCarId(String? carId) => _standardRatios[carId];
