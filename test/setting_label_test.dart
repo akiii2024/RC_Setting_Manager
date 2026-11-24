@@ -59,7 +59,7 @@ void main() {
     expect(item.toJson(), json);
   });
 
-  test('X4’24 のみ純正シートに対応した英語表記を持つ', () {
+  test('X4’24 と対象のヨコモ車種は純正シートに対応した英語表記を持つ', () {
     final labels = {
       for (final item
           in carSettingsDefinitions['xray/x4_24']!.availableSettings)
@@ -71,8 +71,28 @@ void main() {
     expect(labels['rearStabilizer'], 'Rear Anti-roll Bar');
     expect(labels['surface'], 'Track Surface');
     expect(labels['airTemp'], isNull);
+    const yokomoIds = {
+      'yokomo/bd11',
+      'yokomo/bd12',
+      'yokomo/ms1_0',
+      'yokomo/ms2_0',
+    };
+    for (final id in yokomoIds) {
+      final englishLabels = <String>{};
+      for (final item in carSettingsDefinitions[id]!.availableSettings) {
+        final label = item.labelEn;
+        final reason = '$id / ${item.key}';
+        if (item.category == 'basic' || item.category == 'memo') {
+          expect(label, isNull, reason: reason);
+        } else {
+          expect(label?.trim(), isNot(isEmpty), reason: reason);
+          expect(label, isNotNull, reason: reason);
+          expect(englishLabels.add(label!), isTrue, reason: reason);
+        }
+      }
+    }
     for (final entry in carSettingsDefinitions.entries) {
-      if (entry.key == 'xray/x4_24') continue;
+      if (entry.key == 'xray/x4_24' || yokomoIds.contains(entry.key)) continue;
       expect(entry.value.availableSettings.map((item) => item.labelEn),
           everyElement(isNull));
     }

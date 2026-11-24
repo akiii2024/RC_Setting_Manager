@@ -216,7 +216,7 @@ void main() {
         'categories': '394e6391',
         'options': 'a366082c',
         'composites': '5c2b6309',
-        'fullShape': '717a5077',
+        'fullShape': 'b4871715',
       },
       'yokomo/bd12': {
         'count': 77,
@@ -224,7 +224,7 @@ void main() {
         'categories': 'd9ce3b24',
         'options': '6b73060e',
         'composites': '4ad23d91',
-        'fullShape': 'dfdedfa0',
+        'fullShape': '8d08f86c',
       },
       'yokomo/ms1_0': {
         'count': 74,
@@ -232,7 +232,7 @@ void main() {
         'categories': '9278acf3',
         'options': '6cc854c8',
         'composites': '39675f6d',
-        'fullShape': '404b9f0d',
+        'fullShape': 'a78cc886',
       },
       'yokomo/ms2_0': {
         'count': 75,
@@ -240,7 +240,7 @@ void main() {
         'categories': '907e0516',
         'options': '04e11613',
         'composites': '39675f6d',
-        'fullShape': 'f04b3561',
+        'fullShape': '9790ebf5',
       },
     });
   });
