@@ -21,6 +21,8 @@ abstract final class CarDriveRatios {
     'yokomo/bd12': 1.9,
     'yokomo/ms1_0': 1.9,
     'yokomo/ms2_0': 2.0,
+    // Mugen セッティングシート Ver. 2107-2 のギヤ比計算式。
+    'mugen/mtc2_fwd': 1.9,
   };
 
   static double? forCarId(String? carId) => _standardRatios[carId];

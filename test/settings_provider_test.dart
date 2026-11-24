@@ -544,6 +544,7 @@ void main() {
         'yokomo/bd12',
         'yokomo/ms1_0',
         'yokomo/ms2_0',
+        'mugen/mtc2_fwd',
       }),
     );
     expect(provider.getCarById('tamiya/trf421')?.isInGarage, isTrue);

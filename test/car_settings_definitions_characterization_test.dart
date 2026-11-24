@@ -70,6 +70,7 @@ void main() {
       'yokomo/bd12',
       'yokomo/ms1_0',
       'yokomo/ms2_0',
+      'mugen/mtc2_fwd',
     ]);
     for (final entry in carSettingsDefinitions.entries) {
       expect(entry.value.carId, entry.key);
@@ -113,8 +114,14 @@ void main() {
             reason: entry.key);
         expect(defaults['$end${isTamiya ? 'CamberAngle' : 'Camber'}'], '-2',
             reason: entry.key);
-        expect(defaults['$end${isTamiya ? 'DamperPistonHole' : 'PistonHole'}'],
-            '4',
+        // MTC2 FWD のピストンは、穴数の指定がない自由記入欄。
+        final pistonIsFreeText = entry.key == 'mugen/mtc2_fwd';
+        final pistonSuffix = pistonIsFreeText
+            ? 'Piston'
+            : isTamiya
+                ? 'DamperPistonHole'
+                : 'PistonHole';
+        expect(defaults['$end$pistonSuffix'], pistonIsFreeText ? '' : '4',
             reason: entry.key);
         // 自由記述のオイル銘柄/粘度は利用者が指定する。
         expect(defaults['$end${isTamiya ? 'DamperOil' : 'ShockOil'}'], '',
@@ -208,6 +215,14 @@ void main() {
         'options': '04e11613',
         'composites': '39675f6d',
         'fullShape': 'f04b3561',
+      },
+      'mugen/mtc2_fwd': {
+        'count': 104,
+        'keys': '245b5514',
+        'categories': '6f85a096',
+        'options': 'cddc8d13',
+        'composites': '741638a5',
+        'fullShape': 'e97eb30d',
       },
     });
   });
